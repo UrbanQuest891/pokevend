@@ -13,11 +13,14 @@ import {
   DollarSign,
   ArrowRight,
   Database,
+  Flag,
+  ChevronDown,
 } from 'lucide-react';
 import { CardCondition, CardStatus, PokemonCard } from '@/types';
 import { POKEMON_CARD_TEMPLATES, PokemonCardTemplate } from '@/lib/pokemonCatalog';
 import { formatCurrency } from '@/lib/qr';
 import { TcgdexCardSummary } from '@/lib/tcgdex';
+import { LocalIdCardSummary } from '@/lib/localIdCards';
 
 interface EditSlotModalProps {
   isOpen: boolean;
@@ -68,12 +71,20 @@ export default function EditSlotModal({
   const [clearing, setClearing] = useState(false);
 
   // TCGdex integration state
-  const [searchSource, setSearchSource] = useState<'tcgdex' | 'preset'>('tcgdex');
+  const [searchSource, setSearchSource] = useState<'tcgdex' | 'localid' | 'preset'>('tcgdex');
   const [tcgdexQuery, setTcgdexQuery] = useState('');
   const [tcgdexResults, setTcgdexResults] = useState<TcgdexCardSummary[]>([]);
   const [tcgdexSearching, setTcgdexSearching] = useState(false);
   const [tcgdexFetchingCard, setTcgdexFetchingCard] = useState(false);
   const [marketRef, setMarketRef] = useState<{ usd?: number; idr?: number } | null>(null);
+
+  // Indonesian local card database state
+  const [localIdQuery, setLocalIdQuery] = useState('');
+  const [localIdResults, setLocalIdResults] = useState<LocalIdCardSummary[]>([]);
+  const [localIdSearching, setLocalIdSearching] = useState(false);
+  const [localIdExpansion, setLocalIdExpansion] = useState('');
+  const [expansions, setExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
+  const [expansionsLoaded, setExpansionsLoaded] = useState(false);
 
   // Local preset search
   const [presetSearch, setPresetSearch] = useState('');
@@ -106,7 +117,23 @@ export default function EditSlotModal({
     setTcgdexResults([]);
     setMarketRef(null);
     setPresetSearch('');
+    setLocalIdQuery('');
+    setLocalIdResults([]);
+    setLocalIdExpansion('');
   }, [existingCard, isOpen, currency]);
+
+  // Load expansions when Indonesian tab is first opened
+  useEffect(() => {
+    if (searchSource === 'localid' && !expansionsLoaded) {
+      fetch('/api/localid/expansions')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) setExpansions(data.expansions);
+          setExpansionsLoaded(true);
+        })
+        .catch(() => setExpansionsLoaded(true));
+    }
+  }, [searchSource, expansionsLoaded]);
 
   // Debounced TCGdex search
   useEffect(() => {
@@ -133,6 +160,33 @@ export default function EditSlotModal({
 
     return () => clearTimeout(timer);
   }, [tcgdexQuery]);
+
+  // Debounced Indonesian local DB search
+  useEffect(() => {
+    if (searchSource !== 'localid') return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setLocalIdSearching(true);
+        const params = new URLSearchParams({
+          q: localIdQuery.trim(),
+          limit: '15',
+        });
+        if (localIdExpansion) params.set('expansion', localIdExpansion);
+        const res = await fetch(`/api/localid/search?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setLocalIdResults(data.cards || []);
+        }
+      } catch (err) {
+        console.error('LocalId search failed:', err);
+      } finally {
+        setLocalIdSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [localIdQuery, localIdExpansion, searchSource]);
 
   if (!isOpen) return null;
 
@@ -187,6 +241,35 @@ export default function EditSlotModal({
       idr: template.defaultPrice,
       usd: Math.round(template.defaultPrice / 16000),
     });
+  };
+
+  // Handle picking from Indonesian local DB
+  const handleSelectLocalIdCard = async (summary: LocalIdCardSummary) => {
+    try {
+      setLocalIdSearching(true);
+      const res = await fetch(`/api/localid/card/${summary.id}`);
+      const data = await res.json();
+
+      if (data.success && data.card) {
+        const c = data.card;
+        setCardName(c.name);
+        setCardSet(c.productName || c.expansionCode || '');
+        setCardNumber(c.collectorNumber || '');
+        setImageUrl(c.imageUrl || '');
+        setMarketRef(null); // Indonesian DB has no price data — seller sets manually
+      } else {
+        setCardName(summary.name);
+        setCardSet(summary.productName || '');
+        setCardNumber(summary.collectorNumber || '');
+        setImageUrl(summary.imageUrl || '');
+      }
+    } catch (err) {
+      console.error(err);
+      setCardName(summary.name);
+      setImageUrl(summary.imageUrl || '');
+    } finally {
+      setLocalIdSearching(false);
+    }
   };
 
   const filteredPresets = presetSearch.trim()
@@ -280,7 +363,7 @@ export default function EditSlotModal({
         <div className="mt-4 p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2.5">
           {/* Tabs */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 flex-wrap">
               <button
                 type="button"
                 onClick={() => setSearchSource('tcgdex')}
@@ -291,7 +374,19 @@ export default function EditSlotModal({
                 }`}
               >
                 <Globe className="w-3.5 h-3.5" />
-                <span>TCGdex Live (23.000+ Kartu)</span>
+                <span>TCGdex Live (EN)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchSource('localid')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  searchSource === 'localid'
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="text-sm leading-none">🇮🇩</span>
+                <span>Kartu Indonesia (4.100+)</span>
               </button>
               <button
                 type="button"
@@ -308,7 +403,7 @@ export default function EditSlotModal({
             </div>
 
             <span className="text-[10px] text-slate-400 hidden sm:inline">
-              Otomatis isi foto, set, & referensi harga
+              {searchSource === 'localid' ? 'Data dari pokemon-card.com/id' : 'Otomatis isi foto, set, & referensi harga'}
             </span>
           </div>
 
@@ -366,7 +461,100 @@ export default function EditSlotModal({
 
               {tcgdexQuery.trim().length >= 2 && !tcgdexSearching && tcgdexResults.length === 0 && (
                 <div className="mt-2 text-center text-xs text-slate-400 py-1">
-                  Tidak ada kartu ditemukan dengan kata kunci "{tcgdexQuery}".
+                  Tidak ada kartu ditemukan dengan kata kunci &quot;{tcgdexQuery}&quot;.
+                </div>
+              )}
+            </div>
+          ) : searchSource === 'localid' ? (
+            /* Indonesian Local Database */
+            <div className="space-y-2">
+              {/* Expansion filter */}
+              <div className="relative">
+                <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-2 text-slate-400 pointer-events-none" />
+                <select
+                  value={localIdExpansion}
+                  onChange={(e) => setLocalIdExpansion(e.target.value)}
+                  className="w-full pl-3 pr-8 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-red-500 appearance-none"
+                >
+                  <option value="">— Semua Seri / Produk —</option>
+                  {expansions.map((exp) => (
+                    <option key={exp.code} value={exp.code}>
+                      {exp.productName} ({exp.count} kartu)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Search input */}
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama kartu dalam Bahasa Indonesia (misal: Charizard, Pikachu, Mewtwo)..."
+                  value={localIdQuery}
+                  onChange={(e) => setLocalIdQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+                />
+                {localIdSearching && (
+                  <Loader2 className="w-4 h-4 absolute right-3 top-2.5 text-red-400 animate-spin" />
+                )}
+              </div>
+
+              {/* Info badge */}
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-red-950/40 border border-red-500/20 rounded-lg">
+                <span className="text-sm">🇮🇩</span>
+                <span className="text-[10px] text-red-300">
+                  Database kartu resmi Bahasa Indonesia dari pokemon-card.com/id — 4.100+ kartu
+                </span>
+              </div>
+
+              {/* Results */}
+              {localIdResults.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {localIdResults.map((card) => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      disabled={localIdSearching}
+                      onClick={() => handleSelectLocalIdCard(card)}
+                      className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-red-500/50 flex items-center gap-2 text-left transition-all group"
+                    >
+                      {card.imageUrl ? (
+                        <img
+                          src={card.imageUrl}
+                          alt=""
+                          className="w-8 h-11 object-cover rounded shadow flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-11 bg-slate-800 rounded flex items-center justify-center text-[8px] text-slate-500">
+                          ID
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white group-hover:text-red-300 truncate">
+                          {card.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {card.collectorNumber && `#${card.collectorNumber} • `}{card.category}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          {card.productName}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length > 0 && (
+                <div className="text-center text-xs text-slate-400 py-1">
+                  Tidak ada kartu ditemukan untuk &quot;{localIdQuery}&quot;.
+                </div>
+              )}
+
+              {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length === 0 && (
+                <div className="text-center text-xs text-slate-500 py-1">
+                  Ketik nama kartu untuk mencari, atau pilih seri di atas.
                 </div>
               )}
             </div>
