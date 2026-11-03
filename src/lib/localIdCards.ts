@@ -41,29 +41,41 @@ export interface LocalIdCard {
 
 // ---------- CSV parser ----------
 
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
   let inQuotes = false;
+  let current = '';
 
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
+      if (inQuotes && text[i + 1] === '"') {
         current += '"';
         i++;
       } else {
         inQuotes = !inQuotes;
       }
     } else if (ch === ',' && !inQuotes) {
-      result.push(current);
+      row.push(current.trim());
+      current = '';
+    } else if ((ch === '\r' || ch === '\n') && !inQuotes) {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(current.trim());
+      if (row.length > 1 || (row.length === 1 && row[0] !== '')) {
+        rows.push(row);
+      }
+      row = [];
       current = '';
     } else {
       current += ch;
     }
   }
-  result.push(current);
-  return result;
+  if (current || row.length > 0) {
+    row.push(current.trim());
+    rows.push(row);
+  }
+  return rows;
 }
 
 // ---------- Loader (cached in module scope for server-side reuse) ----------
@@ -80,22 +92,30 @@ export function loadLocalIdCards(): LocalIdCard[] {
     return [];
   }
 
-  const raw = fs.readFileSync(csvPath, 'utf-8');
-  const lines = raw.split(/\r?\n/).filter(Boolean);
+  let raw = fs.readFileSync(csvPath, 'utf-8');
+  // Strip UTF-8 BOM if present
+  if (raw.charCodeAt(0) === 0xFEFF) {
+    raw = raw.slice(1);
+  }
 
-  if (lines.length < 2) return [];
+  const rows = parseCsv(raw);
+  if (rows.length < 2) return [];
 
-  const headers = parseCsvLine(lines[0]);
+  const headers = rows[0].map((h) =>
+    h.replace(/^\uFEFF/, '').replace(/^["']|["']$/g, '').trim()
+  );
 
   const cards: LocalIdCard[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i];
     if (cols.length < headers.length) continue;
 
     const obj: Record<string, string> = {};
     headers.forEach((h, idx) => {
       obj[h] = (cols[idx] ?? '').trim();
     });
+
+    if (!obj.id) continue;
 
     cards.push({
       id: obj.id,

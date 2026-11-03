@@ -657,9 +657,9 @@ export default function EditSlotModal({
                       {/* TCGdex Results - Large Visual Grid */}
                       {tcgdexResults.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                          {tcgdexResults.map((card) => (
+                          {tcgdexResults.map((card, idx) => (
                             <button
-                              key={card.id}
+                              key={`tcgdex-${card.id || idx}-${idx}`}
                               type="button"
                               disabled={tcgdexFetchingCard}
                               onClick={() => handleSelectTcgdexCard(card)}
@@ -737,9 +737,9 @@ export default function EditSlotModal({
                       {/* Indonesian Results */}
                       {localIdResults.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                          {localIdResults.map((card) => (
+                          {localIdResults.map((card, idx) => (
                             <button
-                              key={card.id}
+                              key={`localid-${card.id || idx}-${idx}`}
                               type="button"
                               disabled={localIdSearching}
                               onClick={() => handleSelectLocalIdCard(card)}
@@ -803,7 +803,7 @@ export default function EditSlotModal({
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
                         {filteredPresets.map((item, idx) => (
                           <button
-                            key={idx}
+                            key={`preset-${item.cardNumber || idx}-${idx}`}
                             type="button"
                             onClick={() => handleSelectPreset(item)}
                             className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-amber-500/10"
