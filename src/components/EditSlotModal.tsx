@@ -28,6 +28,7 @@ import { POKEMON_CARD_TEMPLATES, PokemonCardTemplate } from '@/lib/pokemonCatalo
 import { formatCurrency } from '@/lib/qr';
 import { TcgdexCardSummary } from '@/lib/tcgdex';
 import { LocalIdCardSummary } from '@/lib/localIdCards';
+import { LocalJpCardSummary } from '@/lib/localJpCards';
 import CardImageLightbox from '@/components/CardImageLightbox';
 
 interface EditSlotModalProps {
@@ -84,7 +85,7 @@ export default function EditSlotModal({
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // TCGdex integration state
-  const [searchSource, setSearchSource] = useState<'tcgdex' | 'localid' | 'preset'>('tcgdex');
+  const [searchSource, setSearchSource] = useState<'tcgdex' | 'localid' | 'localjp' | 'preset'>('tcgdex');
   const [tcgdexQuery, setTcgdexQuery] = useState('');
   const [tcgdexResults, setTcgdexResults] = useState<TcgdexCardSummary[]>([]);
   const [tcgdexSearching, setTcgdexSearching] = useState(false);
@@ -98,6 +99,14 @@ export default function EditSlotModal({
   const [localIdExpansion, setLocalIdExpansion] = useState('');
   const [expansions, setExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
   const [expansionsLoaded, setExpansionsLoaded] = useState(false);
+
+  // Japanese local card database state
+  const [localJpQuery, setLocalJpQuery] = useState('');
+  const [localJpResults, setLocalJpResults] = useState<LocalJpCardSummary[]>([]);
+  const [localJpSearching, setLocalJpSearching] = useState(false);
+  const [localJpExpansion, setLocalJpExpansion] = useState('');
+  const [jpExpansions, setJpExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
+  const [jpExpansionsLoaded, setJpExpansionsLoaded] = useState(false);
 
   // Local preset search
   const [presetSearch, setPresetSearch] = useState('');
@@ -133,6 +142,9 @@ export default function EditSlotModal({
     setLocalIdQuery('');
     setLocalIdResults([]);
     setLocalIdExpansion('');
+    setLocalJpQuery('');
+    setLocalJpResults([]);
+    setLocalJpExpansion('');
     setShowHoloPreview(false);
     setShowUrlInput(false);
   }, [existingCard, isOpen, currency]);
@@ -149,6 +161,19 @@ export default function EditSlotModal({
         .catch(() => setExpansionsLoaded(true));
     }
   }, [searchSource, expansionsLoaded]);
+
+  // Load expansions when Japanese tab is first opened
+  useEffect(() => {
+    if (searchSource === 'localjp' && !jpExpansionsLoaded) {
+      fetch('/api/localjp/expansions')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) setJpExpansions(data.expansions);
+          setJpExpansionsLoaded(true);
+        })
+        .catch(() => setJpExpansionsLoaded(true));
+    }
+  }, [searchSource, jpExpansionsLoaded]);
 
   // Debounced TCGdex search
   useEffect(() => {
@@ -203,6 +228,33 @@ export default function EditSlotModal({
 
     return () => clearTimeout(timer);
   }, [localIdQuery, localIdExpansion, searchSource]);
+
+  // Debounced Japanese local DB search
+  useEffect(() => {
+    if (searchSource !== 'localjp') return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setLocalJpSearching(true);
+        const params = new URLSearchParams({
+          q: localJpQuery.trim(),
+          limit: '15',
+        });
+        if (localJpExpansion) params.set('expansion', localJpExpansion);
+        const res = await fetch(`/api/localjp/search?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setLocalJpResults(data.cards || []);
+        }
+      } catch (err) {
+        console.error('LocalJp search failed:', err);
+      } finally {
+        setLocalJpSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [localJpQuery, localJpExpansion, searchSource]);
 
   if (!isOpen) return null;
 
@@ -283,6 +335,35 @@ export default function EditSlotModal({
       setImageUrl(summary.imageUrl || '');
     } finally {
       setLocalIdSearching(false);
+    }
+  };
+
+  // Handle picking from Japanese local DB
+  const handleSelectLocalJpCard = async (summary: LocalJpCardSummary) => {
+    try {
+      setLocalJpSearching(true);
+      const res = await fetch(`/api/localjp/card/${summary.id}`);
+      const data = await res.json();
+
+      if (data.success && data.card) {
+        const c = data.card;
+        setCardName(c.name);
+        setCardSet(c.expansion || '');
+        setCardNumber(c.collectorNumber || '');
+        setImageUrl(c.imageUrl || '');
+        setMarketRef(null);
+      } else {
+        setCardName(summary.name);
+        setCardSet(summary.expansion || '');
+        setCardNumber(summary.collectorNumber || '');
+        setImageUrl(summary.imageUrl || '');
+      }
+    } catch (err) {
+      console.error(err);
+      setCardName(summary.name);
+      setImageUrl(summary.imageUrl || '');
+    } finally {
+      setLocalJpSearching(false);
     }
   };
 
@@ -620,6 +701,19 @@ export default function EditSlotModal({
 
                       <button
                         type="button"
+                        onClick={() => setSearchSource('localjp')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          searchSource === 'localjp'
+                            ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400/40'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-sm leading-none">🇯🇵</span>
+                        <span>Kartu Jepang (23.000+)</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => setSearchSource('preset')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                           searchSource === 'preset'
@@ -782,6 +876,101 @@ export default function EditSlotModal({
                         <div className="text-center text-xs text-slate-500 py-1.5 flex items-center justify-center gap-1.5">
                           <span>🇮🇩</span>
                           <span>Ketik nama Pokémon Indonesia atau pilih seri di atas.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {searchSource === 'localjp' && (
+                    <div className="space-y-2.5">
+                      {/* Expansion filter dropdown */}
+                      <div className="relative">
+                        <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                        <select
+                          value={localJpExpansion}
+                          onChange={(e) => setLocalJpExpansion(e.target.value)}
+                          className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-purple-500 appearance-none shadow-inner"
+                        >
+                          <option value="">— Semua Seri / Set Jepang (1.300+ Seri) —</option>
+                          {jpExpansions.slice(0, 100).map((exp) => (
+                            <option key={exp.code} value={exp.code}>
+                              {exp.productName} ({exp.count} kartu)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Japanese Search input */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Cari kartu Jepang (contoh: リザードン, Pikachu, 151, VSTAR, 001/078)..."
+                          value={localJpQuery}
+                          onChange={(e) => setLocalJpQuery(e.target.value)}
+                          className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 shadow-inner"
+                        />
+                        {localJpSearching && (
+                          <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-purple-400 animate-spin" />
+                        )}
+                      </div>
+
+                      {/* Info badge */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/40 border border-purple-500/20 rounded-xl text-purple-200">
+                        <span className="text-sm">🇯🇵</span>
+                        <span className="text-[11px]">
+                          Database resmi Jepang (23.000+ kartu). Bisa cari nama Jepang (リザードン), nama Inggris (Charizard), atau nomor kartu.
+                        </span>
+                      </div>
+
+                      {/* Japanese Results */}
+                      {localJpResults.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                          {localJpResults.map((card, idx) => (
+                            <button
+                              key={`localjp-${card.id || idx}-${idx}`}
+                              type="button"
+                              disabled={localJpSearching}
+                              onClick={() => handleSelectLocalJpCard(card)}
+                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-purple-500/10"
+                            >
+                              {card.imageUrl ? (
+                                <img
+                                  src={card.imageUrl}
+                                  alt=""
+                                  className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                />
+                              ) : (
+                                <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                  JP
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-black text-white group-hover:text-purple-300 truncate">
+                                  {card.name}
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                  {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
+                                </div>
+                                <div className="text-[10px] text-purple-400/80 font-bold truncate">
+                                  {card.expansion}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length > 0 && (
+                        <div className="text-center text-xs text-slate-400 py-2">
+                          Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
+                        </div>
+                      )}
+
+                      {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length === 0 && (
+                        <div className="text-center text-xs text-slate-500 py-1.5 flex items-center justify-center gap-1.5">
+                          <span>🇯🇵</span>
+                          <span>Ketik nama kartu (Jepang / Inggris) atau pilih seri di atas.</span>
                         </div>
                       )}
                     </div>

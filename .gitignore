@@ -20,8 +20,9 @@ build/
 
 # Data store (runtime data – don't commit)
 data/store.json
-# Indonesian card database CSV (large file, sourced externally)
+# Card database CSVs (large files, sourced externally)
 data/pokemon_cards_id.csv
+data/pokemon_cards_jp.csv
 
 # Vercel
 .vercel
