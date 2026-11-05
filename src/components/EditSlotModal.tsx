@@ -721,10 +721,25 @@ export default function EditSlotModal({
                       <Eye className="w-3.5 h-3.5 text-blue-400" />
                       Preview Visual Kartu
                     </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300 font-bold">
-                      {selectedGame === 'pokemon' && '🔴 Pokémon TCG'}
-                      {selectedGame === 'riftbound' && '🌀 Riftbound TCG'}
-                      {selectedGame === 'onepiece' && '🏴‍☠️ One Piece TCG'}
+                    <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-300 font-bold flex items-center gap-1.5">
+                      {selectedGame === 'pokemon' && (
+                        <>
+                          <img src="/logos/pokemon.svg" alt="Pokémon" className="h-3.5 w-auto object-contain" />
+                          <span>Pokémon TCG</span>
+                        </>
+                      )}
+                      {selectedGame === 'riftbound' && (
+                        <>
+                          <img src="/logos/riftbound.png" alt="Riftbound" className="h-3.5 w-auto object-contain" />
+                          <span>Riftbound TCG</span>
+                        </>
+                      )}
+                      {selectedGame === 'onepiece' && (
+                        <>
+                          <img src="/logos/onepiece.png" alt="One Piece" className="h-3.5 w-auto object-contain" />
+                          <span>One Piece TCG</span>
+                        </>
+                      )}
                     </span>
                   </div>
 
@@ -912,47 +927,59 @@ export default function EditSlotModal({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       {/* Pokemon Game Tab */}
                       <button
                         type="button"
                         onClick={() => setSelectedGame('pokemon')}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-black transition-all border ${
+                        className={`group relative flex items-center justify-center gap-2 py-2 px-2.5 sm:px-3 rounded-2xl text-xs font-black transition-all border ${
                           selectedGame === 'pokemon'
-                            ? 'bg-gradient-to-r from-red-600 to-amber-500 text-white border-red-400 shadow-md shadow-red-600/30 ring-2 ring-red-500/20'
+                            ? 'bg-gradient-to-r from-red-600/90 to-amber-500/90 text-white border-amber-400 shadow-md shadow-red-600/30 ring-2 ring-amber-400/30'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-white'
                         }`}
                       >
-                        <span className="text-sm">🔴</span>
-                        <span>Pokémon</span>
+                        <img
+                          src="/logos/pokemon.svg"
+                          alt="Pokémon"
+                          className="h-5 sm:h-6 max-w-[65px] sm:max-w-[80px] object-contain drop-shadow transition-transform group-hover:scale-105"
+                        />
+                        <span className="hidden sm:inline font-bold">Pokémon</span>
                       </button>
 
                       {/* Riftbound Game Tab */}
                       <button
                         type="button"
                         onClick={() => setSelectedGame('riftbound')}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-black transition-all border ${
+                        className={`group relative flex items-center justify-center gap-2 py-2 px-2.5 sm:px-3 rounded-2xl text-xs font-black transition-all border ${
                           selectedGame === 'riftbound'
-                            ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-400 shadow-md shadow-cyan-600/30 ring-2 ring-cyan-500/20'
+                            ? 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 text-white border-cyan-400 shadow-md shadow-cyan-600/30 ring-2 ring-cyan-400/30'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-white'
                         }`}
                       >
-                        <span className="text-sm">🌀</span>
-                        <span>Riftbound</span>
+                        <img
+                          src="/logos/riftbound.png"
+                          alt="Riftbound"
+                          className="h-5 sm:h-6 max-w-[65px] sm:max-w-[80px] object-contain drop-shadow transition-transform group-hover:scale-105"
+                        />
+                        <span className="hidden sm:inline font-bold">Riftbound</span>
                       </button>
 
                       {/* One Piece Game Tab */}
                       <button
                         type="button"
                         onClick={() => setSelectedGame('onepiece')}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-black transition-all border ${
+                        className={`group relative flex items-center justify-center gap-2 py-2 px-2.5 sm:px-3 rounded-2xl text-xs font-black transition-all border ${
                           selectedGame === 'onepiece'
-                            ? 'bg-gradient-to-r from-rose-600 to-orange-500 text-white border-rose-400 shadow-md shadow-rose-600/30 ring-2 ring-rose-500/20'
+                            ? 'bg-gradient-to-r from-rose-600/90 to-red-600/90 text-white border-rose-400 shadow-md shadow-rose-600/30 ring-2 ring-rose-400/30'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-white'
                         }`}
                       >
-                        <span className="text-sm">🏴‍☠️</span>
-                        <span>One Piece</span>
+                        <img
+                          src="/logos/onepiece.png"
+                          alt="One Piece"
+                          className="h-5 sm:h-6 max-w-[65px] sm:max-w-[80px] object-contain drop-shadow transition-transform group-hover:scale-105"
+                        />
+                        <span className="hidden sm:inline font-bold">One Piece</span>
                       </button>
                     </div>
                   </div>
@@ -1326,8 +1353,9 @@ export default function EditSlotModal({
                   {selectedGame === 'riftbound' && (
                     <div className="space-y-3 pt-1 border-t border-slate-800/80">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-black">
-                          <span>🌀 Riftbound TCG Official Data</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-black">
+                          <img src="/logos/riftbound.png" alt="Riftbound" className="h-4 w-auto object-contain" />
+                          <span>Riftbound TCG Official Data</span>
                           <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-200">
                             1.400+ Kartu
                           </span>
@@ -1467,8 +1495,8 @@ export default function EditSlotModal({
                           </button>
                         </div>
 
-                        <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1">
-                          <span>🏴‍☠️</span>
+                        <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1.5">
+                          <img src="/logos/onepiece.png" alt="One Piece" className="h-4 w-auto object-contain" />
                           <span>Bandai One Piece Card Game</span>
                         </span>
                       </div>
