@@ -21,6 +21,7 @@ import {
   Check,
   Clock,
   Ban,
+  Layers,
   Sparkle,
 } from 'lucide-react';
 import { CardCondition, CardStatus, PokemonCard } from '@/types';
@@ -29,7 +30,12 @@ import { formatCurrency } from '@/lib/qr';
 import { TcgdexCardSummary } from '@/lib/tcgdex';
 import { LocalIdCardSummary } from '@/lib/localIdCards';
 import { LocalJpCardSummary } from '@/lib/localJpCards';
+import { RiftboundCardSummary, RiftboundSetInfo } from '@/lib/riftboundCards';
+import { ONE_PIECE_TEMPLATES, ONE_PIECE_SETS, OnePieceTemplate } from '@/lib/onepieceCatalog';
 import CardImageLightbox from '@/components/CardImageLightbox';
+
+export type TcgGame = 'pokemon' | 'riftbound' | 'onepiece';
+export type PokemonSubSource = 'tcgdex' | 'localid' | 'localjp' | 'preset';
 
 interface EditSlotModalProps {
   isOpen: boolean;
@@ -84,15 +90,18 @@ export default function EditSlotModal({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  // TCGdex integration state
-  const [searchSource, setSearchSource] = useState<'tcgdex' | 'localid' | 'localjp' | 'preset'>('tcgdex');
+  // Level 1: Primary TCG Game Selection
+  const [selectedGame, setSelectedGame] = useState<TcgGame>('pokemon');
+
+  // Level 2 - Pokemon Sub-Sources
+  const [pokemonSource, setPokemonSource] = useState<PokemonSubSource>('tcgdex');
   const [tcgdexQuery, setTcgdexQuery] = useState('');
   const [tcgdexResults, setTcgdexResults] = useState<TcgdexCardSummary[]>([]);
   const [tcgdexSearching, setTcgdexSearching] = useState(false);
   const [tcgdexFetchingCard, setTcgdexFetchingCard] = useState(false);
   const [marketRef, setMarketRef] = useState<{ usd?: number; idr?: number } | null>(null);
 
-  // Indonesian local card database state
+  // Pokemon Indonesian DB
   const [localIdQuery, setLocalIdQuery] = useState('');
   const [localIdResults, setLocalIdResults] = useState<LocalIdCardSummary[]>([]);
   const [localIdSearching, setLocalIdSearching] = useState(false);
@@ -100,7 +109,7 @@ export default function EditSlotModal({
   const [expansions, setExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
   const [expansionsLoaded, setExpansionsLoaded] = useState(false);
 
-  // Japanese local card database state
+  // Pokemon Japanese DB
   const [localJpQuery, setLocalJpQuery] = useState('');
   const [localJpResults, setLocalJpResults] = useState<LocalJpCardSummary[]>([]);
   const [localJpSearching, setLocalJpSearching] = useState(false);
@@ -108,9 +117,23 @@ export default function EditSlotModal({
   const [jpExpansions, setJpExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
   const [jpExpansionsLoaded, setJpExpansionsLoaded] = useState(false);
 
-  // Local preset search
+  // Pokemon Preset Hits
   const [presetSearch, setPresetSearch] = useState('');
 
+  // Level 2 - Riftbound
+  const [riftboundQuery, setRiftboundQuery] = useState('');
+  const [riftboundResults, setRiftboundResults] = useState<RiftboundCardSummary[]>([]);
+  const [riftboundSearching, setRiftboundSearching] = useState(false);
+  const [riftboundSet, setRiftboundSet] = useState('');
+  const [riftboundSets, setRiftboundSets] = useState<RiftboundSetInfo[]>([]);
+  const [riftboundSetsLoaded, setRiftboundSetsLoaded] = useState(false);
+
+  // Level 2 - One Piece
+  const [onePieceLang, setOnePieceLang] = useState<'JP' | 'EN'>('JP');
+  const [onePieceQuery, setOnePieceQuery] = useState('');
+  const [onePieceSet, setOnePieceSet] = useState('');
+
+  // Initialize modal state on open or card change
   useEffect(() => {
     if (existingCard) {
       setCardName(existingCard.name || '');
@@ -123,6 +146,15 @@ export default function EditSlotModal({
       setStatus(existingCard.status || 'AVAILABLE');
       setImageUrl(existingCard.imageUrl || '');
       setNotes(existingCard.notes || '');
+
+      // Infer game
+      if (existingCard.game === 'riftbound' || existingCard.setName?.includes('Origins') || existingCard.setName?.includes('Spiritforged')) {
+        setSelectedGame('riftbound');
+      } else if (existingCard.game === 'onepiece' || existingCard.setName?.includes('OP-') || existingCard.setName?.includes('One Piece')) {
+        setSelectedGame('onepiece');
+      } else {
+        setSelectedGame('pokemon');
+      }
     } else {
       setCardName('');
       setCardSet('');
@@ -135,6 +167,7 @@ export default function EditSlotModal({
       setImageUrl('https://images.pokemontcg.io/sv3pt5/199_hires.png');
       setNotes('');
     }
+
     setTcgdexQuery('');
     setTcgdexResults([]);
     setMarketRef(null);
@@ -145,13 +178,18 @@ export default function EditSlotModal({
     setLocalJpQuery('');
     setLocalJpResults([]);
     setLocalJpExpansion('');
+    setRiftboundQuery('');
+    setRiftboundResults([]);
+    setRiftboundSet('');
+    setOnePieceQuery('');
+    setOnePieceSet('');
     setShowHoloPreview(false);
     setShowUrlInput(false);
   }, [existingCard, isOpen, currency]);
 
-  // Load expansions when Indonesian tab is first opened
+  // Load Pokemon Indonesian expansions
   useEffect(() => {
-    if (searchSource === 'localid' && !expansionsLoaded) {
+    if (selectedGame === 'pokemon' && pokemonSource === 'localid' && !expansionsLoaded) {
       fetch('/api/localid/expansions')
         .then((r) => r.json())
         .then((data) => {
@@ -160,11 +198,11 @@ export default function EditSlotModal({
         })
         .catch(() => setExpansionsLoaded(true));
     }
-  }, [searchSource, expansionsLoaded]);
+  }, [selectedGame, pokemonSource, expansionsLoaded]);
 
-  // Load expansions when Japanese tab is first opened
+  // Load Pokemon Japanese expansions
   useEffect(() => {
-    if (searchSource === 'localjp' && !jpExpansionsLoaded) {
+    if (selectedGame === 'pokemon' && pokemonSource === 'localjp' && !jpExpansionsLoaded) {
       fetch('/api/localjp/expansions')
         .then((r) => r.json())
         .then((data) => {
@@ -173,11 +211,24 @@ export default function EditSlotModal({
         })
         .catch(() => setJpExpansionsLoaded(true));
     }
-  }, [searchSource, jpExpansionsLoaded]);
+  }, [selectedGame, pokemonSource, jpExpansionsLoaded]);
+
+  // Load Riftbound sets
+  useEffect(() => {
+    if (selectedGame === 'riftbound' && !riftboundSetsLoaded) {
+      fetch('/api/riftbound/sets')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) setRiftboundSets(data.sets);
+          setRiftboundSetsLoaded(true);
+        })
+        .catch(() => setRiftboundSetsLoaded(true));
+    }
+  }, [selectedGame, riftboundSetsLoaded]);
 
   // Debounced TCGdex search
   useEffect(() => {
-    if (searchSource !== 'tcgdex') return;
+    if (selectedGame !== 'pokemon' || pokemonSource !== 'tcgdex') return;
     if (!tcgdexQuery.trim() || tcgdexQuery.trim().length < 2) {
       setTcgdexResults([]);
       setTcgdexSearching(false);
@@ -200,11 +251,11 @@ export default function EditSlotModal({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [tcgdexQuery, searchSource]);
+  }, [tcgdexQuery, selectedGame, pokemonSource]);
 
   // Debounced Indonesian local DB search
   useEffect(() => {
-    if (searchSource !== 'localid') return;
+    if (selectedGame !== 'pokemon' || pokemonSource !== 'localid') return;
 
     const timer = setTimeout(async () => {
       try {
@@ -227,11 +278,11 @@ export default function EditSlotModal({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [localIdQuery, localIdExpansion, searchSource]);
+  }, [localIdQuery, localIdExpansion, selectedGame, pokemonSource]);
 
   // Debounced Japanese local DB search
   useEffect(() => {
-    if (searchSource !== 'localjp') return;
+    if (selectedGame !== 'pokemon' || pokemonSource !== 'localjp') return;
 
     const timer = setTimeout(async () => {
       try {
@@ -254,7 +305,34 @@ export default function EditSlotModal({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [localJpQuery, localJpExpansion, searchSource]);
+  }, [localJpQuery, localJpExpansion, selectedGame, pokemonSource]);
+
+  // Debounced Riftbound search
+  useEffect(() => {
+    if (selectedGame !== 'riftbound') return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setRiftboundSearching(true);
+        const params = new URLSearchParams({
+          q: riftboundQuery.trim(),
+          limit: '15',
+        });
+        if (riftboundSet) params.set('set', riftboundSet);
+        const res = await fetch(`/api/riftbound/search?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setRiftboundResults(data.cards || []);
+        }
+      } catch (err) {
+        console.error('Riftbound search failed:', err);
+      } finally {
+        setRiftboundSearching(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [riftboundQuery, riftboundSet, selectedGame]);
 
   if (!isOpen) return null;
 
@@ -367,6 +445,55 @@ export default function EditSlotModal({
     }
   };
 
+  // Handle picking from Riftbound cards
+  const handleSelectRiftboundCard = async (summary: RiftboundCardSummary) => {
+    try {
+      setRiftboundSearching(true);
+      const res = await fetch(`/api/riftbound/card/${encodeURIComponent(summary.id)}`);
+      const data = await res.json();
+
+      if (data.success && data.card) {
+        const c = data.card;
+        setCardName(c.name);
+        setCardSet(c.setName ? `${c.setName} (${c.setCode})` : c.setCode);
+        setCardNumber(c.publicCode || c.collectorNumber || '');
+        setRarity(c.rarity || 'Common');
+        setImageUrl(c.imageUrl || '');
+        setNotes([
+          c.cardType,
+          c.domain ? `Domain: ${c.domain}` : null,
+          c.might ? `Might: ${c.might}` : null,
+          c.tags ? `Tags: ${c.tags}` : null,
+        ].filter(Boolean).join(' • '));
+        setMarketRef(null);
+      } else {
+        setCardName(summary.name);
+        setCardSet(summary.setName || summary.setCode);
+        setCardNumber(summary.publicCode || summary.collectorNumber);
+        setRarity(summary.rarity || '');
+        setImageUrl(summary.imageUrl || '');
+      }
+    } catch (err) {
+      console.error(err);
+      setCardName(summary.name);
+      setImageUrl(summary.imageUrl || '');
+    } finally {
+      setRiftboundSearching(false);
+    }
+  };
+
+  // Handle picking from One Piece cards
+  const handleSelectOnePieceCard = (template: OnePieceTemplate) => {
+    setCardName(template.name);
+    setCardSet(template.setName);
+    setCardNumber(template.cardNumber);
+    setRarity(template.rarity);
+    if (template.imageUrl) setImageUrl(template.imageUrl);
+    setPrice(currency === 'USD' ? Math.round(template.defaultPriceIdr / 16000) : template.defaultPriceIdr);
+    setNotes(`${template.category} • One Piece Card Game (${template.language})`);
+    setMarketRef(null);
+  };
+
   const filteredPresets = presetSearch.trim()
     ? POKEMON_CARD_TEMPLATES.filter(
         (t) =>
@@ -374,6 +501,21 @@ export default function EditSlotModal({
           t.setName.toLowerCase().includes(presetSearch.toLowerCase())
       ).slice(0, 8)
     : POKEMON_CARD_TEMPLATES.slice(0, 8);
+
+  const filteredOnePieceTemplates = ONE_PIECE_TEMPLATES.filter((t) => {
+    if (t.language !== onePieceLang) return false;
+    if (onePieceSet && !t.setName.includes(onePieceSet)) return false;
+    if (onePieceQuery.trim()) {
+      const q = onePieceQuery.toLowerCase();
+      return (
+        t.name.toLowerCase().includes(q) ||
+        (t.nameJp && t.nameJp.toLowerCase().includes(q)) ||
+        t.cardNumber.toLowerCase().includes(q) ||
+        t.setName.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -398,6 +540,7 @@ export default function EditSlotModal({
           status,
           imageUrl,
           notes,
+          game: selectedGame,
         }),
       });
 
@@ -436,7 +579,7 @@ export default function EditSlotModal({
   // Simulated PokemonCard for lightbox preview
   const currentPreviewCard: PokemonCard = {
     id: existingCard?.id || `preview-${slotNumber}`,
-    name: cardName || 'Nama Kartu Pokémon',
+    name: cardName || 'Nama Kartu TCG',
     setName: cardSet || 'Set / Seri Kartu',
     cardNumber: cardNumber || '000/000',
     rarity: rarity || 'Rare',
@@ -446,6 +589,7 @@ export default function EditSlotModal({
     status,
     imageUrl: imageUrl || '',
     notes,
+    game: selectedGame,
     updatedAt: new Date().toISOString(),
   };
 
@@ -470,7 +614,7 @@ export default function EditSlotModal({
                   {existingCard ? 'Edit Kartu di Slot' : 'Pasang Kartu ke Slot'}
                 </h2>
                 <p className="text-xs text-slate-400 hidden sm:block">
-                  Cari kartu dari database resmi, sesuaikan harga jual, dan tinjau visual kartu secara detail.
+                  Pilih game TCG (Pokémon, Riftbound, One Piece), cari kartu resmi, sesuaikan harga jual & tinjau visual kartu.
                 </p>
               </div>
             </div>
@@ -495,7 +639,11 @@ export default function EditSlotModal({
                       <Eye className="w-3.5 h-3.5 text-blue-400" />
                       Preview Visual Kartu
                     </span>
-                    <span className="text-[11px] text-slate-500 font-medium">Rasio Resmi 2.5:3.5</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300 font-bold">
+                      {selectedGame === 'pokemon' && '🔴 Pokémon TCG'}
+                      {selectedGame === 'riftbound' && '🌀 Riftbound TCG'}
+                      {selectedGame === 'onepiece' && '🏴‍☠️ One Piece TCG'}
+                    </span>
                   </div>
 
                   {/* Main Large Card Container */}
@@ -531,7 +679,7 @@ export default function EditSlotModal({
                         </div>
                         <span className="text-xs font-bold text-slate-300 mb-1">Belum Ada Gambar Kartu</span>
                         <p className="text-[11px] text-slate-500 leading-relaxed">
-                          Pilih kartu dari database di sebelah kanan atau masukkan URL gambar langsung.
+                          Pilih kartu dari database TCG di sebelah kanan atau masukkan URL gambar langsung.
                         </p>
                       </div>
                     )}
@@ -638,7 +786,7 @@ export default function EditSlotModal({
                           type="url"
                           value={imageUrl}
                           onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="https://assets.tcgdex.net/..."
+                          placeholder="https://..."
                           className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500"
                         />
                         {imageUrl && (
@@ -668,271 +816,487 @@ export default function EditSlotModal({
 
               {/* RIGHT COLUMN: Search + Details & Pricing Form (lg:col-span-7) */}
               <div className="lg:col-span-7 space-y-5">
-                {/* 1. Database Card Search Box */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-3.5">
-                  {/* Source Tabs */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90">
-                      <button
-                        type="button"
-                        onClick={() => setSearchSource('tcgdex')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          searchSource === 'tcgdex'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        <span>TCGdex Live (EN)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSearchSource('localid')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          searchSource === 'localid'
-                            ? 'bg-red-600 text-white shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <span className="text-sm leading-none">🇮🇩</span>
-                        <span>Kartu Indonesia (4.100+)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSearchSource('localjp')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          searchSource === 'localjp'
-                            ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400/40'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <span className="text-sm leading-none">🇯🇵</span>
-                        <span>Kartu Jepang (23.000+)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSearchSource('preset')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          searchSource === 'preset'
-                            ? 'bg-amber-500 text-slate-950 shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Hits Populer</span>
-                      </button>
+                {/* 1. Database Card Search Box with Hierarchical TCG Structure */}
+                <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-4">
+                  {/* LEVEL 1: Primary TCG Game Selector */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-blue-400" />
+                        Pilih Game TCG (Main Category)
+                      </span>
+                      <span className="text-[10px] text-slate-500 hidden sm:inline">
+                        Siap untuk integrasi game TCG baru
+                      </span>
                     </div>
 
-                    <span className="text-[11px] text-slate-400 font-medium">
-                      Otomatis isi gambar & metadata
-                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Pokemon Game Tab */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGame('pokemon')}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-black transition-all border ${
+                          selectedGame === 'pokemon'
+                            ? 'bg-gradient-to-r from-red-600 to-amber-500 text-white border-red-400 shadow-md shadow-red-600/30 ring-2 ring-red-500/20'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-sm">🔴</span>
+                        <span>Pokémon</span>
+                      </button>
+
+                      {/* Riftbound Game Tab */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGame('riftbound')}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-black transition-all border ${
+                          selectedGame === 'riftbound'
+                            ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-400 shadow-md shadow-cyan-600/30 ring-2 ring-cyan-500/20'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-sm">🌀</span>
+                        <span>Riftbound</span>
+                      </button>
+
+                      {/* One Piece Game Tab */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedGame('onepiece')}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-2xl text-xs font-black transition-all border ${
+                          selectedGame === 'onepiece'
+                            ? 'bg-gradient-to-r from-rose-600 to-orange-500 text-white border-rose-400 shadow-md shadow-rose-600/30 ring-2 ring-rose-500/20'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:text-white'
+                        }`}
+                      >
+                        <span className="text-sm">🏴‍☠️</span>
+                        <span>One Piece</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Search Views */}
-                  {searchSource === 'tcgdex' && (
-                    <div className="space-y-2.5">
-                      <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Cari nama Pokémon resmi (contoh: Charizard ex, Moonbreon, Gengar, Pikachu 151)..."
-                          value={tcgdexQuery}
-                          onChange={(e) => setTcgdexQuery(e.target.value)}
-                          className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                        {tcgdexSearching && (
-                          <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-blue-400 animate-spin" />
-                        )}
-                      </div>
+                  {/* LEVEL 2: Sub-Menu / Language / Database per Game */}
 
-                      {/* TCGdex Results - Large Visual Grid */}
-                      {tcgdexResults.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                          {tcgdexResults.map((card, idx) => (
-                            <button
-                              key={`tcgdex-${card.id || idx}-${idx}`}
-                              type="button"
-                              disabled={tcgdexFetchingCard}
-                              onClick={() => handleSelectTcgdexCard(card)}
-                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-blue-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-blue-500/10"
-                            >
-                              {card.imageUrl ? (
-                                <img
-                                  src={card.imageUrl}
-                                  alt=""
-                                  className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
-                                />
-                              ) : (
-                                <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                  TCG
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-black text-white group-hover:text-blue-300 truncate">
-                                  {card.name}
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                  #{card.localId}
-                                </div>
-                                <div className="text-[10px] text-blue-400/80 font-bold truncate">
-                                  {card.id.split('-')[0].toUpperCase()}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
+                  {/* --- SUB-VIEW: POKEMON --- */}
+                  {selectedGame === 'pokemon' && (
+                    <div className="space-y-3 pt-1 border-t border-slate-800/80">
+                      {/* Pokemon Source Sub-tabs */}
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setPokemonSource('tcgdex')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              pokemonSource === 'tcgdex'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <Globe className="w-3.5 h-3.5" />
+                            <span>Inggris (EN)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPokemonSource('localid')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              pokemonSource === 'localid'
+                                ? 'bg-red-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-sm leading-none">🇮🇩</span>
+                            <span>Indonesia (4.100+)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPokemonSource('localjp')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              pokemonSource === 'localjp'
+                                ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400/40'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-sm leading-none">🇯🇵</span>
+                            <span>Jepang (23.000+)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setPokemonSource('preset')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              pokemonSource === 'preset'
+                                ? 'bg-amber-500 text-slate-950 shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Hits Populer</span>
+                          </button>
                         </div>
-                      )}
 
-                      {tcgdexQuery.trim().length >= 2 && !tcgdexSearching && tcgdexResults.length === 0 && (
-                        <div className="text-center text-xs text-slate-400 py-2">
-                          Tidak ada kartu ditemukan dengan kata kunci &quot;{tcgdexQuery}&quot;.
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {searchSource === 'localid' && (
-                    <div className="space-y-2.5">
-                      {/* Expansion filter dropdown */}
-                      <div className="relative">
-                        <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
-                        <select
-                          value={localIdExpansion}
-                          onChange={(e) => setLocalIdExpansion(e.target.value)}
-                          className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-red-500 appearance-none shadow-inner"
-                        >
-                          <option value="">— Semua Seri / Produk Indonesia —</option>
-                          {expansions.map((exp) => (
-                            <option key={exp.code} value={exp.code}>
-                              {exp.productName} ({exp.count} kartu)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Indonesian Search input */}
-                      <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Cari nama kartu dalam Bahasa Indonesia (misal: Charizard, Pikachu, Mewtwo)..."
-                          value={localIdQuery}
-                          onChange={(e) => setLocalIdQuery(e.target.value)}
-                          className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 shadow-inner"
-                        />
-                        {localIdSearching && (
-                          <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-red-400 animate-spin" />
-                        )}
-                      </div>
-
-                      {/* Indonesian Results */}
-                      {localIdResults.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                          {localIdResults.map((card, idx) => (
-                            <button
-                              key={`localid-${card.id || idx}-${idx}`}
-                              type="button"
-                              disabled={localIdSearching}
-                              onClick={() => handleSelectLocalIdCard(card)}
-                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-red-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-red-500/10"
-                            >
-                              {card.imageUrl ? (
-                                <img
-                                  src={card.imageUrl}
-                                  alt=""
-                                  className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
-                                />
-                              ) : (
-                                <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                  ID
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-black text-white group-hover:text-red-300 truncate">
-                                  {card.name}
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                  {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
-                                </div>
-                                <div className="text-[10px] text-red-400/80 font-bold truncate">
-                                  {card.productName}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length > 0 && (
-                        <div className="text-center text-xs text-slate-400 py-2">
-                          Tidak ada kartu ditemukan untuk &quot;{localIdQuery}&quot;.
-                        </div>
-                      )}
-
-                      {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length === 0 && (
-                        <div className="text-center text-xs text-slate-500 py-1.5 flex items-center justify-center gap-1.5">
-                          <span>🇮🇩</span>
-                          <span>Ketik nama Pokémon Indonesia atau pilih seri di atas.</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {searchSource === 'localjp' && (
-                    <div className="space-y-2.5">
-                      {/* Expansion filter dropdown */}
-                      <div className="relative">
-                        <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
-                        <select
-                          value={localJpExpansion}
-                          onChange={(e) => setLocalJpExpansion(e.target.value)}
-                          className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-purple-500 appearance-none shadow-inner"
-                        >
-                          <option value="">— Semua Seri / Set Jepang (1.300+ Seri) —</option>
-                          {jpExpansions.slice(0, 100).map((exp) => (
-                            <option key={exp.code} value={exp.code}>
-                              {exp.productName} ({exp.count} kartu)
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Japanese Search input */}
-                      <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Cari kartu Jepang (contoh: リザードン, Pikachu, 151, VSTAR, 001/078)..."
-                          value={localJpQuery}
-                          onChange={(e) => setLocalJpQuery(e.target.value)}
-                          className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 shadow-inner"
-                        />
-                        {localJpSearching && (
-                          <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-purple-400 animate-spin" />
-                        )}
-                      </div>
-
-                      {/* Info badge */}
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/40 border border-purple-500/20 rounded-xl text-purple-200">
-                        <span className="text-sm">🇯🇵</span>
-                        <span className="text-[11px]">
-                          Database resmi Jepang (23.000+ kartu). Bisa cari nama Jepang (リザードン), nama Inggris (Charizard), atau nomor kartu.
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {pokemonSource === 'localid'
+                            ? 'Resmi pokemon-card.com/id'
+                            : pokemonSource === 'localjp'
+                            ? 'Resmi pokemon-card.com'
+                            : 'TCGdex Live'}
                         </span>
                       </div>
 
-                      {/* Japanese Results */}
-                      {localJpResults.length > 0 && (
+                      {/* TCGdex View */}
+                      {pokemonSource === 'tcgdex' && (
+                        <div className="space-y-2.5">
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari nama Pokémon resmi (contoh: Charizard ex, Moonbreon, Gengar, Pikachu 151)..."
+                              value={tcgdexQuery}
+                              onChange={(e) => setTcgdexQuery(e.target.value)}
+                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
+                            />
+                            {tcgdexSearching && (
+                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-blue-400 animate-spin" />
+                            )}
+                          </div>
+
+                          {tcgdexResults.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                              {tcgdexResults.map((card, idx) => (
+                                <button
+                                  key={`tcgdex-${card.id || idx}-${idx}`}
+                                  type="button"
+                                  disabled={tcgdexFetchingCard}
+                                  onClick={() => handleSelectTcgdexCard(card)}
+                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-blue-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-blue-500/10"
+                                >
+                                  {card.imageUrl ? (
+                                    <img
+                                      src={card.imageUrl}
+                                      alt=""
+                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                      TCG
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black text-white group-hover:text-blue-300 truncate">
+                                      {card.name}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                      #{card.localId}
+                                    </div>
+                                    <div className="text-[10px] text-blue-400/80 font-bold truncate">
+                                      {card.id.split('-')[0].toUpperCase()}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {tcgdexQuery.trim().length >= 2 && !tcgdexSearching && tcgdexResults.length === 0 && (
+                            <div className="text-center text-xs text-slate-400 py-2">
+                              Tidak ada kartu ditemukan dengan kata kunci &quot;{tcgdexQuery}&quot;.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Indonesian View */}
+                      {pokemonSource === 'localid' && (
+                        <div className="space-y-2.5">
+                          <div className="relative">
+                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                            <select
+                              value={localIdExpansion}
+                              onChange={(e) => setLocalIdExpansion(e.target.value)}
+                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-red-500 appearance-none shadow-inner"
+                            >
+                              <option value="">— Semua Seri / Produk Indonesia —</option>
+                              {expansions.map((exp) => (
+                                <option key={exp.code} value={exp.code}>
+                                  {exp.productName} ({exp.count} kartu)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari nama kartu dalam Bahasa Indonesia (misal: Charizard, Pikachu, Mewtwo)..."
+                              value={localIdQuery}
+                              onChange={(e) => setLocalIdQuery(e.target.value)}
+                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 shadow-inner"
+                            />
+                            {localIdSearching && (
+                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-red-400 animate-spin" />
+                            )}
+                          </div>
+
+                          {localIdResults.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                              {localIdResults.map((card, idx) => (
+                                <button
+                                  key={`localid-${card.id || idx}-${idx}`}
+                                  type="button"
+                                  disabled={localIdSearching}
+                                  onClick={() => handleSelectLocalIdCard(card)}
+                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-red-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-red-500/10"
+                                >
+                                  {card.imageUrl ? (
+                                    <img
+                                      src={card.imageUrl}
+                                      alt=""
+                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                      ID
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black text-white group-hover:text-red-300 truncate">
+                                      {card.name}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                      {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
+                                    </div>
+                                    <div className="text-[10px] text-red-400/80 font-bold truncate">
+                                      {card.productName}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length > 0 && (
+                            <div className="text-center text-xs text-slate-400 py-2">
+                              Tidak ada kartu ditemukan untuk &quot;{localIdQuery}&quot;.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Japanese View */}
+                      {pokemonSource === 'localjp' && (
+                        <div className="space-y-2.5">
+                          <div className="relative">
+                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                            <select
+                              value={localJpExpansion}
+                              onChange={(e) => setLocalJpExpansion(e.target.value)}
+                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-purple-500 appearance-none shadow-inner"
+                            >
+                              <option value="">— Semua Seri / Set Jepang (1.300+ Seri) —</option>
+                              {jpExpansions.slice(0, 100).map((exp) => (
+                                <option key={exp.code} value={exp.code}>
+                                  {exp.productName} ({exp.count} kartu)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari kartu Jepang (contoh: リザードン, Pikachu, 151, VSTAR, 001/078)..."
+                              value={localJpQuery}
+                              onChange={(e) => setLocalJpQuery(e.target.value)}
+                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 shadow-inner"
+                            />
+                            {localJpSearching && (
+                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-purple-400 animate-spin" />
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/40 border border-purple-500/20 rounded-xl text-purple-200">
+                            <span className="text-sm">🇯🇵</span>
+                            <span className="text-[11px]">
+                              Bisa cari dengan nama Jepang (リザードン), nama Inggris (Charizard), atau nomor kartu.
+                            </span>
+                          </div>
+
+                          {localJpResults.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                              {localJpResults.map((card, idx) => (
+                                <button
+                                  key={`localjp-${card.id || idx}-${idx}`}
+                                  type="button"
+                                  disabled={localJpSearching}
+                                  onClick={() => handleSelectLocalJpCard(card)}
+                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-purple-500/10"
+                                >
+                                  {card.imageUrl ? (
+                                    <img
+                                      src={card.imageUrl}
+                                      alt=""
+                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                      JP
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black text-white group-hover:text-purple-300 truncate">
+                                      {card.name}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                      {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
+                                    </div>
+                                    <div className="text-[10px] text-purple-400/80 font-bold truncate">
+                                      {card.expansion}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length > 0 && (
+                            <div className="text-center text-xs text-slate-400 py-2">
+                              Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Preset Hits View */}
+                      {pokemonSource === 'preset' && (
+                        <div className="space-y-2.5">
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Filter preset hits populer..."
+                              value={presetSearch}
+                              onChange={(e) => setPresetSearch(e.target.value)}
+                              className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                            {filteredPresets.map((item, idx) => (
+                              <button
+                                key={`preset-${item.cardNumber || idx}-${idx}`}
+                                type="button"
+                                onClick={() => handleSelectPreset(item)}
+                                className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-amber-500/10"
+                              >
+                                <img
+                                  src={item.imageUrl}
+                                  alt=""
+                                  className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
+                                />
+                                <div className="w-full text-xs font-black text-white group-hover:text-amber-300 truncate">
+                                  {item.name}
+                                </div>
+                                <div className="w-full text-[10px] text-slate-400 truncate">
+                                  {item.setName}
+                                </div>
+                                <div className="text-[11px] font-black text-emerald-400 mt-0.5">
+                                  {formatCurrency(item.defaultPrice, currency)}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Market Price Banner */}
+                      {marketRef && (
+                        <div className="p-3 bg-blue-950/50 border border-blue-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-200">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <TrendingUp className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                            <span className="truncate">
+                              Rekomendasi Pasar TCGPlayer:{' '}
+                              <strong className="text-white">
+                                {marketRef.usd ? `$${marketRef.usd}` : ''}{' '}
+                                {marketRef.idr ? `(~${formatCurrency(marketRef.idr, 'IDR')})` : ''}
+                              </strong>
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (currency === 'IDR' && marketRef.idr) setPrice(marketRef.idr);
+                              if (currency === 'USD' && marketRef.usd) setPrice(Math.round(marketRef.usd));
+                            }}
+                            className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0"
+                          >
+                            Pakai Harga Ini
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* --- SUB-VIEW: RIFTBOUND TCG --- */}
+                  {selectedGame === 'riftbound' && (
+                    <div className="space-y-3 pt-1 border-t border-slate-800/80">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-black">
+                          <span>🌀 Riftbound TCG Official Data</span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-200">
+                            1.400+ Kartu
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400">
+                          Origins, Unleashed, Spiritforged, Vendetta, Radiance
+                        </span>
+                      </div>
+
+                      {/* Set Filter Dropdown */}
+                      <div className="relative">
+                        <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                        <select
+                          value={riftboundSet}
+                          onChange={(e) => setRiftboundSet(e.target.value)}
+                          className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-cyan-500 appearance-none shadow-inner"
+                        >
+                          <option value="">— Semua Set Riftbound —</option>
+                          {riftboundSets.map((s) => (
+                            <option key={s.code} value={s.setName}>
+                              {s.setName} ({s.code}) — {s.count} kartu
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Cari kartu Riftbound (contoh: Blazing Scorcher, OGN-001, Fury, Unit, Spell, Dragon)..."
+                          value={riftboundQuery}
+                          onChange={(e) => setRiftboundQuery(e.target.value)}
+                          className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner"
+                        />
+                        {riftboundSearching && (
+                          <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-cyan-400 animate-spin" />
+                        )}
+                      </div>
+
+                      {/* Riftbound Card Grid */}
+                      {riftboundResults.length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                          {localJpResults.map((card, idx) => (
+                          {riftboundResults.map((card, idx) => (
                             <button
-                              key={`localjp-${card.id || idx}-${idx}`}
+                              key={`rb-${card.id || idx}-${idx}`}
                               type="button"
-                              disabled={localJpSearching}
-                              onClick={() => handleSelectLocalJpCard(card)}
-                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-purple-500/10"
+                              disabled={riftboundSearching}
+                              onClick={() => handleSelectRiftboundCard(card)}
+                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-cyan-500/10"
                             >
                               {card.imageUrl ? (
                                 <img
@@ -942,18 +1306,18 @@ export default function EditSlotModal({
                                 />
                               ) : (
                                 <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                  JP
+                                  RB
                                 </div>
                               )}
                               <div className="min-w-0 flex-1">
-                                <div className="text-xs font-black text-white group-hover:text-purple-300 truncate">
+                                <div className="text-xs font-black text-white group-hover:text-cyan-300 truncate">
                                   {card.name}
                                 </div>
                                 <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                  {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
+                                  {card.publicCode || `#${card.collectorNumber}`} • {card.cardType}
                                 </div>
-                                <div className="text-[10px] text-purple-400/80 font-bold truncate">
-                                  {card.expansion}
+                                <div className="text-[10px] text-cyan-400/80 font-bold truncate">
+                                  {card.setName} {card.domain ? `(${card.domain})` : ''}
                                 </div>
                               </div>
                             </button>
@@ -961,84 +1325,130 @@ export default function EditSlotModal({
                         </div>
                       )}
 
-                      {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length > 0 && (
+                      {!riftboundSearching && riftboundResults.length === 0 && riftboundQuery.trim().length > 0 && (
                         <div className="text-center text-xs text-slate-400 py-2">
-                          Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
+                          Tidak ada kartu Riftbound ditemukan untuk &quot;{riftboundQuery}&quot;.
                         </div>
                       )}
 
-                      {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length === 0 && (
+                      {!riftboundSearching && riftboundResults.length === 0 && riftboundQuery.trim().length === 0 && (
                         <div className="text-center text-xs text-slate-500 py-1.5 flex items-center justify-center gap-1.5">
-                          <span>🇯🇵</span>
-                          <span>Ketik nama kartu (Jepang / Inggris) atau pilih seri di atas.</span>
+                          <span>🌀</span>
+                          <span>Ketik nama kartu Riftbound atau pilih set rilis di atas.</span>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {searchSource === 'preset' && (
-                    <div className="space-y-2.5">
-                      <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Filter preset hits populer..."
-                          value={presetSearch}
-                          onChange={(e) => setPresetSearch(e.target.value)}
-                          className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner"
-                        />
+                  {/* --- SUB-VIEW: ONE PIECE CARD GAME --- */}
+                  {selectedGame === 'onepiece' && (
+                    <div className="space-y-3 pt-1 border-t border-slate-800/80">
+                      {/* Language Selection for One Piece */}
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90">
+                          <button
+                            type="button"
+                            onClick={() => setOnePieceLang('JP')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              onePieceLang === 'JP'
+                                ? 'bg-rose-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-sm leading-none">🇯🇵</span>
+                            <span>Jepang (JP)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setOnePieceLang('EN')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              onePieceLang === 'EN'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <Globe className="w-3.5 h-3.5" />
+                            <span>Inggris (EN)</span>
+                          </button>
+                        </div>
+
+                        <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1">
+                          <span>🏴‍☠️</span>
+                          <span>One Piece Card Game (OPCG)</span>
+                        </span>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                        {filteredPresets.map((item, idx) => (
-                          <button
-                            key={`preset-${item.cardNumber || idx}-${idx}`}
-                            type="button"
-                            onClick={() => handleSelectPreset(item)}
-                            className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-amber-500/10"
+                      {/* Filters */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="relative">
+                          <ChevronDown className="w-4 h-4 absolute right-3.5 top-2.5 text-slate-400 pointer-events-none" />
+                          <select
+                            value={onePieceSet}
+                            onChange={(e) => setOnePieceSet(e.target.value)}
+                            className="w-full pl-3 pr-8 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-rose-500 appearance-none shadow-inner"
                           >
-                            <img
-                              src={item.imageUrl}
-                              alt=""
-                              className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
-                            />
-                            <div className="w-full text-xs font-black text-white group-hover:text-amber-300 truncate">
+                            <option value="">— Semua Seri One Piece —</option>
+                            {ONE_PIECE_SETS.map((s) => (
+                              <option key={s.code} value={s.code}>
+                                {s.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="relative">
+                          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Filter kartu One Piece (Luffy, Zoro, Manga...)..."
+                            value={onePieceQuery}
+                            onChange={(e) => setOnePieceQuery(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Info Notice */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/40 border border-rose-500/20 rounded-xl text-rose-200">
+                        <span className="text-sm">🏴‍☠️</span>
+                        <span className="text-[11px]">
+                          Pilih template kartu populer One Piece di bawah atau isi nama kartu manual. Struktur disiapkan untuk integrasi data One Piece selanjutnya.
+                        </span>
+                      </div>
+
+                      {/* One Piece Cards Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                        {filteredOnePieceTemplates.map((item, idx) => (
+                          <button
+                            key={`op-${item.id}-${idx}`}
+                            type="button"
+                            onClick={() => handleSelectOnePieceCard(item)}
+                            className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-rose-500/10"
+                          >
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt=""
+                                className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <div className="w-14 h-20 bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-bold text-rose-400 mb-1.5">
+                                OP CARD
+                              </div>
+                            )}
+                            <div className="w-full text-xs font-black text-white group-hover:text-rose-300 truncate">
                               {item.name}
                             </div>
                             <div className="w-full text-[10px] text-slate-400 truncate">
-                              {item.setName}
+                              {item.cardNumber} • {item.rarity}
                             </div>
-                            <div className="text-[11px] font-black text-emerald-400 mt-0.5">
-                              {formatCurrency(item.defaultPrice, currency)}
+                            <div className="text-[11px] font-black text-amber-400 mt-0.5">
+                              {formatCurrency(item.defaultPriceIdr, currency)}
                             </div>
                           </button>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {marketRef && (
-                    <div className="p-3 bg-blue-950/50 border border-blue-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-200">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <TrendingUp className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                        <span className="truncate">
-                          Rekomendasi Pasar TCGPlayer:{' '}
-                          <strong className="text-white">
-                            {marketRef.usd ? `$${marketRef.usd}` : ''}{' '}
-                            {marketRef.idr ? `(~${formatCurrency(marketRef.idr, 'IDR')})` : ''}
-                          </strong>
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (currency === 'IDR' && marketRef.idr) setPrice(marketRef.idr);
-                          if (currency === 'USD' && marketRef.usd) setPrice(Math.round(marketRef.usd));
-                        }}
-                        className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0"
-                      >
-                        Pakai Harga Ini
-                      </button>
                     </div>
                   )}
                 </div>
@@ -1197,14 +1607,14 @@ export default function EditSlotModal({
                       {/* Card Name */}
                       <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-slate-300 mb-1">
-                          Nama Kartu Pokémon <span className="text-red-400">*</span>
+                          Nama Kartu <span className="text-red-400">*</span>
                         </label>
                         <input
                           type="text"
                           required
                           value={cardName}
                           onChange={(e) => setCardName(e.target.value)}
-                          placeholder="misal: Charizard ex SIR"
+                          placeholder="misal: Charizard ex SIR / Blazing Scorcher / Luffy"
                           className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
                         />
                       </div>
@@ -1216,19 +1626,19 @@ export default function EditSlotModal({
                           type="text"
                           value={cardSet}
                           onChange={(e) => setCardSet(e.target.value)}
-                          placeholder="misal: Scarlet & Violet: 151"
+                          placeholder="misal: Scarlet & Violet: 151 / Origins / OP-05"
                           className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
                         />
                       </div>
 
                       {/* Card Number */}
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">Nomor Kartu</label>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">Nomor / Kode Kartu</label>
                         <input
                           type="text"
                           value={cardNumber}
                           onChange={(e) => setCardNumber(e.target.value)}
-                          placeholder="misal: 199/165"
+                          placeholder="misal: 199/165 / OGN-001/298 / OP05-119"
                           className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
                         />
                       </div>
@@ -1240,7 +1650,7 @@ export default function EditSlotModal({
                           type="text"
                           value={rarity}
                           onChange={(e) => setRarity(e.target.value)}
-                          placeholder="misal: Illustration Rare / Holo"
+                          placeholder="misal: Illustration Rare / Common / Manga Rare"
                           className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
                         />
                       </div>
@@ -1264,13 +1674,13 @@ export default function EditSlotModal({
                       {/* Seller Notes */}
                       <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-slate-300 mb-1">
-                          Catatan Penjual (Swirl holo, centering, minus kecil, dll.)
+                          Catatan Penjual (Deskripsi, status card, swirl holo, dll.)
                         </label>
                         <input
                           type="text"
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
-                          placeholder="misal: Swirl holo jelas di bawah, centering 9.5, pack fresh"
+                          placeholder="misal: Unit • Domain Fury • Might 5 / Pack Fresh"
                           className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
                         />
                       </div>

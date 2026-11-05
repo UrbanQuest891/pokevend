@@ -357,8 +357,13 @@ export default function BinderEditorPage() {
                       <div className="font-extrabold text-xs text-white line-clamp-1 group-hover:text-amber-400 transition-colors">
                         {card.name}
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {card.condition} • {card.setName}
+                      <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                        {card.game && card.game !== 'pokemon' && (
+                          <span className="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 flex-shrink-0">
+                            {card.game}
+                          </span>
+                        )}
+                        <span className="truncate">{card.condition} • {card.setName}</span>
                       </div>
 
                       {/* Price Tag */}

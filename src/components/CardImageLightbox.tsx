@@ -94,6 +94,11 @@ export default function CardImageLightbox({
           <span className="px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs font-black tracking-wider flex-shrink-0">
             SLOT #{slotNumber}
           </span>
+          {card.game && card.game !== 'pokemon' && (
+            <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-black uppercase tracking-wider flex-shrink-0">
+              {card.game}
+            </span>
+          )}
           <div className="min-w-0">
             <h3 className="font-extrabold text-xs sm:text-sm text-white truncate">{card.name}</h3>
             <p className="text-[11px] text-slate-400 truncate">

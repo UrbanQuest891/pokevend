@@ -26,6 +26,7 @@ export interface PokemonCard {
   status: CardStatus;
   imageUrl: string;
   notes?: string;
+  game?: 'pokemon' | 'riftbound' | 'onepiece' | string;
   updatedAt: string;
 }
 

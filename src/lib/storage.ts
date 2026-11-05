@@ -413,6 +413,7 @@ export async function updateSlotCard(
     status: cardData.status || 'AVAILABLE',
     imageUrl: cardData.imageUrl || 'https://images.pokemontcg.io/sv3pt5/199_hires.png',
     notes: cardData.notes || '',
+    game: cardData.game || existingCard?.game || 'pokemon',
     updatedAt: now,
   };
 

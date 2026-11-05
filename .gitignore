@@ -23,6 +23,7 @@ data/store.json
 # Card database CSVs (large files, sourced externally)
 data/pokemon_cards_id.csv
 data/pokemon_cards_jp.csv
+data/riftbound_cards.csv
 
 # Vercel
 .vercel

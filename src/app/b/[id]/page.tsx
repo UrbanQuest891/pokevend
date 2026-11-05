@@ -197,7 +197,7 @@ export default function BuyerBinderPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Cari nama Pokémon (Charizard, Pikachu, Mew...)"
+              placeholder="Cari nama kartu (Pokémon, Riftbound, One Piece...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
@@ -401,8 +401,13 @@ export default function BuyerBinderPage() {
                       <h4 className="font-bold text-xs text-white line-clamp-1 group-hover:text-amber-300 transition-colors">
                         {card.name}
                       </h4>
-                      <p className="text-[10px] text-slate-400 truncate">
-                        {card.condition} • {card.setName}
+                      <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                        {card.game && card.game !== 'pokemon' && (
+                          <span className="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 flex-shrink-0">
+                            {card.game}
+                          </span>
+                        )}
+                        <span className="truncate">{card.condition} • {card.setName}</span>
                       </p>
 
                       {/* Price Badge */}
