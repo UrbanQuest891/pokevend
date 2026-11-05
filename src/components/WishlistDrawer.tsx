@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ShoppingBag, X, Trash2, MessageCircle, Check, ArrowRight } from 'lucide-react';
 import { PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
+import { formatCardImageUrl } from '@/lib/imageHelper';
 
 export interface WishlistItem {
   slotNumber: number;
@@ -121,7 +122,7 @@ export default function WishlistDrawer({
                     </div>
                     {item.card.imageUrl && (
                       <img
-                        src={item.card.imageUrl}
+                        src={formatCardImageUrl(item.card.imageUrl)}
                         alt=""
                         className="w-10 h-14 object-cover rounded shadow-sm flex-shrink-0"
                       />

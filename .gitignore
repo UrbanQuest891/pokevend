@@ -26,6 +26,8 @@ data/pokemon_cards_jp.csv
 data/riftbound_cards.csv
 data/one_piece_cards_en.csv
 data/one_piece_cards_jp.csv
+.cache/
+data/image_cache/
 
 # Vercel
 .vercel

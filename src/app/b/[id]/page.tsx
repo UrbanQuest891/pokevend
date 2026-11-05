@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
+import { formatCardImageUrl } from '@/lib/imageHelper';
 import WishlistDrawer, { WishlistItem } from '@/components/WishlistDrawer';
 import CardImageLightbox from '@/components/CardImageLightbox';
 import {
@@ -363,7 +364,7 @@ export default function BuyerBinderPage() {
                       {card.imageUrl ? (
                         <>
                           <img
-                            src={card.imageUrl}
+                            src={formatCardImageUrl(card.imageUrl)}
                             alt={card.name}
                             className="w-full h-full object-contain p-0.5"
                           />

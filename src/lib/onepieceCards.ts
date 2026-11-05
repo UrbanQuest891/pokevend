@@ -9,6 +9,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { formatCardImageUrl } from './imageHelper';
 
 export interface OnePieceCard {
   id: string;
@@ -164,7 +165,7 @@ export function loadOnePieceCards(lang: 'EN' | 'JP'): OnePieceCard[] {
       cardSet: obj.cardSet || '',
       seriesId: obj.seriesId || '',
       seriesName: obj.seriesName || '',
-      imageUrl: obj.imageUrl || '',
+      imageUrl: formatCardImageUrl(obj.imageUrl || ''),
       lang,
     });
   }

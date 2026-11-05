@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
+import { formatCardImageUrl } from '@/lib/imageHelper';
 
 interface CardImageLightboxProps {
   isOpen: boolean;
@@ -69,10 +70,12 @@ export default function CardImageLightbox({
 
   if (!isOpen || !card) return null;
 
-  // Derive high-res image URL: TCGdex assets support appending /high.webp for max quality
-  const highResUrl = card.imageUrl?.includes('assets.tcgdex.net')
-    ? card.imageUrl.replace(/\/(high\.webp|high\.png|low\.webp|low\.png)?$/, '') + '/high.webp'
-    : card.imageUrl;
+  // Derive high-res image URL: TCGdex assets support appending /high.webp for max quality,
+  // and Bandai One Piece URLs are safely proxied to bypass CORP restrictions
+  const formattedUrl = formatCardImageUrl(card.imageUrl);
+  const highResUrl = formattedUrl?.includes('assets.tcgdex.net')
+    ? formattedUrl.replace(/\/(high\.webp|high\.png|low\.webp|low\.png)?$/, '') + '/high.webp'
+    : formattedUrl;
 
   const handleToggleZoom = () => {
     if (zoomLevel === 1) setZoomLevel(1.6);

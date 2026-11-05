@@ -32,6 +32,7 @@ import { LocalIdCardSummary } from '@/lib/localIdCards';
 import { LocalJpCardSummary } from '@/lib/localJpCards';
 import { RiftboundCardSummary, RiftboundSetInfo } from '@/lib/riftboundCards';
 import { OnePieceCardSummary, OnePieceSetInfo } from '@/lib/onepieceCards';
+import { formatCardImageUrl } from '@/lib/imageHelper';
 import CardImageLightbox from '@/components/CardImageLightbox';
 
 export type TcgGame = 'pokemon' | 'riftbound' | 'onepiece';
@@ -152,7 +153,7 @@ export default function EditSlotModal({
       setPrice(existingCard.price || 0);
       setOriginalPrice(existingCard.originalPrice);
       setStatus(existingCard.status || 'AVAILABLE');
-      setImageUrl(existingCard.imageUrl || '');
+      setImageUrl(formatCardImageUrl(existingCard.imageUrl || ''));
       setNotes(existingCard.notes || '');
 
       // Infer game
@@ -737,7 +738,7 @@ export default function EditSlotModal({
                     {imageUrl ? (
                       <>
                         <img
-                          src={imageUrl}
+                          src={formatCardImageUrl(imageUrl)}
                           alt={cardName || 'Preview Kartu'}
                           className="w-full h-full object-contain bg-slate-950 select-none transition-transform duration-300 group-hover:scale-105"
                         />
@@ -1381,7 +1382,7 @@ export default function EditSlotModal({
                             >
                               {card.imageUrl ? (
                                 <img
-                                  src={card.imageUrl}
+                                  src={formatCardImageUrl(card.imageUrl)}
                                   alt=""
                                   className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
                                 />
@@ -1572,7 +1573,7 @@ export default function EditSlotModal({
                             >
                               {card.imageUrl ? (
                                 <img
-                                  src={card.imageUrl}
+                                  src={formatCardImageUrl(card.imageUrl)}
                                   alt=""
                                   className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
                                 />

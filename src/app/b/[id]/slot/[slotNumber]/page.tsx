@@ -1,6 +1,7 @@
 import React from 'react';
 import { getSlotCard } from '@/lib/storage';
 import { formatCurrency } from '@/lib/qr';
+import { formatCardImageUrl } from '@/lib/imageHelper';
 import {
   Sparkles,
   Layers,
@@ -112,7 +113,7 @@ export default async function SlotDetailPage(props: SlotPageProps) {
             <div className="relative aspect-[3/4] max-h-80 w-full rounded-3xl overflow-hidden bg-slate-900 mx-auto shadow-2xl border-2 border-slate-800 holo-shine">
               {card.imageUrl ? (
                 <img
-                  src={card.imageUrl}
+                  src={formatCardImageUrl(card.imageUrl)}
                   alt={card.name}
                   className="w-full h-full object-contain p-2"
                 />

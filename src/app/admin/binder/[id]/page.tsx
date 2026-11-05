@@ -7,6 +7,7 @@ import EditSlotModal from '@/components/EditSlotModal';
 import QrCodeModal from '@/components/QrCodeModal';
 import { Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
+import { formatCardImageUrl } from '@/lib/imageHelper';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -334,7 +335,7 @@ export default function BinderEditorPage() {
                     <div className="relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-slate-950 mx-auto shadow-md mb-2 holo-shine">
                       {card.imageUrl ? (
                         <img
-                          src={card.imageUrl}
+                          src={formatCardImageUrl(card.imageUrl)}
                           alt={card.name}
                           className="w-full h-full object-contain p-1"
                         />
