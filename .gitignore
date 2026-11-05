@@ -24,6 +24,8 @@ data/store.json
 data/pokemon_cards_id.csv
 data/pokemon_cards_jp.csv
 data/riftbound_cards.csv
+data/one_piece_cards_en.csv
+data/one_piece_cards_jp.csv
 
 # Vercel
 .vercel

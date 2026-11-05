@@ -31,7 +31,7 @@ import { TcgdexCardSummary } from '@/lib/tcgdex';
 import { LocalIdCardSummary } from '@/lib/localIdCards';
 import { LocalJpCardSummary } from '@/lib/localJpCards';
 import { RiftboundCardSummary, RiftboundSetInfo } from '@/lib/riftboundCards';
-import { ONE_PIECE_TEMPLATES, ONE_PIECE_SETS, OnePieceTemplate } from '@/lib/onepieceCatalog';
+import { OnePieceCardSummary, OnePieceSetInfo } from '@/lib/onepieceCards';
 import CardImageLightbox from '@/components/CardImageLightbox';
 
 export type TcgGame = 'pokemon' | 'riftbound' | 'onepiece';
@@ -129,9 +129,17 @@ export default function EditSlotModal({
   const [riftboundSetsLoaded, setRiftboundSetsLoaded] = useState(false);
 
   // Level 2 - One Piece
-  const [onePieceLang, setOnePieceLang] = useState<'JP' | 'EN'>('JP');
+  const [onePieceLang, setOnePieceLang] = useState<'JP' | 'EN'>('EN');
   const [onePieceQuery, setOnePieceQuery] = useState('');
   const [onePieceSet, setOnePieceSet] = useState('');
+  const [onePieceResults, setOnePieceResults] = useState<OnePieceCardSummary[]>([]);
+  const [onePieceSearching, setOnePieceSearching] = useState(false);
+  const [onePieceEnSets, setOnePieceEnSets] = useState<OnePieceSetInfo[]>([]);
+  const [onePieceJpSets, setOnePieceJpSets] = useState<OnePieceSetInfo[]>([]);
+  const [onePieceSetsLoaded, setOnePieceSetsLoaded] = useState<{ EN: boolean; JP: boolean }>({ EN: false, JP: false });
+  const [onePiecePage, setOnePiecePage] = useState(1);
+  const [onePieceTotal, setOnePieceTotal] = useState(0);
+  const [onePieceTotalPages, setOnePieceTotalPages] = useState(1);
 
   // Initialize modal state on open or card change
   useEffect(() => {
@@ -182,7 +190,9 @@ export default function EditSlotModal({
     setRiftboundResults([]);
     setRiftboundSet('');
     setOnePieceQuery('');
+    setOnePieceResults([]);
     setOnePieceSet('');
+    setOnePiecePage(1);
     setShowHoloPreview(false);
     setShowUrlInput(false);
   }, [existingCard, isOpen, currency]);
@@ -334,6 +344,61 @@ export default function EditSlotModal({
     return () => clearTimeout(timer);
   }, [riftboundQuery, riftboundSet, selectedGame]);
 
+  // Load One Piece sets
+  useEffect(() => {
+    if (selectedGame === 'onepiece') {
+      if (onePieceLang === 'EN' && !onePieceSetsLoaded.EN) {
+        fetch('/api/onepiece/sets?lang=EN')
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) setOnePieceEnSets(data.sets || []);
+            setOnePieceSetsLoaded((prev) => ({ ...prev, EN: true }));
+          })
+          .catch(() => setOnePieceSetsLoaded((prev) => ({ ...prev, EN: true })));
+      } else if (onePieceLang === 'JP' && !onePieceSetsLoaded.JP) {
+        fetch('/api/onepiece/sets?lang=JP')
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) setOnePieceJpSets(data.sets || []);
+            setOnePieceSetsLoaded((prev) => ({ ...prev, JP: true }));
+          })
+          .catch(() => setOnePieceSetsLoaded((prev) => ({ ...prev, JP: true })));
+      }
+    }
+  }, [selectedGame, onePieceLang, onePieceSetsLoaded]);
+
+  // Debounced One Piece search
+  useEffect(() => {
+    if (selectedGame !== 'onepiece') return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setOnePieceSearching(true);
+        const params = new URLSearchParams({
+          lang: onePieceLang,
+          page: String(onePiecePage),
+          limit: '24',
+        });
+        if (onePieceQuery.trim()) params.set('q', onePieceQuery.trim());
+        if (onePieceSet) params.set('set', onePieceSet);
+
+        const res = await fetch(`/api/onepiece/search?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setOnePieceResults(data.cards || []);
+          setOnePieceTotal(data.total || 0);
+          setOnePieceTotalPages(data.totalPages || 1);
+        }
+      } catch (err) {
+        console.error('One Piece search failed:', err);
+      } finally {
+        setOnePieceSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [onePieceQuery, onePieceSet, onePieceLang, onePiecePage, selectedGame]);
+
   if (!isOpen) return null;
 
   // Handle picking card from TCGdex
@@ -483,15 +548,46 @@ export default function EditSlotModal({
   };
 
   // Handle picking from One Piece cards
-  const handleSelectOnePieceCard = (template: OnePieceTemplate) => {
-    setCardName(template.name);
-    setCardSet(template.setName);
-    setCardNumber(template.cardNumber);
-    setRarity(template.rarity);
-    if (template.imageUrl) setImageUrl(template.imageUrl);
-    setPrice(currency === 'USD' ? Math.round(template.defaultPriceIdr / 16000) : template.defaultPriceIdr);
-    setNotes(`${template.category} • One Piece Card Game (${template.language})`);
-    setMarketRef(null);
+  const handleSelectOnePieceCard = async (summary: OnePieceCardSummary) => {
+    try {
+      setOnePieceSearching(true);
+      const res = await fetch(`/api/onepiece/card/${encodeURIComponent(summary.id)}?lang=${summary.lang}`);
+      const data = await res.json();
+
+      if (data.success && data.card) {
+        const c = data.card;
+        setCardName(c.name);
+        setCardSet(c.cardSet || c.seriesName || '');
+        setCardNumber(c.cardNumber || '');
+        setRarity(c.rarity || 'Common');
+        setImageUrl(c.imageUrl || '');
+
+        const details = [
+          c.category,
+          c.color,
+          c.attribute && c.attribute !== '-' ? c.attribute : null,
+          c.type,
+          c.costLife && c.costLife !== '-' ? `Cost/Life: ${c.costLife}` : null,
+          c.power && c.power !== '-' ? `Power: ${c.power}` : null,
+          c.counter && c.counter !== '-' ? `Counter: ${c.counter}` : null,
+        ].filter(Boolean).join(' • ');
+
+        setNotes(`[${c.lang}] ${details}`);
+        setMarketRef(null);
+      } else {
+        setCardName(summary.name);
+        setCardSet(summary.cardSet || '');
+        setCardNumber(summary.cardNumber || '');
+        setRarity(summary.rarity || '');
+        setImageUrl(summary.imageUrl || '');
+      }
+    } catch (err) {
+      console.error(err);
+      setCardName(summary.name);
+      setImageUrl(summary.imageUrl || '');
+    } finally {
+      setOnePieceSearching(false);
+    }
   };
 
   const filteredPresets = presetSearch.trim()
@@ -501,21 +597,6 @@ export default function EditSlotModal({
           t.setName.toLowerCase().includes(presetSearch.toLowerCase())
       ).slice(0, 8)
     : POKEMON_CARD_TEMPLATES.slice(0, 8);
-
-  const filteredOnePieceTemplates = ONE_PIECE_TEMPLATES.filter((t) => {
-    if (t.language !== onePieceLang) return false;
-    if (onePieceSet && !t.setName.includes(onePieceSet)) return false;
-    if (onePieceQuery.trim()) {
-      const q = onePieceQuery.toLowerCase();
-      return (
-        t.name.toLowerCase().includes(q) ||
-        (t.nameJp && t.nameJp.toLowerCase().includes(q)) ||
-        t.cardNumber.toLowerCase().includes(q) ||
-        t.setName.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1343,55 +1424,73 @@ export default function EditSlotModal({
                   {/* --- SUB-VIEW: ONE PIECE CARD GAME --- */}
                   {selectedGame === 'onepiece' && (
                     <div className="space-y-3 pt-1 border-t border-slate-800/80">
-                      {/* Language Selection for One Piece */}
+                      {/* Language Selection Sub-Menu for One Piece */}
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90">
+                          {/* English Sub-menu */}
                           <button
                             type="button"
-                            onClick={() => setOnePieceLang('JP')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                              onePieceLang === 'JP'
-                                ? 'bg-rose-600 text-white shadow-sm'
-                                : 'text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            <span className="text-sm leading-none">🇯🇵</span>
-                            <span>Jepang (JP)</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setOnePieceLang('EN')}
+                            onClick={() => {
+                              setOnePieceLang('EN');
+                              setOnePiecePage(1);
+                              setOnePieceSet('');
+                            }}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               onePieceLang === 'EN'
-                                ? 'bg-blue-600 text-white shadow-sm'
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm ring-1 ring-blue-400/50'
                                 : 'text-slate-400 hover:text-white'
                             }`}
                           >
                             <Globe className="w-3.5 h-3.5" />
                             <span>Inggris (EN)</span>
+                            <span className="text-[10px] opacity-80 font-mono">4.940+</span>
+                          </button>
+
+                          {/* Japanese Sub-menu */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOnePieceLang('JP');
+                              setOnePiecePage(1);
+                              setOnePieceSet('');
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              onePieceLang === 'JP'
+                                ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm ring-1 ring-rose-400/50'
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-sm leading-none">🇯🇵</span>
+                            <span>Jepang (JP)</span>
+                            <span className="text-[10px] opacity-80 font-mono">5.110+</span>
                           </button>
                         </div>
 
                         <span className="text-[11px] text-rose-400 font-semibold flex items-center gap-1">
                           <span>🏴‍☠️</span>
-                          <span>One Piece Card Game (OPCG)</span>
+                          <span>Bandai One Piece Card Game</span>
                         </span>
                       </div>
 
-                      {/* Filters */}
+                      {/* Filters: Sets & Search */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="relative">
                           <ChevronDown className="w-4 h-4 absolute right-3.5 top-2.5 text-slate-400 pointer-events-none" />
                           <select
                             value={onePieceSet}
-                            onChange={(e) => setOnePieceSet(e.target.value)}
+                            onChange={(e) => {
+                              setOnePieceSet(e.target.value);
+                              setOnePiecePage(1);
+                            }}
                             className="w-full pl-3 pr-8 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-rose-500 appearance-none shadow-inner"
                           >
-                            <option value="">— Semua Seri One Piece —</option>
-                            {ONE_PIECE_SETS.map((s) => (
-                              <option key={s.code} value={s.code}>
-                                {s.name}
+                            <option value="">
+                              — Semua Seri {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'} (
+                              {(onePieceLang === 'EN' ? onePieceEnSets : onePieceJpSets).length} Seri) —
+                            </option>
+                            {(onePieceLang === 'EN' ? onePieceEnSets : onePieceJpSets).map((s) => (
+                              <option key={s.name} value={s.name}>
+                                {s.name} ({s.count} kartu)
                               </option>
                             ))}
                           </select>
@@ -1401,54 +1500,118 @@ export default function EditSlotModal({
                           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                           <input
                             type="text"
-                            placeholder="Filter kartu One Piece (Luffy, Zoro, Manga...)..."
+                            placeholder={
+                              onePieceLang === 'EN'
+                                ? 'Cari One Piece (Luffy, Zoro, Nami, OP05-119, SEC, Leader...)...'
+                                : 'Cari One Piece JP (ルフィ, ゾロ, OP05-119, SEC, リーダー...)...'
+                            }
                             value={onePieceQuery}
-                            onChange={(e) => setOnePieceQuery(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner"
+                            onChange={(e) => {
+                              setOnePieceQuery(e.target.value);
+                              setOnePiecePage(1);
+                            }}
+                            className="w-full pl-9 pr-9 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner"
                           />
+                          {onePieceSearching && (
+                            <Loader2 className="w-4 h-4 absolute right-3 top-2.5 text-rose-400 animate-spin" />
+                          )}
                         </div>
                       </div>
 
-                      {/* Info Notice */}
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/40 border border-rose-500/20 rounded-xl text-rose-200">
-                        <span className="text-sm">🏴‍☠️</span>
-                        <span className="text-[11px]">
-                          Pilih template kartu populer One Piece di bawah atau isi nama kartu manual. Struktur disiapkan untuk integrasi data One Piece selanjutnya.
-                        </span>
+                      {/* Info & Result count */}
+                      <div className="flex items-center justify-between text-xs px-1 text-slate-400">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs">🏴‍☠️</span>
+                          <span className="text-[11px]">
+                            {onePieceSearching ? (
+                              'Sedang mencari...'
+                            ) : (
+                              <>
+                                Ditemukan <strong className="text-white">{onePieceTotal.toLocaleString()}</strong> kartu{' '}
+                                {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'}
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        {onePieceTotalPages > 1 && (
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={() => setOnePiecePage((p) => Math.max(1, p - 1))}
+                              disabled={onePiecePage <= 1 || onePieceSearching}
+                              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold"
+                            >
+                              &larr; Prev
+                            </button>
+                            <span className="font-mono text-slate-300">
+                              {onePiecePage}/{onePieceTotalPages}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setOnePiecePage((p) => Math.min(onePieceTotalPages, p + 1))}
+                              disabled={onePiecePage >= onePieceTotalPages || onePieceSearching}
+                              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold"
+                            >
+                              Next &rarr;
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* One Piece Cards Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                        {filteredOnePieceTemplates.map((item, idx) => (
-                          <button
-                            key={`op-${item.id}-${idx}`}
-                            type="button"
-                            onClick={() => handleSelectOnePieceCard(item)}
-                            className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-rose-500/10"
-                          >
-                            {item.imageUrl ? (
-                              <img
-                                src={item.imageUrl}
-                                alt=""
-                                className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <div className="w-14 h-20 bg-slate-800 rounded-lg flex items-center justify-center text-[10px] font-bold text-rose-400 mb-1.5">
-                                OP CARD
+                      {onePieceResults.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                          {onePieceResults.map((card, idx) => (
+                            <button
+                              key={`op-${card.id || idx}-${idx}`}
+                              type="button"
+                              disabled={onePieceSearching}
+                              onClick={() => handleSelectOnePieceCard(card)}
+                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-rose-500/10"
+                            >
+                              {card.imageUrl ? (
+                                <img
+                                  src={card.imageUrl}
+                                  alt=""
+                                  className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                />
+                              ) : (
+                                <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] font-bold text-rose-400 flex-shrink-0">
+                                  OP
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-black text-white group-hover:text-rose-300 truncate">
+                                  {card.name}
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                  {card.cardNumber} • <span className="font-semibold text-rose-400">{card.rarity}</span>
+                                </div>
+                                <div className="text-[10px] text-amber-400/90 font-bold truncate">
+                                  {card.category} {card.color ? `• ${card.color}` : ''}
+                                </div>
+                                <div className="text-[9px] text-slate-500 truncate">
+                                  {card.cardSet}
+                                </div>
                               </div>
-                            )}
-                            <div className="w-full text-xs font-black text-white group-hover:text-rose-300 truncate">
-                              {item.name}
-                            </div>
-                            <div className="w-full text-[10px] text-slate-400 truncate">
-                              {item.cardNumber} • {item.rarity}
-                            </div>
-                            <div className="text-[11px] font-black text-amber-400 mt-0.5">
-                              {formatCurrency(item.defaultPriceIdr, currency)}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {!onePieceSearching && onePieceResults.length === 0 && onePieceQuery.trim().length > 0 && (
+                        <div className="text-center text-xs text-slate-400 py-3">
+                          Tidak ada kartu One Piece {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'} ditemukan untuk &quot;{onePieceQuery}&quot;.
+                        </div>
+                      )}
+
+                      {!onePieceSearching && onePieceResults.length === 0 && onePieceQuery.trim().length === 0 && (
+                        <div className="text-center text-xs text-slate-500 py-2 flex items-center justify-center gap-1.5">
+                          <span>🏴‍☠️</span>
+                          <span>Ketik nama karakter One Piece, nomor kartu, atau pilih seri rilis di atas.</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
