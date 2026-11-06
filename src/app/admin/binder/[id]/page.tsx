@@ -478,25 +478,6 @@ export default function BinderEditorPage() {
 
           {/* Quick Toolbar */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Tombol Baru: Mode Edit Slot (Drag & Drop PC) */}
-            <button
-              onClick={handleToggleReorderMode}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                isReorderMode
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black ring-2 ring-amber-400 shadow-amber-500/20'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-              }`}
-              title="Atur posisi kartu dengan drag & drop (khusus PC)"
-            >
-              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-slate-950 stroke-[3]' : 'text-amber-400'}`} />
-              <span>{isReorderMode ? 'Selesai Atur Slot' : 'Edit Slot (Drag & Drop)'}</span>
-              {isReorderMode && changedCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black">
-                  {changedCount}
-                </span>
-              )}
-            </button>
-
             <a
               href={`/b/${binder.id}`}
               target="_blank"
