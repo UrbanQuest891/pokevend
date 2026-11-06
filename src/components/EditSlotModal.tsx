@@ -23,6 +23,8 @@ import {
   Ban,
   Layers,
   Sparkle,
+  ArrowLeft,
+  RotateCcw,
 } from 'lucide-react';
 import { CardCondition, CardStatus, PokemonCard } from '@/types';
 import { POKEMON_CARD_TEMPLATES, PokemonCardTemplate } from '@/lib/pokemonCatalog';
@@ -92,11 +94,11 @@ export default function EditSlotModal({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  // Level 1: Primary TCG Game Selection
-  const [selectedGame, setSelectedGame] = useState<TcgGame>('pokemon');
+  // Level 1: Primary TCG Game Selection (Step 1)
+  const [selectedGame, setSelectedGame] = useState<TcgGame | null>(null);
 
-  // Level 2 - Pokemon Sub-Sources
-  const [pokemonSource, setPokemonSource] = useState<PokemonSubSource>('tcgdex');
+  // Level 2 - Pokemon Sub-Sources (Step 2)
+  const [pokemonSource, setPokemonSource] = useState<PokemonSubSource | null>(null);
   const [tcgdexQuery, setTcgdexQuery] = useState('');
   const [tcgdexResults, setTcgdexResults] = useState<TcgdexCardSummary[]>([]);
   const [tcgdexSearching, setTcgdexSearching] = useState(false);
@@ -135,6 +137,7 @@ export default function EditSlotModal({
   const [presetSearch, setPresetSearch] = useState('');
 
   // Level 2 - Riftbound
+  const [riftboundLang, setRiftboundLang] = useState<'EN' | null>(null);
   const [riftboundQuery, setRiftboundQuery] = useState('');
   const [riftboundResults, setRiftboundResults] = useState<RiftboundCardSummary[]>([]);
   const [riftboundSearching, setRiftboundSearching] = useState(false);
@@ -143,7 +146,7 @@ export default function EditSlotModal({
   const [riftboundSetsLoaded, setRiftboundSetsLoaded] = useState(false);
 
   // Level 2 - One Piece
-  const [onePieceLang, setOnePieceLang] = useState<'JP' | 'EN'>('EN');
+  const [onePieceLang, setOnePieceLang] = useState<'JP' | 'EN' | null>(null);
   const [onePieceQuery, setOnePieceQuery] = useState('');
   const [onePieceSet, setOnePieceSet] = useState('');
   const [onePieceResults, setOnePieceResults] = useState<OnePieceCardSummary[]>([]);
@@ -154,6 +157,67 @@ export default function EditSlotModal({
   const [onePiecePage, setOnePiecePage] = useState(1);
   const [onePieceTotal, setOnePieceTotal] = useState(0);
   const [onePieceTotalPages, setOnePieceTotalPages] = useState(1);
+
+  // Interactive Drilldown Transition State (Step 1 -> Step 2 -> Step 3)
+  const [isExitingStep, setIsExitingStep] = useState<'step2' | 'step3' | null>(null);
+
+  const handleSelectGame = (game: TcgGame) => {
+    if (selectedGame === game) {
+      handleBackToGames();
+      return;
+    }
+    setSelectedGame(game);
+    setPokemonSource(null);
+    setOnePieceLang(null);
+    setRiftboundLang(null);
+    setIsExitingStep(null);
+  };
+
+  const handleBackToGames = () => {
+    setIsExitingStep('step2');
+    setTimeout(() => {
+      setSelectedGame(null);
+      setPokemonSource(null);
+      setOnePieceLang(null);
+      setRiftboundLang(null);
+      setIsExitingStep(null);
+    }, 200);
+  };
+
+  const handleSelectPokemonSource = (src: PokemonSubSource) => {
+    setPokemonSource(src);
+    setIsExitingStep(null);
+  };
+
+  const handleSelectOnePieceLang = (lang: 'EN' | 'JP') => {
+    setOnePieceLang(lang);
+    setOnePiecePage(1);
+    setOnePieceSet('');
+    setIsExitingStep(null);
+  };
+
+  const handleSelectRiftboundLang = () => {
+    setRiftboundLang('EN');
+    setIsExitingStep(null);
+  };
+
+  const handleBackToLanguage = () => {
+    setIsExitingStep('step3');
+    setTimeout(() => {
+      setPokemonSource(null);
+      setOnePieceLang(null);
+      setRiftboundLang(null);
+      setIsExitingStep(null);
+    }, 200);
+  };
+
+  const isLanguageSelected = Boolean(
+    (selectedGame === 'pokemon' && pokemonSource) ||
+    (selectedGame === 'onepiece' && onePieceLang) ||
+    (selectedGame === 'riftbound' && riftboundLang)
+  );
+
+  const effectiveGame: TcgGame = selectedGame || (existingCard?.game as TcgGame) || 'pokemon';
 
   // Initialize modal state on open or card change
   useEffect(() => {
@@ -190,6 +254,11 @@ export default function EditSlotModal({
       setNotes('');
     }
 
+    setSelectedGame(null);
+    setPokemonSource(null);
+    setOnePieceLang(null);
+    setRiftboundLang(null);
+    setIsExitingStep(null);
     setTcgdexQuery('');
     setTcgdexResults([]);
     setEnQuery('');
@@ -360,7 +429,7 @@ export default function EditSlotModal({
 
   // Debounced Riftbound search
   useEffect(() => {
-    if (selectedGame !== 'riftbound') return;
+    if (selectedGame !== 'riftbound' || !riftboundLang) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -410,7 +479,7 @@ export default function EditSlotModal({
 
   // Debounced One Piece search
   useEffect(() => {
-    if (selectedGame !== 'onepiece') return;
+    if (selectedGame !== 'onepiece' || !onePieceLang) return;
 
     const timer = setTimeout(async () => {
       try {
@@ -698,7 +767,7 @@ export default function EditSlotModal({
           status,
           imageUrl,
           notes,
-          game: selectedGame,
+          game: selectedGame || existingCard?.game || 'pokemon',
         }),
       });
 
@@ -747,7 +816,7 @@ export default function EditSlotModal({
     status,
     imageUrl: imageUrl || '',
     notes,
-    game: selectedGame,
+    game: selectedGame || existingCard?.game || 'pokemon',
     updatedAt: new Date().toISOString(),
   };
 
@@ -798,13 +867,13 @@ export default function EditSlotModal({
                       Preview Visual Kartu
                     </span>
                     <span className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700/80 flex items-center justify-center shadow-sm">
-                      {selectedGame === 'pokemon' && (
+                      {effectiveGame === 'pokemon' && (
                         <img src="/logos/pokemon.svg" alt="Pokémon" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
                       )}
-                      {selectedGame === 'riftbound' && (
+                      {effectiveGame === 'riftbound' && (
                         <img src="/logos/riftbound.png" alt="Riftbound" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
                       )}
-                      {selectedGame === 'onepiece' && (
+                      {effectiveGame === 'onepiece' && (
                         <img src="/logos/onepiece.png?v=2" alt="One Piece" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
                       )}
                     </span>
@@ -887,26 +956,37 @@ export default function EditSlotModal({
 
               {/* RIGHT COLUMN: Search + Details & Pricing Form (lg:col-span-7) */}
               <div className="lg:col-span-7 space-y-5">
-                {/* 1. Database Card Search Box with Hierarchical TCG Structure */}
+                {/* 1. Database Card Search Box with Progressive 3-Step Interactive Drilldown */}
                 <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-4">
                   {/* LEVEL 1: Primary TCG Game Selector */}
                   <div>
-                    <div className="flex items-center mb-2">
+                    <div className="flex items-center justify-between mb-2.5">
                       <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                         <Layers className="w-3.5 h-3.5 text-blue-400" />
-                        PILIH JENIS KARTU TCG
+                        <span>Langkah 1: Pilih Jenis Kartu TCG</span>
                       </span>
+                      {selectedGame && (
+                        <button
+                          type="button"
+                          onClick={handleBackToGames}
+                          className="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-400/50 shadow-sm"
+                          title="Reset / Ganti Game TCG"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Ganti Game</span>
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
                       {/* Pokemon Game Tab */}
                       <button
                         type="button"
-                        onClick={() => setSelectedGame('pokemon')}
+                        onClick={() => handleSelectGame('pokemon')}
                         title="Pokémon"
-                        className={`group relative flex items-center justify-center h-16 sm:h-20 md:h-22 p-2 sm:p-2.5 rounded-2xl transition-all border overflow-hidden ${
+                        className={`group relative flex items-center justify-center h-16 sm:h-20 md:h-22 p-2 sm:p-2.5 rounded-2xl transition-all border overflow-hidden cursor-pointer ${
                           selectedGame === 'pokemon'
-                            ? 'bg-gradient-to-r from-red-600/90 to-amber-500/90 text-white border-amber-400 shadow-lg shadow-red-600/30 ring-2 ring-amber-400/40'
+                            ? 'bg-gradient-to-r from-red-600/90 to-amber-500/90 text-white border-amber-400 shadow-lg shadow-red-600/30 ring-2 ring-amber-400/40 scale-[1.02]'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700 hover:text-white'
                         }`}
                       >
@@ -920,11 +1000,11 @@ export default function EditSlotModal({
                       {/* Riftbound Game Tab */}
                       <button
                         type="button"
-                        onClick={() => setSelectedGame('riftbound')}
+                        onClick={() => handleSelectGame('riftbound')}
                         title="Riftbound"
-                        className={`group relative flex items-center justify-center h-16 sm:h-20 md:h-22 p-2 sm:p-2.5 rounded-2xl transition-all border overflow-hidden ${
+                        className={`group relative flex items-center justify-center h-16 sm:h-20 md:h-22 p-2 sm:p-2.5 rounded-2xl transition-all border overflow-hidden cursor-pointer ${
                           selectedGame === 'riftbound'
-                            ? 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 text-white border-cyan-400 shadow-lg shadow-cyan-600/30 ring-2 ring-cyan-400/40'
+                            ? 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 text-white border-cyan-400 shadow-lg shadow-cyan-600/30 ring-2 ring-cyan-400/40 scale-[1.02]'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700 hover:text-white'
                         }`}
                       >
@@ -938,11 +1018,11 @@ export default function EditSlotModal({
                       {/* One Piece Game Tab */}
                       <button
                         type="button"
-                        onClick={() => setSelectedGame('onepiece')}
+                        onClick={() => handleSelectGame('onepiece')}
                         title="One Piece"
-                        className={`group relative flex items-center justify-center h-16 sm:h-20 md:h-22 p-2 sm:p-2.5 rounded-2xl transition-all border overflow-hidden ${
+                        className={`group relative flex items-center justify-center h-16 sm:h-20 md:h-22 p-2 sm:p-2.5 rounded-2xl transition-all border overflow-hidden cursor-pointer ${
                           selectedGame === 'onepiece'
-                            ? 'bg-gradient-to-r from-rose-600/90 to-red-600/90 text-white border-rose-400 shadow-lg shadow-rose-600/30 ring-2 ring-rose-400/40'
+                            ? 'bg-gradient-to-r from-rose-600/90 to-red-600/90 text-white border-rose-400 shadow-lg shadow-rose-600/30 ring-2 ring-rose-400/40 scale-[1.02]'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700 hover:text-white'
                         }`}
                       >
@@ -953,23 +1033,50 @@ export default function EditSlotModal({
                         />
                       </button>
                     </div>
+
+                    {!selectedGame && (
+                      <div className="mt-3 py-3 px-4 rounded-2xl bg-slate-900/40 border border-slate-800/70 text-center text-xs text-slate-400 flex items-center justify-center gap-2 animate-fadeInUp">
+                        <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                        <span>Pilih salah satu game TCG di atas untuk mencari data kartu resmi</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* LEVEL 2: Sub-Menu / Language / Database per Game */}
-
-                  {/* --- SUB-VIEW: POKEMON --- */}
-                  {selectedGame === 'pokemon' && (
-                    <div className="space-y-3 pt-1 border-t border-slate-800/80">
-                      {/* Pokemon Source Sub-tabs */}
+                  {/* LEVEL 2: Sub-Menu / Language Selection (Step 2) */}
+                  {selectedGame !== null && (
+                    <div
+                      className={`space-y-3 pt-3 border-t border-slate-800/80 ${
+                        isExitingStep === 'step2' ? 'animate-fadeOutDown' : 'animate-fadeInUp'
+                      }`}
+                    >
                       <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>
+                            Langkah 2: Pilih Bahasa / Kategori ({selectedGame === 'pokemon' ? 'Pokémon' : selectedGame === 'onepiece' ? 'One Piece' : 'Riftbound'})
+                          </span>
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={handleBackToGames}
+                          className="text-[11px] text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-400/50 shadow-sm"
+                        >
+                          <ArrowLeft className="w-3 h-3" />
+                          <span>Kembali ke Pilihan Game</span>
+                        </button>
+                      </div>
+
+                      {/* Pokemon Sub-tabs */}
+                      {selectedGame === 'pokemon' && (
                         <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90 flex-wrap">
                           <button
                             type="button"
-                            onClick={() => setPokemonSource('tcgdex')}
+                            onClick={() => handleSelectPokemonSource('tcgdex')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               pokemonSource === 'tcgdex'
-                                ? 'bg-blue-600 text-white shadow-sm'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-400/50'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                             }`}
                           >
                             <Globe className="w-3.5 h-3.5" />
@@ -978,11 +1085,11 @@ export default function EditSlotModal({
 
                           <button
                             type="button"
-                            onClick={() => setPokemonSource('localid')}
+                            onClick={() => handleSelectPokemonSource('localid')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               pokemonSource === 'localid'
-                                ? 'bg-red-600 text-white shadow-sm'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'bg-red-600 text-white shadow-sm ring-1 ring-red-400/50'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                             }`}
                           >
                             <span className="text-sm leading-none">🇮🇩</span>
@@ -991,492 +1098,42 @@ export default function EditSlotModal({
 
                           <button
                             type="button"
-                            onClick={() => setPokemonSource('localjp')}
+                            onClick={() => handleSelectPokemonSource('localjp')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               pokemonSource === 'localjp'
-                                ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400/40'
-                                : 'text-slate-400 hover:text-white'
+                                ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400/50'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                             }`}
                           >
                             <span className="text-sm leading-none">🇯🇵</span>
                             <span>Jepang (23.000+)</span>
                           </button>
-                        </div>
-                      </div>
 
-                      {/* English Pokémon (20,600+ Local Instant Database) */}
-                      {pokemonSource === 'tcgdex' && (
-                        <div className="space-y-2.5">
-                          {/* Sets dropdown */}
-                          <div className="relative">
-                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
-                            <select
-                              value={enSet}
-                              onChange={(e) => {
-                                setEnSet(e.target.value);
-                                setEnPage(1);
-                              }}
-                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-blue-500 appearance-none shadow-inner"
-                            >
-                              <option value="">— Semua Seri / Set Inggris (176 Set Resmi) —</option>
-                              {enSets.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                  {s.name} ({s.total} kartu)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Search input */}
-                          <div className="relative">
-                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Cari nama Inggris / nomor / nickname (contoh: Moonbreon, Charizard 151, 199/165)..."
-                              value={enQuery}
-                              onChange={(e) => {
-                                setEnQuery(e.target.value);
-                                setEnPage(1);
-                              }}
-                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
-                            />
-                            {(enSearching || enFetchingCard) && (
-                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-blue-400 animate-spin" />
-                            )}
-                          </div>
-
-                          {/* Info & Pagination Bar */}
-                          <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-blue-950/40 border border-blue-500/20 rounded-xl text-blue-200 text-xs">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <Globe className="w-3.5 h-3.5 flex-shrink-0 text-blue-400" />
-                              <span className="text-[11px] truncate">
-                                {enTotal > 0 ? (
-                                  <>Ditemukan <b>{enTotal.toLocaleString()}</b> kartu Inggris</>
-                                ) : (
-                                  '20.600+ database lokal Pokémon EN instant & offline'
-                                )}
-                              </span>
-                            </div>
-                            {enTotalPages > 1 && (
-                              <div className="flex items-center gap-1.5 flex-shrink-0 text-[11px]">
-                                <button
-                                  type="button"
-                                  disabled={enPage <= 1}
-                                  onClick={() => setEnPage((p) => Math.max(1, p - 1))}
-                                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white font-medium"
-                                >
-                                  &larr; Prev
-                                </button>
-                                <span className="text-slate-400 font-medium">
-                                  {enPage} / {enTotalPages}
-                                </span>
-                                <button
-                                  type="button"
-                                  disabled={enPage >= enTotalPages}
-                                  onClick={() => setEnPage((p) => Math.min(enTotalPages, p + 1))}
-                                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white font-medium"
-                                >
-                                  Next &rarr;
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Results Grid */}
-                          {enResults.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                              {enResults.map((card, idx) => (
-                                <button
-                                  key={`localen-${card.id || idx}-${idx}`}
-                                  type="button"
-                                  disabled={enFetchingCard}
-                                  onClick={() => handleSelectLocalEnCard(card)}
-                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-blue-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-blue-500/10"
-                                >
-                                  {card.imageUrl ? (
-                                    <img
-                                      src={card.imageUrl}
-                                      alt=""
-                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                      EN
-                                    </div>
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-black text-white group-hover:text-blue-300 truncate">
-                                      {card.name}
-                                    </div>
-                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                      {card.formattedNumber || `#${card.number}`}
-                                    </div>
-                                    <div className="text-[10px] text-blue-400/80 font-bold truncate">
-                                      {card.setName}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {!enSearching && enResults.length === 0 && (enQuery.trim().length > 0 || enSet) && (
-                            <div className="text-center text-xs text-slate-400 py-3">
-                              Tidak ada kartu Pokémon Inggris ditemukan untuk &quot;{enQuery || enSet}&quot;.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Indonesian View */}
-                      {pokemonSource === 'localid' && (
-                        <div className="space-y-2.5">
-                          <div className="relative">
-                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
-                            <select
-                              value={localIdExpansion}
-                              onChange={(e) => setLocalIdExpansion(e.target.value)}
-                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-red-500 appearance-none shadow-inner"
-                            >
-                              <option value="">— Semua Seri / Produk Indonesia —</option>
-                              {expansions.map((exp) => (
-                                <option key={exp.code} value={exp.code}>
-                                  {exp.productName} ({exp.count} kartu)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="relative">
-                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Cari nama kartu dalam Bahasa Indonesia (misal: Charizard, Pikachu, Mewtwo)..."
-                              value={localIdQuery}
-                              onChange={(e) => setLocalIdQuery(e.target.value)}
-                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 shadow-inner"
-                            />
-                            {localIdSearching && (
-                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-red-400 animate-spin" />
-                            )}
-                          </div>
-
-                          {localIdResults.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                              {localIdResults.map((card, idx) => (
-                                <button
-                                  key={`localid-${card.id || idx}-${idx}`}
-                                  type="button"
-                                  disabled={localIdSearching}
-                                  onClick={() => handleSelectLocalIdCard(card)}
-                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-red-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-red-500/10"
-                                >
-                                  {card.imageUrl ? (
-                                    <img
-                                      src={card.imageUrl}
-                                      alt=""
-                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                      ID
-                                    </div>
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-black text-white group-hover:text-red-300 truncate">
-                                      {card.name}
-                                    </div>
-                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                      {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
-                                    </div>
-                                    <div className="text-[10px] text-red-400/80 font-bold truncate">
-                                      {card.productName}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length > 0 && (
-                            <div className="text-center text-xs text-slate-400 py-2">
-                              Tidak ada kartu ditemukan untuk &quot;{localIdQuery}&quot;.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Japanese View */}
-                      {pokemonSource === 'localjp' && (
-                        <div className="space-y-2.5">
-                          <div className="relative">
-                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
-                            <select
-                              value={localJpExpansion}
-                              onChange={(e) => setLocalJpExpansion(e.target.value)}
-                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-purple-500 appearance-none shadow-inner"
-                            >
-                              <option value="">— Semua Seri / Set Jepang (1.300+ Seri) —</option>
-                              {jpExpansions.slice(0, 100).map((exp) => (
-                                <option key={exp.code} value={exp.code}>
-                                  {exp.productName} ({exp.count} kartu)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="relative">
-                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Cari kartu Jepang (contoh: リザードン, Pikachu, 151, VSTAR, 001/078)..."
-                              value={localJpQuery}
-                              onChange={(e) => setLocalJpQuery(e.target.value)}
-                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 shadow-inner"
-                            />
-                            {localJpSearching && (
-                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-purple-400 animate-spin" />
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/40 border border-purple-500/20 rounded-xl text-purple-200">
-                            <span className="text-sm">🇯🇵</span>
-                            <span className="text-[11px]">
-                              Bisa cari dengan nama Jepang (リザードン), nama Inggris (Charizard), atau nomor kartu.
-                            </span>
-                          </div>
-
-                          {localJpResults.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                              {localJpResults.map((card, idx) => (
-                                <button
-                                  key={`localjp-${card.id || idx}-${idx}`}
-                                  type="button"
-                                  disabled={localJpSearching}
-                                  onClick={() => handleSelectLocalJpCard(card)}
-                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-purple-500/10"
-                                >
-                                  {card.imageUrl ? (
-                                    <img
-                                      src={card.imageUrl}
-                                      alt=""
-                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                      JP
-                                    </div>
-                                  )}
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-black text-white group-hover:text-purple-300 truncate">
-                                      {card.name}
-                                    </div>
-                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                      {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
-                                    </div>
-                                    <div className="text-[10px] text-purple-400/80 font-bold truncate">
-                                      {card.expansion}
-                                    </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length > 0 && (
-                            <div className="text-center text-xs text-slate-400 py-2">
-                              Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Preset Hits View */}
-                      {pokemonSource === 'preset' && (
-                        <div className="space-y-2.5">
-                          <div className="relative">
-                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                            <input
-                              type="text"
-                              placeholder="Filter preset hits populer..."
-                              value={presetSearch}
-                              onChange={(e) => setPresetSearch(e.target.value)}
-                              className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                            {filteredPresets.map((item, idx) => (
-                              <button
-                                key={`preset-${item.cardNumber || idx}-${idx}`}
-                                type="button"
-                                onClick={() => handleSelectPreset(item)}
-                                className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-amber-500/10"
-                              >
-                                <img
-                                  src={item.imageUrl}
-                                  alt=""
-                                  className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
-                                />
-                                <div className="w-full text-xs font-black text-white group-hover:text-amber-300 truncate">
-                                  {item.name}
-                                </div>
-                                <div className="w-full text-[10px] text-slate-400 truncate">
-                                  {item.setName}
-                                </div>
-                                <div className="text-[11px] font-black text-emerald-400 mt-0.5">
-                                  {formatCurrency(item.defaultPrice, currency)}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Market Price Banner */}
-                      {marketRef && (
-                        <div className="p-3 bg-blue-950/50 border border-blue-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-200">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <TrendingUp className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                            <span className="truncate">
-                              Rekomendasi Pasar TCGPlayer:{' '}
-                              <strong className="text-white">
-                                {marketRef.usd ? `$${marketRef.usd}` : ''}{' '}
-                                {marketRef.idr ? `(~${formatCurrency(marketRef.idr, 'IDR')})` : ''}
-                              </strong>
-                            </span>
-                          </div>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (currency === 'IDR' && marketRef.idr) setPrice(marketRef.idr);
-                              if (currency === 'USD' && marketRef.usd) setPrice(Math.round(marketRef.usd));
-                            }}
-                            className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0"
+                            onClick={() => handleSelectPokemonSource('preset')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              pokemonSource === 'preset'
+                                ? 'bg-amber-500 text-slate-950 font-black shadow-sm ring-1 ring-amber-300'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                            }`}
                           >
-                            Pakai Harga Ini
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Preset Hits</span>
                           </button>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {/* --- SUB-VIEW: RIFTBOUND TCG --- */}
-                  {selectedGame === 'riftbound' && (
-                    <div className="space-y-3 pt-1 border-t border-slate-800/80">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 text-xs font-black">
-                          <img src="/logos/riftbound.png" alt="Riftbound" className="h-4 w-auto object-contain" />
-                          <span>Riftbound TCG Official Data</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-200">
-                            1.400+ Kartu
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Set Filter Dropdown */}
-                      <div className="relative">
-                        <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
-                        <select
-                          value={riftboundSet}
-                          onChange={(e) => setRiftboundSet(e.target.value)}
-                          className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-cyan-500 appearance-none shadow-inner"
-                        >
-                          <option value="">— Semua Set Riftbound —</option>
-                          {riftboundSets.map((s) => (
-                            <option key={s.code} value={s.setName}>
-                              {s.setName} ({s.code}) — {s.count} kartu
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Search Input */}
-                      <div className="relative">
-                        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Cari kartu Riftbound (contoh: Blazing Scorcher, OGN-001, Fury, Unit, Spell, Dragon)..."
-                          value={riftboundQuery}
-                          onChange={(e) => setRiftboundQuery(e.target.value)}
-                          className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner"
-                        />
-                        {riftboundSearching && (
-                          <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-cyan-400 animate-spin" />
-                        )}
-                      </div>
-
-                      {/* Riftbound Card Grid */}
-                      {riftboundResults.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                          {riftboundResults.map((card, idx) => (
-                            <button
-                              key={`rb-${card.id || idx}-${idx}`}
-                              type="button"
-                              disabled={riftboundSearching}
-                              onClick={() => handleSelectRiftboundCard(card)}
-                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-cyan-500/10"
-                            >
-                              {card.imageUrl ? (
-                                <img
-                                  src={formatCardImageUrl(card.imageUrl)}
-                                  alt=""
-                                  className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
-                                />
-                              ) : (
-                                <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                  RB
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-black text-white group-hover:text-cyan-300 truncate">
-                                  {card.name}
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                  {card.publicCode || `#${card.collectorNumber}`} • {card.cardType}
-                                </div>
-                                <div className="text-[10px] text-cyan-400/80 font-bold truncate">
-                                  {card.setName} {card.domain ? `(${card.domain})` : ''}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {!riftboundSearching && riftboundResults.length === 0 && riftboundQuery.trim().length > 0 && (
-                        <div className="text-center text-xs text-slate-400 py-2">
-                          Tidak ada kartu Riftbound ditemukan untuk &quot;{riftboundQuery}&quot;.
-                        </div>
-                      )}
-
-                      {!riftboundSearching && riftboundResults.length === 0 && riftboundQuery.trim().length === 0 && (
-                        <div className="text-center text-xs text-slate-500 py-1.5 flex items-center justify-center gap-1.5">
-                          <span>🌀</span>
-                          <span>Ketik nama kartu Riftbound atau pilih set rilis di atas.</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* --- SUB-VIEW: ONE PIECE CARD GAME --- */}
-                  {selectedGame === 'onepiece' && (
-                    <div className="space-y-3 pt-1 border-t border-slate-800/80">
-                      {/* Language Selection Sub-Menu for One Piece */}
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90">
-                          {/* English Sub-menu */}
+                      {/* One Piece Sub-tabs */}
+                      {selectedGame === 'onepiece' && (
+                        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90 flex-wrap">
                           <button
                             type="button"
-                            onClick={() => {
-                              setOnePieceLang('EN');
-                              setOnePiecePage(1);
-                              setOnePieceSet('');
-                            }}
+                            onClick={() => handleSelectOnePieceLang('EN')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               onePieceLang === 'EN'
                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm ring-1 ring-blue-400/50'
-                                : 'text-slate-400 hover:text-white'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                             }`}
                           >
                             <Globe className="w-3.5 h-3.5" />
@@ -1484,18 +1141,13 @@ export default function EditSlotModal({
                             <span className="text-[10px] opacity-80 font-mono">4.940+</span>
                           </button>
 
-                          {/* Japanese Sub-menu */}
                           <button
                             type="button"
-                            onClick={() => {
-                              setOnePieceLang('JP');
-                              setOnePiecePage(1);
-                              setOnePieceSet('');
-                            }}
+                            onClick={() => handleSelectOnePieceLang('JP')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                               onePieceLang === 'JP'
                                 ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-sm ring-1 ring-rose-400/50'
-                                : 'text-slate-400 hover:text-white'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                             }`}
                           >
                             <span className="text-sm leading-none">🇯🇵</span>
@@ -1503,146 +1155,649 @@ export default function EditSlotModal({
                             <span className="text-[10px] opacity-80 font-mono">5.110+</span>
                           </button>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Filters: Sets & Search */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="relative">
-                          <ChevronDown className="w-4 h-4 absolute right-3.5 top-2.5 text-slate-400 pointer-events-none" />
-                          <select
-                            value={onePieceSet}
-                            onChange={(e) => {
-                              setOnePieceSet(e.target.value);
-                              setOnePiecePage(1);
-                            }}
-                            className="w-full pl-3 pr-8 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-rose-500 appearance-none shadow-inner"
+                      {/* Riftbound Sub-tabs */}
+                      {selectedGame === 'riftbound' && (
+                        <div className="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-2xl border border-slate-800/90 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={handleSelectRiftboundLang}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              riftboundLang === 'EN'
+                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-sm ring-1 ring-cyan-400/50'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                            }`}
                           >
-                            <option value="">
-                              — Semua Seri {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'} (
-                              {(onePieceLang === 'EN' ? onePieceEnSets : onePieceJpSets).length} Seri) —
-                            </option>
-                            {(onePieceLang === 'EN' ? onePieceEnSets : onePieceJpSets).map((s) => (
-                              <option key={s.name} value={s.name}>
-                                {s.name} ({s.count} kartu)
-                              </option>
-                            ))}
-                          </select>
+                            <Globe className="w-3.5 h-3.5" />
+                            <span>Bahasa Inggris / Global (1.400+ Kartu)</span>
+                          </button>
                         </div>
+                      )}
 
-                        <div className="relative">
-                          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                          <input
-                            type="text"
-                            placeholder={
-                              onePieceLang === 'EN'
-                                ? 'Cari One Piece (Luffy, Zoro, Nami, OP05-119, SEC, Leader...)...'
-                                : 'Cari One Piece JP (ルフィ, ゾロ, OP05-119, SEC, リーダー...)...'
-                            }
-                            value={onePieceQuery}
-                            onChange={(e) => {
-                              setOnePieceQuery(e.target.value);
-                              setOnePiecePage(1);
-                            }}
-                            className="w-full pl-9 pr-9 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner"
-                          />
-                          {onePieceSearching && (
-                            <Loader2 className="w-4 h-4 absolute right-3 top-2.5 text-rose-400 animate-spin" />
-                          )}
+                      {!isLanguageSelected && (
+                        <div className="py-2.5 px-3.5 rounded-2xl bg-slate-900/40 border border-slate-800/60 text-center text-xs text-slate-400 flex items-center justify-center gap-2 animate-fadeInUp">
+                          <Search className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Pilih bahasa kartu di atas untuk membuka kolom pencarian kartu</span>
                         </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* LEVEL 3: Search Column, Filters & Results Grid (Step 3) */}
+                  {selectedGame !== null && isLanguageSelected && (
+                    <div
+                      className={`space-y-3 pt-3 border-t border-slate-800/80 ${
+                        isExitingStep === 'step3' ? 'animate-fadeOutDown' : 'animate-fadeInUp'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Search className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Langkah 3: Cari & Pilih Kartu</span>
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={handleBackToLanguage}
+                          className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-400/50 shadow-sm"
+                        >
+                          <ArrowLeft className="w-3 h-3" />
+                          <span>Kembali ke Pilihan Bahasa</span>
+                        </button>
                       </div>
 
-                      {/* Info & Result count */}
-                      <div className="flex items-center justify-between text-xs px-1 text-slate-400">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs">🏴‍☠️</span>
-                          <span className="text-[11px]">
-                            {onePieceSearching ? (
-                              'Sedang mencari...'
-                            ) : (
-                              <>
-                                Ditemukan <strong className="text-white">{onePieceTotal.toLocaleString()}</strong> kartu{' '}
-                                {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'}
-                              </>
-                            )}
-                          </span>
-                        </div>
+                      {/* --- SUB-VIEW: POKEMON --- */}
+                      {selectedGame === 'pokemon' && (
+                        <div className="space-y-3">
+                          {/* English Pokémon (20,600+ Local Instant Database) */}
+                          {pokemonSource === 'tcgdex' && (
+                            <div className="space-y-2.5">
+                              {/* Sets dropdown */}
+                              <div className="relative">
+                                <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                                <select
+                                  value={enSet}
+                                  onChange={(e) => {
+                                    setEnSet(e.target.value);
+                                    setEnPage(1);
+                                  }}
+                                  className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-blue-500 appearance-none shadow-inner"
+                                >
+                                  <option value="">— Semua Seri / Set Inggris (176 Set Resmi) —</option>
+                                  {enSets.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.name} ({s.total} kartu)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
 
-                        {onePieceTotalPages > 1 && (
-                          <div className="flex items-center gap-1.5 text-[11px]">
-                            <button
-                              type="button"
-                              onClick={() => setOnePiecePage((p) => Math.max(1, p - 1))}
-                              disabled={onePiecePage <= 1 || onePieceSearching}
-                              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold"
-                            >
-                              &larr; Prev
-                            </button>
-                            <span className="font-mono text-slate-300">
-                              {onePiecePage}/{onePieceTotalPages}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setOnePiecePage((p) => Math.min(onePieceTotalPages, p + 1))}
-                              disabled={onePiecePage >= onePieceTotalPages || onePieceSearching}
-                              className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold"
-                            >
-                              Next &rarr;
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* One Piece Cards Grid */}
-                      {onePieceResults.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto pr-1">
-                          {onePieceResults.map((card, idx) => (
-                            <button
-                              key={`op-${card.id || idx}-${idx}`}
-                              type="button"
-                              disabled={onePieceSearching}
-                              onClick={() => handleSelectOnePieceCard(card)}
-                              className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-rose-500/10"
-                            >
-                              {card.imageUrl ? (
-                                <img
-                                  src={formatCardImageUrl(card.imageUrl)}
-                                  alt=""
-                                  className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                              {/* Search input */}
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Cari nama Inggris / nomor / nickname (contoh: Moonbreon, Charizard 151, 199/165)..."
+                                  value={enQuery}
+                                  onChange={(e) => {
+                                    setEnQuery(e.target.value);
+                                    setEnPage(1);
+                                  }}
+                                  className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
                                 />
-                              ) : (
-                                <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] font-bold text-rose-400 flex-shrink-0">
-                                  OP
+                                {(enSearching || enFetchingCard) && (
+                                  <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-blue-400 animate-spin" />
+                                )}
+                              </div>
+
+                              {/* Info & Pagination Bar */}
+                              <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-blue-950/40 border border-blue-500/20 rounded-xl text-blue-200 text-xs">
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <Globe className="w-3.5 h-3.5 flex-shrink-0 text-blue-400" />
+                                  <span className="text-[11px] truncate">
+                                    {enTotal > 0 ? (
+                                      <>Ditemukan <b>{enTotal.toLocaleString()}</b> kartu Inggris</>
+                                    ) : (
+                                      '20.600+ database lokal Pokémon EN instant & offline'
+                                    )}
+                                  </span>
+                                </div>
+                                {enTotalPages > 1 && (
+                                  <div className="flex items-center gap-1.5 flex-shrink-0 text-[11px]">
+                                    <button
+                                      type="button"
+                                      disabled={enPage <= 1}
+                                      onClick={() => setEnPage((p) => Math.max(1, p - 1))}
+                                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white font-medium"
+                                    >
+                                      &larr; Prev
+                                    </button>
+                                    <span className="text-slate-400 font-medium">
+                                      {enPage} / {enTotalPages}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={enPage >= enTotalPages}
+                                      onClick={() => setEnPage((p) => Math.min(enTotalPages, p + 1))}
+                                      className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white font-medium"
+                                    >
+                                      Next &rarr;
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Results Grid */}
+                              {enResults.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                  {enResults.map((card, idx) => (
+                                    <button
+                                      key={`localen-${card.id || idx}-${idx}`}
+                                      type="button"
+                                      disabled={enFetchingCard}
+                                      onClick={() => handleSelectLocalEnCard(card)}
+                                      className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-blue-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-blue-500/10 cursor-pointer"
+                                    >
+                                      {card.imageUrl ? (
+                                        <img
+                                          src={card.imageUrl}
+                                          alt=""
+                                          className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                          EN
+                                        </div>
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-white group-hover:text-blue-300 truncate">
+                                          {card.name}
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                          {card.formattedNumber || `#${card.number}`}
+                                        </div>
+                                        <div className="text-[10px] text-blue-400/80 font-bold truncate">
+                                          {card.setName}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
                                 </div>
                               )}
-                              <div className="min-w-0 flex-1">
-                                <div className="text-xs font-black text-white group-hover:text-rose-300 truncate">
-                                  {card.name}
+
+                              {!enSearching && enResults.length === 0 && (enQuery.trim().length > 0 || enSet) && (
+                                <div className="text-center text-xs text-slate-400 py-3">
+                                  Tidak ada kartu Pokémon Inggris ditemukan untuk &quot;{enQuery || enSet}&quot;.
                                 </div>
-                                <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                  {card.cardNumber} • <span className="font-semibold text-rose-400">{card.rarity}</span>
-                                </div>
-                                <div className="text-[10px] text-amber-400/90 font-bold truncate">
-                                  {card.category} {card.color ? `• ${card.color}` : ''}
-                                </div>
-                                <div className="text-[9px] text-slate-500 truncate">
-                                  {card.cardSet}
-                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Indonesian View */}
+                          {pokemonSource === 'localid' && (
+                            <div className="space-y-2.5">
+                              <div className="relative">
+                                <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                                <select
+                                  value={localIdExpansion}
+                                  onChange={(e) => setLocalIdExpansion(e.target.value)}
+                                  className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-red-500 appearance-none shadow-inner"
+                                >
+                                  <option value="">— Semua Seri / Produk Indonesia —</option>
+                                  {expansions.map((exp) => (
+                                    <option key={exp.code} value={exp.code}>
+                                      {exp.productName} ({exp.count} kartu)
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
-                            </button>
-                          ))}
+
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Cari nama kartu dalam Bahasa Indonesia (misal: Charizard, Pikachu, Mewtwo)..."
+                                  value={localIdQuery}
+                                  onChange={(e) => setLocalIdQuery(e.target.value)}
+                                  className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500 shadow-inner"
+                                />
+                                {localIdSearching && (
+                                  <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-red-400 animate-spin" />
+                                )}
+                              </div>
+
+                              {localIdResults.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                  {localIdResults.map((card, idx) => (
+                                    <button
+                                      key={`localid-${card.id || idx}-${idx}`}
+                                      type="button"
+                                      disabled={localIdSearching}
+                                      onClick={() => handleSelectLocalIdCard(card)}
+                                      className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-red-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-red-500/10 cursor-pointer"
+                                    >
+                                      {card.imageUrl ? (
+                                        <img
+                                          src={card.imageUrl}
+                                          alt=""
+                                          className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                          ID
+                                        </div>
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-white group-hover:text-red-300 truncate">
+                                          {card.name}
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                          {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
+                                        </div>
+                                        <div className="text-[10px] text-red-400/80 font-bold truncate">
+                                          {card.productName}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {!localIdSearching && localIdResults.length === 0 && localIdQuery.trim().length > 0 && (
+                                <div className="text-center text-xs text-slate-400 py-2">
+                                  Tidak ada kartu ditemukan untuk &quot;{localIdQuery}&quot;.
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Japanese View */}
+                          {pokemonSource === 'localjp' && (
+                            <div className="space-y-2.5">
+                              <div className="relative">
+                                <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                                <select
+                                  value={localJpExpansion}
+                                  onChange={(e) => setLocalJpExpansion(e.target.value)}
+                                  className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-purple-500 appearance-none shadow-inner"
+                                >
+                                  <option value="">— Semua Seri / Set Jepang (1.300+ Seri) —</option>
+                                  {jpExpansions.slice(0, 100).map((exp) => (
+                                    <option key={exp.code} value={exp.code}>
+                                      {exp.productName} ({exp.count} kartu)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Cari kartu Jepang (contoh: リザードン, Pikachu, 151, VSTAR, 001/078)..."
+                                  value={localJpQuery}
+                                  onChange={(e) => setLocalJpQuery(e.target.value)}
+                                  className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 shadow-inner"
+                                />
+                                {localJpSearching && (
+                                  <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-purple-400 animate-spin" />
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-950/40 border border-purple-500/20 rounded-xl text-purple-200">
+                                <span className="text-sm">🇯🇵</span>
+                                <span className="text-[11px]">
+                                  Bisa cari dengan nama Jepang (リザードン), nama Inggris (Charizard), atau nomor kartu.
+                                </span>
+                              </div>
+
+                              {localJpResults.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                  {localJpResults.map((card, idx) => (
+                                    <button
+                                      key={`localjp-${card.id || idx}-${idx}`}
+                                      type="button"
+                                      disabled={localJpSearching}
+                                      onClick={() => handleSelectLocalJpCard(card)}
+                                      className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-purple-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-purple-500/10 cursor-pointer"
+                                    >
+                                      {card.imageUrl ? (
+                                        <img
+                                          src={card.imageUrl}
+                                          alt=""
+                                          className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                          JP
+                                        </div>
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-white group-hover:text-purple-300 truncate">
+                                          {card.name}
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                          {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
+                                        </div>
+                                        <div className="text-[10px] text-purple-400/80 font-bold truncate">
+                                          {card.expansion}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length > 0 && (
+                                <div className="text-center text-xs text-slate-400 py-2">
+                                  Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Preset Hits View */}
+                          {pokemonSource === 'preset' && (
+                            <div className="space-y-2.5">
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Filter preset hits populer..."
+                                  value={presetSearch}
+                                  onChange={(e) => setPresetSearch(e.target.value)}
+                                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                {filteredPresets.map((item, idx) => (
+                                  <button
+                                    key={`preset-${item.cardNumber || idx}-${idx}`}
+                                    type="button"
+                                    onClick={() => handleSelectPreset(item)}
+                                    className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-amber-500/10 cursor-pointer"
+                                  >
+                                    <img
+                                      src={item.imageUrl}
+                                      alt=""
+                                      className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
+                                    />
+                                    <div className="w-full text-xs font-black text-white group-hover:text-amber-300 truncate">
+                                      {item.name}
+                                    </div>
+                                    <div className="w-full text-[10px] text-slate-400 truncate">
+                                      {item.setName}
+                                    </div>
+                                    <div className="text-[11px] font-black text-emerald-400 mt-0.5">
+                                      {formatCurrency(item.defaultPrice, currency)}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Market Price Banner */}
+                          {marketRef && (
+                            <div className="p-3 bg-blue-950/50 border border-blue-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs text-blue-200">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <TrendingUp className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                <span className="truncate">
+                                  Rekomendasi Pasar TCGPlayer:{' '}
+                                  <strong className="text-white">
+                                    {marketRef.usd ? `$${marketRef.usd}` : ''}{' '}
+                                    {marketRef.idr ? `(~${formatCurrency(marketRef.idr, 'IDR')})` : ''}
+                                  </strong>
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (currency === 'IDR' && marketRef.idr) setPrice(marketRef.idr);
+                                  if (currency === 'USD' && marketRef.usd) setPrice(Math.round(marketRef.usd));
+                                }}
+                                className="px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0"
+                              >
+                                Pakai Harga Ini
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {!onePieceSearching && onePieceResults.length === 0 && onePieceQuery.trim().length > 0 && (
-                        <div className="text-center text-xs text-slate-400 py-3">
-                          Tidak ada kartu One Piece {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'} ditemukan untuk &quot;{onePieceQuery}&quot;.
+                      {/* --- SUB-VIEW: RIFTBOUND TCG SEARCH --- */}
+                      {selectedGame === 'riftbound' && riftboundLang === 'EN' && (
+                        <div className="space-y-3">
+                          {/* Set Filter Dropdown */}
+                          <div className="relative">
+                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                            <select
+                              value={riftboundSet}
+                              onChange={(e) => setRiftboundSet(e.target.value)}
+                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-cyan-500 appearance-none shadow-inner"
+                            >
+                              <option value="">— Semua Set Riftbound —</option>
+                              {riftboundSets.map((s) => (
+                                <option key={s.code} value={s.setName}>
+                                  {s.setName} ({s.code}) — {s.count} kartu
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Search Input */}
+                          <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Cari kartu Riftbound (contoh: Blazing Scorcher, OGN-001, Fury, Unit, Spell, Dragon)..."
+                              value={riftboundQuery}
+                              onChange={(e) => setRiftboundQuery(e.target.value)}
+                              className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 shadow-inner"
+                            />
+                            {riftboundSearching && (
+                              <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-cyan-400 animate-spin" />
+                            )}
+                          </div>
+
+                          {/* Riftbound Card Grid */}
+                          {riftboundResults.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                              {riftboundResults.map((card, idx) => (
+                                <button
+                                  key={`rb-${card.id || idx}-${idx}`}
+                                  type="button"
+                                  disabled={riftboundSearching}
+                                  onClick={() => handleSelectRiftboundCard(card)}
+                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-cyan-500/10 cursor-pointer"
+                                >
+                                  {card.imageUrl ? (
+                                    <img
+                                      src={formatCardImageUrl(card.imageUrl)}
+                                      alt=""
+                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
+                                      RB
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black text-white group-hover:text-cyan-300 truncate">
+                                      {card.name}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                      {card.publicCode || `#${card.collectorNumber}`} • {card.cardType}
+                                    </div>
+                                    <div className="text-[10px] text-cyan-400/80 font-bold truncate">
+                                      {card.setName} {card.domain ? `(${card.domain})` : ''}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {!riftboundSearching && riftboundResults.length === 0 && riftboundQuery.trim().length > 0 && (
+                            <div className="text-center text-xs text-slate-400 py-2">
+                              Tidak ada kartu Riftbound ditemukan untuk &quot;{riftboundQuery}&quot;.
+                            </div>
+                          )}
+
+                          {!riftboundSearching && riftboundResults.length === 0 && riftboundQuery.trim().length === 0 && (
+                            <div className="text-center text-xs text-slate-500 py-1.5 flex items-center justify-center gap-1.5">
+                              <span>🌀</span>
+                              <span>Ketik nama kartu Riftbound atau pilih set rilis di atas.</span>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {!onePieceSearching && onePieceResults.length === 0 && onePieceQuery.trim().length === 0 && (
-                        <div className="text-center text-xs text-slate-500 py-2 flex items-center justify-center gap-1.5">
-                          <span>🏴‍☠️</span>
-                          <span>Ketik nama karakter One Piece, nomor kartu, atau pilih seri rilis di atas.</span>
+                      {/* --- SUB-VIEW: ONE PIECE SEARCH --- */}
+                      {selectedGame === 'onepiece' && onePieceLang && (
+                        <div className="space-y-3">
+                          {/* Filters: Sets & Search */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="relative">
+                              <ChevronDown className="w-4 h-4 absolute right-3.5 top-2.5 text-slate-400 pointer-events-none" />
+                              <select
+                                value={onePieceSet}
+                                onChange={(e) => {
+                                  setOnePieceSet(e.target.value);
+                                  setOnePiecePage(1);
+                                }}
+                                className="w-full pl-3 pr-8 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-rose-500 appearance-none shadow-inner"
+                              >
+                                <option value="">
+                                  — Semua Seri {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'} (
+                                  {(onePieceLang === 'EN' ? onePieceEnSets : onePieceJpSets).length} Seri) —
+                                </option>
+                                {(onePieceLang === 'EN' ? onePieceEnSets : onePieceJpSets).map((s) => (
+                                  <option key={s.name} value={s.name}>
+                                    {s.name} ({s.count} kartu)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="relative">
+                              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                              <input
+                                type="text"
+                                placeholder={
+                                  onePieceLang === 'EN'
+                                    ? 'Cari One Piece (Luffy, Zoro, Nami, OP05-119, SEC, Leader...)...'
+                                    : 'Cari One Piece JP (ルフィ, ゾロ, OP05-119, SEC, リーダー...)...'
+                                }
+                                value={onePieceQuery}
+                                onChange={(e) => {
+                                  setOnePieceQuery(e.target.value);
+                                  setOnePiecePage(1);
+                                }}
+                                className="w-full pl-9 pr-9 py-2 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner"
+                              />
+                              {onePieceSearching && (
+                                <Loader2 className="w-4 h-4 absolute right-3 top-2.5 text-rose-400 animate-spin" />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Info & Result count */}
+                          <div className="flex items-center justify-between text-xs px-1 text-slate-400">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs">🏴‍☠️</span>
+                              <span className="text-[11px]">
+                                {onePieceSearching ? (
+                                  'Sedang mencari...'
+                                ) : (
+                                  <>
+                                    Ditemukan <strong className="text-white">{onePieceTotal.toLocaleString()}</strong> kartu{' '}
+                                    {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'}
+                                  </>
+                                )}
+                              </span>
+                            </div>
+
+                            {onePieceTotalPages > 1 && (
+                              <div className="flex items-center gap-1.5 text-[11px]">
+                                <button
+                                  type="button"
+                                  onClick={() => setOnePiecePage((p) => Math.max(1, p - 1))}
+                                  disabled={onePiecePage <= 1 || onePieceSearching}
+                                  className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold"
+                                >
+                                  &larr; Prev
+                                </button>
+                                <span className="font-mono text-slate-300">
+                                  {onePiecePage}/{onePieceTotalPages}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setOnePiecePage((p) => Math.min(onePieceTotalPages, p + 1))}
+                                  disabled={onePiecePage >= onePieceTotalPages || onePieceSearching}
+                                  className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold"
+                                >
+                                  Next &rarr;
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* One Piece Cards Grid */}
+                          {onePieceResults.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                              {onePieceResults.map((card, idx) => (
+                                <button
+                                  key={`op-${card.id || idx}-${idx}`}
+                                  type="button"
+                                  disabled={onePieceSearching}
+                                  onClick={() => handleSelectOnePieceCard(card)}
+                                  className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-rose-500/10 cursor-pointer"
+                                >
+                                  {card.imageUrl ? (
+                                    <img
+                                      src={formatCardImageUrl(card.imageUrl)}
+                                      alt=""
+                                      className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] font-bold text-rose-400 flex-shrink-0">
+                                      OP
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-black text-white group-hover:text-rose-300 truncate">
+                                      {card.name}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                      {card.cardNumber} • <span className="font-semibold text-rose-400">{card.rarity}</span>
+                                    </div>
+                                    <div className="text-[10px] text-amber-400/90 font-bold truncate">
+                                      {card.category} {card.color ? `• ${card.color}` : ''}
+                                    </div>
+                                    <div className="text-[9px] text-slate-500 truncate">
+                                      {card.cardSet}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {!onePieceSearching && onePieceResults.length === 0 && onePieceQuery.trim().length > 0 && (
+                            <div className="text-center text-xs text-slate-400 py-3">
+                              Tidak ada kartu One Piece {onePieceLang === 'EN' ? 'Inggris' : 'Jepang'} ditemukan untuk &quot;{onePieceQuery}&quot;.
+                            </div>
+                          )}
+
+                          {!onePieceSearching && onePieceResults.length === 0 && onePieceQuery.trim().length === 0 && (
+                            <div className="text-center text-xs text-slate-500 py-2 flex items-center justify-center gap-1.5">
+                              <span>🏴‍☠️</span>
+                              <span>Ketik nama karakter One Piece, nomor kartu, atau pilih seri rilis di atas.</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

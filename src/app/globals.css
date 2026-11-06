@@ -89,3 +89,34 @@ body {
     size: auto;
   }
 }
+
+/* Interactive Step Animations */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOutDown {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeOutDown {
+  animation: fadeOutDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
