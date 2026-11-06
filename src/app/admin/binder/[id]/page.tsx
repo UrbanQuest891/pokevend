@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import EditSlotModal from '@/components/EditSlotModal';
 import QrCodeModal from '@/components/QrCodeModal';
+import SaveSlotsConfirmModal, { SlotChangeItem } from '@/components/SaveSlotsConfirmModal';
+import MobileNoticeModal from '@/components/MobileNoticeModal';
 import { Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
 import { formatCardImageUrl } from '@/lib/imageHelper';
@@ -25,6 +27,14 @@ import {
   Clock,
   Sparkles,
   Layers,
+  Move,
+  GripVertical,
+  RotateCcw,
+  Save,
+  ArrowRightLeft,
+  ShieldAlert,
+  Monitor,
+  Info,
 } from 'lucide-react';
 
 export default function BinderEditorPage() {
@@ -55,6 +65,222 @@ export default function BinderEditorPage() {
   const [discountPercent, setDiscountPercent] = useState('');
   const [applyingDiscount, setApplyingDiscount] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+
+  // Reorder / Drag and Drop state
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [draftSlots, setDraftSlots] = useState<Record<number, PokemonCard> | null>(null);
+  const [draggedSlot, setDraggedSlot] = useState<number | null>(null);
+  const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
+  const [transitCard, setTransitCard] = useState<{ sourceSlot: number; card: PokemonCard } | null>(null);
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [showMobileNoticeModal, setShowMobileNoticeModal] = useState(false);
+  const [isSavingSlots, setIsSavingSlots] = useState(false);
+
+  // Desktop vs Mobile Detection (Fine pointer & screen size)
+  useEffect(() => {
+    const checkDesktop = () => {
+      const hasFinePointer =
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      const isWide = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
+      const isMobileUa =
+        typeof navigator !== 'undefined' &&
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsDesktop(Boolean(hasFinePointer && isWide && !isMobileUa));
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  // Compute differences between binder.slots and draftSlots
+  const getSlotChanges = (): SlotChangeItem[] => {
+    if (!binder || !draftSlots) return [];
+    const list: SlotChangeItem[] = [];
+    const pocketsPerPage = binder.layoutType === '4-pocket' ? 4 : binder.layoutType === '12-pocket' ? 12 : 9;
+    const maxSlot = binder.totalPages * pocketsPerPage;
+
+    for (let s = 1; s <= maxSlot; s++) {
+      const orig = binder.slots[s] || null;
+      const draft = draftSlots[s] || null;
+      const origId = orig?.id || '';
+      const draftId = draft?.id || '';
+      if (origId !== draftId) {
+        list.push({
+          slotNumber: s,
+          originalCard: orig,
+          newCard: draft,
+        });
+      }
+    }
+    return list;
+  };
+
+  const slotChanges = getSlotChanges();
+  const changedCount = slotChanges.length;
+
+  // Protect against tab exit while editing with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isReorderMode && draftSlots && changedCount > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isReorderMode, draftSlots, changedCount]);
+
+  const handleToggleReorderMode = () => {
+    if (!isDesktop) {
+      setShowMobileNoticeModal(true);
+      return;
+    }
+
+    if (isReorderMode) {
+      if (changedCount > 0) {
+        setShowSaveConfirmModal(true);
+      } else {
+        setIsReorderMode(false);
+        setDraftSlots(null);
+        setTransitCard(null);
+      }
+    } else {
+      if (!binder) return;
+      setDraftSlots(JSON.parse(JSON.stringify(binder.slots || {})));
+      setIsReorderMode(true);
+    }
+  };
+
+  const handleCancelReorder = () => {
+    if (changedCount > 0) {
+      if (!confirm(`Batalkan ${changedCount} perubahan posisi slot kartu dan kembalikan ke susunan semula?`)) {
+        return;
+      }
+    }
+    setIsReorderMode(false);
+    setDraftSlots(null);
+    setTransitCard(null);
+    setDraggedSlot(null);
+    setDragOverSlot(null);
+  };
+
+  const handleDragStart = (e: React.DragEvent, slotNum: number) => {
+    if (!isReorderMode || !isDesktop) return;
+    e.dataTransfer.setData('text/plain', String(slotNum));
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedSlot(slotNum);
+  };
+
+  const handleDragOver = (e: React.DragEvent, slotNum: number) => {
+    if (!isReorderMode || !isDesktop) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverSlot !== slotNum) {
+      setDragOverSlot(slotNum);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, slotNum: number) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    if (dragOverSlot === slotNum) {
+      setDragOverSlot(null);
+    }
+  };
+
+  const handleDropOnSlot = (targetSlot: number) => {
+    if (!isReorderMode || !draftSlots) return;
+
+    // Case 1: Drop from transit tray
+    if (transitCard) {
+      const newSlots = { ...draftSlots };
+      const existingAtTarget = newSlots[targetSlot] || null;
+      newSlots[targetSlot] = transitCard.card;
+
+      if (existingAtTarget) {
+        newSlots[transitCard.sourceSlot] = existingAtTarget;
+      } else {
+        delete newSlots[transitCard.sourceSlot];
+      }
+
+      setDraftSlots(newSlots);
+      setTransitCard(null);
+      setDraggedSlot(null);
+      setDragOverSlot(null);
+      return;
+    }
+
+    // Case 2: Drop from draggedSlot
+    if (draggedSlot === null || draggedSlot === targetSlot) {
+      setDraggedSlot(null);
+      setDragOverSlot(null);
+      return;
+    }
+
+    const sourceSlot = draggedSlot;
+    const newSlots = { ...draftSlots };
+    const sourceCard = newSlots[sourceSlot];
+    const targetCard = newSlots[targetSlot];
+
+    if (!sourceCard) {
+      setDraggedSlot(null);
+      setDragOverSlot(null);
+      return;
+    }
+
+    if (targetCard) {
+      newSlots[targetSlot] = sourceCard;
+      newSlots[sourceSlot] = targetCard;
+    } else {
+      newSlots[targetSlot] = sourceCard;
+      delete newSlots[sourceSlot];
+    }
+
+    setDraftSlots(newSlots);
+    setDraggedSlot(null);
+    setDragOverSlot(null);
+  };
+
+  const handleDropOnTransitTray = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedSlot === null || !draftSlots) return;
+    const card = draftSlots[draggedSlot];
+    if (!card) return;
+
+    setTransitCard({ sourceSlot: draggedSlot, card });
+    setDraggedSlot(null);
+    setDragOverSlot(null);
+  };
+
+  const handleConfirmSaveSlots = async () => {
+    if (!binder || !draftSlots) return;
+    try {
+      setIsSavingSlots(true);
+      const res = await fetch(`/api/binders/${binder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slots: draftSlots }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBinder(data.binder);
+        setIsReorderMode(false);
+        setDraftSlots(null);
+        setTransitCard(null);
+        setShowSaveConfirmModal(false);
+        alert('✅ Susunan posisi slot kartu berhasil disimpan!');
+      } else {
+        alert(data.error || 'Gagal menyimpan perubahan slot');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat menyimpan perubahan slot');
+    } finally {
+      setIsSavingSlots(false);
+    }
+  };
 
   // Edit slot modal state
   const [editModalData, setEditModalData] = useState<{
@@ -193,6 +419,25 @@ export default function BinderEditorPage() {
 
           {/* Quick Toolbar */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Tombol Baru: Mode Edit Slot (Drag & Drop PC) */}
+            <button
+              onClick={handleToggleReorderMode}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                isReorderMode
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black ring-2 ring-amber-400 shadow-amber-500/20'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+              }`}
+              title="Atur posisi kartu dengan drag & drop (khusus PC)"
+            >
+              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-slate-950 stroke-[3]' : 'text-amber-400'}`} />
+              <span>{isReorderMode ? 'Selesai Atur Slot' : 'Edit Slot (Drag & Drop)'}</span>
+              {isReorderMode && changedCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black">
+                  {changedCount}
+                </span>
+              )}
+            </button>
+
             <a
               href={`/b/${binder.id}`}
               target="_blank"
@@ -222,6 +467,106 @@ export default function BinderEditorPage() {
             </a>
           </div>
         </div>
+
+        {/* Reorder Mode Banner & Control Dock (Active during Edit Slot Mode) */}
+        {isReorderMode && (
+          <div className="bg-slate-900/95 border-2 border-amber-500/50 rounded-2xl p-4 shadow-2xl space-y-3 animate-in fade-in slide-in-from-top-2">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-400 flex items-center justify-center flex-shrink-0 animate-pulse shadow-md">
+                  <ArrowRightLeft className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-white">Mode Atur Posisi Slot Aktif</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-bold">
+                      💻 Khusus Web Browser PC
+                    </span>
+                    {changedCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-extrabold animate-pulse">
+                        {changedCount} Slot Berubah (Draft Tersimpan Sementara)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Drag kartu dan lepas (drop) pada slot tujuan untuk menukar/memindahkan posisi. Anda bebas berpindah halaman, perubahan tersimpan sementara.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleCancelReorder}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Batal</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSaveConfirmModal(true)}
+                  disabled={changedCount === 0}
+                  className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-lg ${
+                    changedCount > 0
+                      ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:brightness-110 text-white shadow-emerald-500/30 cursor-pointer animate-pulse'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Simpan Perubahan Slot ({changedCount})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Transit Dock (Drop here to easily move a card across pages) */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-slate-400">
+                <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                <span className="text-[11px] font-semibold">
+                  Tips Pindah Halaman: Taruh kartu di Kotak Transit di samping, lalu buka halaman tujuan dan drop kartu ke slot yang diinginkan.
+                </span>
+              </div>
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }}
+                onDrop={handleDropOnTransitTray}
+                className={`px-3 py-1.5 rounded-xl border border-dashed transition-all flex items-center gap-2 ${
+                  transitCard
+                    ? 'bg-amber-500/15 border-amber-500 text-amber-300 shadow-md shadow-amber-500/10'
+                    : 'bg-slate-950/80 border-slate-700 hover:border-amber-400/50 text-slate-400'
+                }`}
+              >
+                {transitCard ? (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    <span className="text-xs font-bold text-white truncate max-w-[150px]">
+                      {transitCard.card.name}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">(Slot #{transitCard.sourceSlot})</span>
+                    <button
+                      type="button"
+                      onClick={() => setTransitCard(null)}
+                      className="text-slate-400 hover:text-white p-0.5 ml-1 text-sm font-bold"
+                      title="Batalkan kartu transit"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-[11px] font-bold text-slate-400">
+                    📥 Kotak Transit (Drop kartu di sini untuk dibawa ke halaman lain)
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Event Flash Sale / Bulk Discount Ribbon */}
         <div className="bg-gradient-to-r from-red-950/60 to-slate-900 border border-red-900/60 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
@@ -300,36 +645,85 @@ export default function BinderEditorPage() {
         >
           {Array.from({ length: pocketsPerPage }, (_, i) => {
             const slotNum = startSlot + i;
-            const card = binder.slots[slotNum];
+            const currentSlots = isReorderMode && draftSlots ? draftSlots : binder.slots;
+            const card = currentSlots[slotNum];
+            const isDragged = draggedSlot === slotNum;
+            const isOver = dragOverSlot === slotNum;
 
             return (
               <div
                 key={slotNum}
-                onClick={() =>
+                draggable={isReorderMode && isDesktop && Boolean(card)}
+                onDragStart={(e) => card && handleDragStart(e, slotNum)}
+                onDragEnd={() => {
+                  setDraggedSlot(null);
+                  setDragOverSlot(null);
+                }}
+                onDragOver={(e) => handleDragOver(e, slotNum)}
+                onDragLeave={(e) => handleDragLeave(e, slotNum)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDropOnSlot(slotNum);
+                }}
+                onClick={() => {
+                  if (isReorderMode) {
+                    if (transitCard) {
+                      handleDropOnSlot(slotNum);
+                    }
+                    return;
+                  }
                   setEditModalData({
                     isOpen: true,
                     slotNumber: slotNum,
                     existingCard: card || null,
-                  })
-                }
-                className="binder-pocket rounded-2xl p-3 flex flex-col justify-between cursor-pointer hover:border-amber-500/50 hover:shadow-amber-500/10 transition-all group min-h-[290px]"
+                  });
+                }}
+                className={`binder-pocket rounded-2xl p-3 flex flex-col justify-between transition-all group min-h-[290px] relative overflow-hidden ${
+                  isReorderMode
+                    ? isOver
+                      ? 'ring-4 ring-amber-400 border-amber-400 bg-amber-500/15 scale-[1.03] z-20 shadow-2xl shadow-amber-500/20'
+                      : isDragged
+                      ? 'opacity-30 border-dashed border-amber-400 scale-95'
+                      : card
+                      ? 'border-dashed border-slate-700 hover:border-amber-400/80 cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-amber-500/10'
+                      : 'border-dashed border-slate-800 hover:border-slate-700'
+                    : 'cursor-pointer hover:border-amber-500/50 hover:shadow-amber-500/10'
+                }`}
               >
+                {/* Drag-over indicator overlay */}
+                {isReorderMode && isOver && (
+                  <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center p-3 z-30 pointer-events-none">
+                    <ArrowRightLeft className="w-8 h-8 text-amber-300 animate-bounce mb-1" />
+                    <span className="text-xs font-black text-white bg-slate-950/95 px-2.5 py-1 rounded-lg border border-amber-400 shadow-xl">
+                      {card ? `Tukar dengan Slot #${slotNum}` : `Pindahkan ke Slot #${slotNum}`}
+                    </span>
+                  </div>
+                )}
+
                 {/* Top Slot Header */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-black text-amber-400 tracking-wider">
                       SLOT #{slotNum}
                     </span>
-                    <a
-                      href={`/b/${binder.id}/slot/${slotNum}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="p-1 text-slate-500 hover:text-white rounded hover:bg-slate-800 transition-colors"
-                      title="Lihat Halaman QR Slot Ini"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                    </a>
+                    {!isReorderMode && (
+                      <a
+                        href={`/b/${binder.id}/slot/${slotNum}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 text-slate-500 hover:text-white rounded hover:bg-slate-800 transition-colors"
+                        title="Lihat Halaman QR Slot Ini"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {isReorderMode && isDesktop && card && (
+                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black flex items-center gap-0.5 animate-pulse">
+                        <GripVertical className="w-3 h-3" />
+                        <span>DRAG</span>
+                      </span>
+                    )}
                   </div>
 
                   {card && (
@@ -409,14 +803,25 @@ export default function BinderEditorPage() {
                     <span className="text-xs font-bold text-slate-400 group-hover:text-white">
                       Slot Kosong
                     </span>
-                    <span className="text-[10px] text-slate-500 mt-0.5">Klik untuk pasang kartu</span>
+                    <span className="text-[10px] text-slate-500 mt-0.5">
+                      {isReorderMode ? 'Drop kartu di sini' : 'Klik untuk pasang kartu'}
+                    </span>
                   </div>
                 )}
 
-                {/* Bottom Click to Edit Hint */}
+                {/* Bottom Click to Edit or Drag Hint */}
                 <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-center text-[10px] font-semibold text-slate-400 group-hover:text-slate-300">
-                  <Edit3 className="w-3 h-3 mr-1" />
-                  <span>Klik untuk edit kartu</span>
+                  {isReorderMode ? (
+                    <div className="flex items-center text-amber-400 font-bold">
+                      <Move className="w-3 h-3 mr-1" />
+                      <span>{card ? 'Drag untuk tukar/pindah' : 'Drop kartu di sini'}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <Edit3 className="w-3 h-3 mr-1" />
+                      <span>Klik untuk edit kartu</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -473,6 +878,22 @@ export default function BinderEditorPage() {
         subtitle="Scan untuk melihat seluruh isi kartu di binder ini langsung di HP pembeli"
         targetUrl={`/b/${binder.id}`}
         printUrl={`/print/binder/${binder.id}`}
+      />
+
+      {/* Save Slots Confirmation Modal with Warning Message */}
+      <SaveSlotsConfirmModal
+        isOpen={showSaveConfirmModal}
+        onClose={() => setShowSaveConfirmModal(false)}
+        onConfirm={handleConfirmSaveSlots}
+        isSaving={isSavingSlots}
+        changes={slotChanges}
+        currency={binder.currency}
+      />
+
+      {/* Mobile Notice Modal (explaining PC-only Drag & Drop) */}
+      <MobileNoticeModal
+        isOpen={showMobileNoticeModal}
+        onClose={() => setShowMobileNoticeModal(false)}
       />
     </div>
   );
