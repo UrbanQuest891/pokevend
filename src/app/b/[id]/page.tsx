@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
@@ -32,6 +32,20 @@ export default function BuyerBinderPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'flip' | 'grid'>('flip');
   const [currentPage, setCurrentPage] = useState(1);
+  const contentTopRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+
+  // Smooth glide to top of content when target page content displays
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    contentTopRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }, [currentPage]);
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState<'all' | 'under500k' | '500k-2m' | 'above2m'>('all');
   const [hideSold, setHideSold] = useState(false);
@@ -273,7 +287,10 @@ export default function BuyerBinderPage() {
         {viewMode === 'flip' && (
           <div className="space-y-3">
             {/* Page Navigator */}
-            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-2">
+            <div
+              ref={contentTopRef}
+              className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-2 scroll-mt-20"
+            >
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
@@ -456,10 +473,7 @@ export default function BuyerBinderPage() {
             {/* Bottom Page Navigator */}
             <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-2 mt-3 shadow-lg">
               <button
-                onClick={() => {
-                  setCurrentPage((p) => Math.max(1, p - 1));
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
               >
@@ -477,10 +491,7 @@ export default function BuyerBinderPage() {
               </div>
 
               <button
-                onClick={() => {
-                  setCurrentPage((p) => Math.min(binder.totalPages, p + 1));
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onClick={() => setCurrentPage((p) => Math.min(binder.totalPages, p + 1))}
                 disabled={currentPage === binder.totalPages}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
               >
