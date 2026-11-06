@@ -401,6 +401,42 @@ export default function BinderEditorPage() {
             );
           })}
         </div>
+
+        {/* Bottom Page Switcher Navigation */}
+        <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-2xl p-2 mt-4 shadow-lg">
+          <button
+            onClick={() => {
+              setCurrentPage((p) => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={currentPage === 1}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Halaman Sebelumnya</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-white">
+              Halaman {currentPage} dari {binder.totalPages}
+            </span>
+            <span className="text-[11px] text-slate-400">
+              (Slot #{startSlot} - #{endSlot})
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              setCurrentPage((p) => Math.min(binder.totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={currentPage === binder.totalPages}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+          >
+            <span>Halaman Berikutnya</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </main>
 
       {/* Edit Slot Modal */}

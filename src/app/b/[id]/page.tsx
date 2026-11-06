@@ -452,6 +452,42 @@ export default function BuyerBinderPage() {
                 );
               })}
             </div>
+
+            {/* Bottom Page Navigator */}
+            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-2 mt-3 shadow-lg">
+              <button
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Hal. Sebelumnya</span>
+              </button>
+
+              <div className="text-center">
+                <span className="text-xs font-black text-white">
+                  Halaman {currentPage} / {binder.totalPages}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  (Slot #{startSlot} - #{endSlot})
+                </span>
+              </div>
+
+              <button
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(binder.totalPages, p + 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={currentPage === binder.totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+              >
+                <span className="hidden sm:inline">Hal. Berikutnya</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
