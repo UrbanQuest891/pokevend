@@ -68,7 +68,7 @@ export default function BinderEditorPage() {
 
   // Reorder / Drag and Drop state
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
   const [draftSlots, setDraftSlots] = useState<Record<number, PokemonCard> | null>(null);
   const [draggedSlot, setDraggedSlot] = useState<number | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
@@ -76,20 +76,23 @@ export default function BinderEditorPage() {
   const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
   const [showMobileNoticeModal, setShowMobileNoticeModal] = useState(false);
   const [isSavingSlots, setIsSavingSlots] = useState(false);
+  const isDraggingRef = useRef(false);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Desktop vs Mobile Detection (Fine pointer & screen size)
+  // Desktop vs Mobile Detection (PC only)
   useEffect(() => {
     const checkDesktop = () => {
-      const hasFinePointer =
-        typeof window !== 'undefined' &&
-        window.matchMedia &&
-        window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-      const isWide = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
-      const isMobileUa =
-        typeof navigator !== 'undefined' &&
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      setIsDesktop(Boolean(hasFinePointer && isWide && !isMobileUa));
+      if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+        setIsDesktop(true);
+        return;
+      }
+      const ua = navigator.userAgent || '';
+      // Only detect actual mobile phones
+      const isMobilePhone = /iPhone|iPod|Android.*Mobile|Windows Phone|IEMobile|BlackBerry|Opera Mini/i.test(ua);
+      const isSmallMobile = window.innerWidth < 640 && (navigator.maxTouchPoints > 1 || 'ontouchstart' in window);
+      setIsDesktop(!isMobilePhone && !isSmallMobile);
     };
+
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
     return () => window.removeEventListener('resize', checkDesktop);
@@ -168,34 +171,60 @@ export default function BinderEditorPage() {
   };
 
   const handleDragStart = (e: React.DragEvent, slotNum: number) => {
-    if (!isReorderMode || !isDesktop) return;
-    e.dataTransfer.setData('text/plain', String(slotNum));
-    e.dataTransfer.effectAllowed = 'move';
+    if (!isDesktop) return;
+
+    isDraggingRef.current = true;
+    if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+
+    // Auto-activate reorder mode if not already active
+    if (!isReorderMode) {
+      if (!binder) return;
+      setDraftSlots(JSON.parse(JSON.stringify(binder.slots || {})));
+      setIsReorderMode(true);
+    }
+
+    e.stopPropagation();
+    try {
+      e.dataTransfer.setData('text/plain', String(slotNum));
+      e.dataTransfer.setData('application/x-pokevend-slot', String(slotNum));
+      e.dataTransfer.effectAllowed = 'move';
+    } catch {}
+
     setDraggedSlot(slotNum);
   };
 
   const handleDragOver = (e: React.DragEvent, slotNum: number) => {
-    if (!isReorderMode || !isDesktop) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.stopPropagation();
+    try {
+      e.dataTransfer.dropEffect = 'move';
+    } catch {}
+
     if (dragOverSlot !== slotNum) {
       setDragOverSlot(slotNum);
     }
   };
 
   const handleDragLeave = (e: React.DragEvent, slotNum: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     if (dragOverSlot === slotNum) {
       setDragOverSlot(null);
     }
   };
 
-  const handleDropOnSlot = (targetSlot: number) => {
-    if (!isReorderMode || !draftSlots) return;
+  const handleDropOnSlot = (e: React.DragEvent | null, targetSlot: number) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const currentMap = draftSlots || (binder ? JSON.parse(JSON.stringify(binder.slots || {})) : {});
 
     // Case 1: Drop from transit tray
     if (transitCard) {
-      const newSlots = { ...draftSlots };
+      const newSlots = { ...currentMap };
       const existingAtTarget = newSlots[targetSlot] || null;
       newSlots[targetSlot] = transitCard.card;
 
@@ -206,21 +235,31 @@ export default function BinderEditorPage() {
       }
 
       setDraftSlots(newSlots);
+      if (!isReorderMode) setIsReorderMode(true);
       setTransitCard(null);
       setDraggedSlot(null);
       setDragOverSlot(null);
       return;
     }
 
-    // Case 2: Drop from draggedSlot
-    if (draggedSlot === null || draggedSlot === targetSlot) {
+    // Determine source slot from state or dataTransfer
+    let sourceSlot = draggedSlot;
+    if (sourceSlot === null && e) {
+      try {
+        const textData = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/x-pokevend-slot');
+        if (textData) {
+          sourceSlot = parseInt(textData, 10);
+        }
+      } catch {}
+    }
+
+    if (sourceSlot === null || isNaN(sourceSlot) || sourceSlot === targetSlot) {
       setDraggedSlot(null);
       setDragOverSlot(null);
       return;
     }
 
-    const sourceSlot = draggedSlot;
-    const newSlots = { ...draftSlots };
+    const newSlots = { ...currentMap };
     const sourceCard = newSlots[sourceSlot];
     const targetCard = newSlots[targetSlot];
 
@@ -239,17 +278,37 @@ export default function BinderEditorPage() {
     }
 
     setDraftSlots(newSlots);
+    if (!isReorderMode) setIsReorderMode(true);
     setDraggedSlot(null);
     setDragOverSlot(null);
   };
 
   const handleDropOnTransitTray = (e: React.DragEvent) => {
     e.preventDefault();
-    if (draggedSlot === null || !draftSlots) return;
-    const card = draftSlots[draggedSlot];
-    if (!card) return;
+    e.stopPropagation();
 
-    setTransitCard({ sourceSlot: draggedSlot, card });
+    let slotNum: number | null = draggedSlot;
+    if (slotNum === null && e) {
+      try {
+        const textData = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('application/x-pokevend-slot');
+        if (textData) {
+          const parsed = parseInt(textData, 10);
+          if (!isNaN(parsed)) slotNum = parsed;
+        }
+      } catch {}
+    }
+
+    const currentMap = draftSlots || (binder ? JSON.parse(JSON.stringify(binder.slots || {})) : {});
+    if (slotNum === null || !currentMap[slotNum]) {
+      setDraggedSlot(null);
+      setDragOverSlot(null);
+      return;
+    }
+
+    const card = currentMap[slotNum];
+    setTransitCard({ sourceSlot: slotNum, card });
+    if (!isReorderMode) setIsReorderMode(true);
+    if (!draftSlots) setDraftSlots(currentMap);
     setDraggedSlot(null);
     setDragOverSlot(null);
   };
@@ -603,30 +662,69 @@ export default function BinderEditorPage() {
         {/* Page Switcher Navigation */}
         <div
           ref={contentTopRef}
-          className="flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-2xl p-2 scroll-mt-20"
+          className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-2 scroll-mt-20"
         >
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (currentPage > 1) handlePageChange(currentPage - 1);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            title={currentPage > 1 ? 'Buka halaman sebelumnya (bisa drop kartu di sini)' : undefined}
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Halaman Sebelumnya</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold text-white">
-              Halaman {currentPage} dari {binder.totalPages}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              (Slot #{startSlot} - #{endSlot})
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-center">
+              <span className="text-xs font-extrabold text-white">
+                Halaman {currentPage} dari {binder.totalPages}
+              </span>
+              <span className="text-[11px] text-slate-400 hidden sm:inline">
+                (Slot #{startSlot} - #{endSlot})
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleReorderMode}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm ${
+                isReorderMode
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-400 shadow-amber-500/20'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+              }`}
+              title="Atur posisi kartu dengan drag & drop (khusus PC)"
+            >
+              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-slate-950 stroke-[3]' : 'text-amber-400'}`} />
+              <span>{isReorderMode ? 'Mode Edit Aktif' : 'Edit Slot (Drag & Drop)'}</span>
+              {isReorderMode && changedCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black">
+                  {changedCount}
+                </span>
+              )}
+            </button>
           </div>
 
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === binder.totalPages}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (currentPage < binder.totalPages) handlePageChange(currentPage + 1);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            title={currentPage < binder.totalPages ? 'Buka halaman berikutnya (bisa drop kartu di sini)' : undefined}
           >
             <span>Halaman Berikutnya</span>
             <ChevronRight className="w-4 h-4" />
@@ -653,22 +751,26 @@ export default function BinderEditorPage() {
             return (
               <div
                 key={slotNum}
-                draggable={isReorderMode && isDesktop && Boolean(card)}
+                draggable={isDesktop && Boolean(card)}
                 onDragStart={(e) => card && handleDragStart(e, slotNum)}
                 onDragEnd={() => {
                   setDraggedSlot(null);
                   setDragOverSlot(null);
+                  if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+                  dragTimeoutRef.current = setTimeout(() => {
+                    isDraggingRef.current = false;
+                  }, 200);
                 }}
                 onDragOver={(e) => handleDragOver(e, slotNum)}
                 onDragLeave={(e) => handleDragLeave(e, slotNum)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  handleDropOnSlot(slotNum);
-                }}
+                onDrop={(e) => handleDropOnSlot(e, slotNum)}
                 onClick={() => {
+                  if (isDraggingRef.current) {
+                    return;
+                  }
                   if (isReorderMode) {
                     if (transitCard) {
-                      handleDropOnSlot(slotNum);
+                      handleDropOnSlot(null, slotNum);
                     }
                     return;
                   }
@@ -678,20 +780,22 @@ export default function BinderEditorPage() {
                     existingCard: card || null,
                   });
                 }}
-                className={`binder-pocket rounded-2xl p-3 flex flex-col justify-between transition-all group min-h-[290px] relative overflow-hidden ${
-                  isReorderMode
-                    ? isOver
-                      ? 'ring-4 ring-amber-400 border-amber-400 bg-amber-500/15 scale-[1.03] z-20 shadow-2xl shadow-amber-500/20'
-                      : isDragged
-                      ? 'opacity-30 border-dashed border-amber-400 scale-95'
-                      : card
-                      ? 'border-dashed border-slate-700 hover:border-amber-400/80 cursor-grab active:cursor-grabbing hover:shadow-lg hover:shadow-amber-500/10'
-                      : 'border-dashed border-slate-800 hover:border-slate-700'
+                className={`binder-pocket rounded-2xl p-3 flex flex-col justify-between transition-all group min-h-[290px] relative overflow-hidden select-none ${
+                  isOver
+                    ? 'ring-4 ring-amber-400 border-amber-400 bg-amber-500/20 scale-[1.03] z-30 shadow-2xl shadow-amber-500/30'
+                    : isDragged
+                    ? 'opacity-30 border-2 border-dashed border-amber-400 scale-95'
+                    : isReorderMode
+                    ? card
+                      ? 'border-2 border-dashed border-amber-500/50 hover:border-amber-400 cursor-grab active:cursor-grabbing hover:shadow-lg'
+                      : 'border-2 border-dashed border-slate-800 hover:border-amber-400/50'
+                    : card && isDesktop
+                    ? 'cursor-pointer hover:border-amber-500/50 hover:shadow-amber-500/10 cursor-grab'
                     : 'cursor-pointer hover:border-amber-500/50 hover:shadow-amber-500/10'
                 }`}
               >
                 {/* Drag-over indicator overlay */}
-                {isReorderMode && isOver && (
+                {isOver && (
                   <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center p-3 z-30 pointer-events-none">
                     <ArrowRightLeft className="w-8 h-8 text-amber-300 animate-bounce mb-1" />
                     <span className="text-xs font-black text-white bg-slate-950/95 px-2.5 py-1 rounded-lg border border-amber-400 shadow-xl">
@@ -718,8 +822,12 @@ export default function BinderEditorPage() {
                         <QrCode className="w-3.5 h-3.5" />
                       </a>
                     )}
-                    {isReorderMode && isDesktop && card && (
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black flex items-center gap-0.5 animate-pulse">
+                    {isDesktop && card && (
+                      <span className={`px-1.5 py-0.5 rounded border text-[9px] font-black flex items-center gap-0.5 ${
+                        isReorderMode
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-sm'
+                          : 'bg-slate-800 text-slate-400 border-slate-700 opacity-60 group-hover:opacity-100'
+                      }`}>
                         <GripVertical className="w-3 h-3" />
                         <span>DRAG</span>
                       </span>
@@ -730,37 +838,48 @@ export default function BinderEditorPage() {
                     <button
                       onClick={(e) => handleQuickToggleSold(slotNum, e)}
                       className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-all ${
+                        isReorderMode ? 'pointer-events-none opacity-60 ' : ''
+                      }${
                         card.status === 'AVAILABLE'
                           ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
                           : card.status === 'SOLD'
                           ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
                           : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
                       }`}
-                      title="Klik untuk ubah status cepat"
+                      title={isReorderMode ? undefined : 'Klik untuk ubah status cepat'}
                     >
                       {card.status}
                     </button>
                   )}
                 </div>
 
+                {/* Explicit Reorder Drag Handle */}
+                {isReorderMode && card && (
+                  <div className="w-full py-1 px-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded-lg flex items-center justify-center gap-1.5 text-[10px] font-black text-amber-300 cursor-grab active:cursor-grabbing mb-1.5 select-none shadow-sm">
+                    <GripVertical className="w-3.5 h-3.5 text-amber-400" />
+                    <span>DRAG UNTUK GESER SLOT</span>
+                  </div>
+                )}
+
                 {/* Card Content or Empty Pocket */}
                 {card ? (
-                  <div className="flex-1 flex flex-col justify-between">
+                  <div className={`flex-1 flex flex-col justify-between ${isReorderMode ? 'pointer-events-none select-none' : ''}`}>
                     {/* Image & Overlay */}
-                    <div className="relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-slate-950 mx-auto shadow-md mb-2 holo-shine">
+                    <div className="relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-slate-950 mx-auto shadow-md mb-2 holo-shine pointer-events-none select-none">
                       {card.imageUrl ? (
                         <img
                           src={formatCardImageUrl(card.imageUrl)}
                           alt={card.name}
-                          className="w-full h-full object-contain p-1"
+                          draggable={false}
+                          className="w-full h-full object-contain p-1 pointer-events-none select-none"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-500">
+                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-500 pointer-events-none">
                           Tidak ada gambar
                         </div>
                       )}
                       {card.status === 'SOLD' && (
-                        <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
                           <span className="px-3 py-1 bg-red-600 text-white font-black text-xs uppercase tracking-widest rounded-lg shadow-lg rotate-[-12deg]">
                             SOLD
                           </span>
@@ -769,7 +888,7 @@ export default function BinderEditorPage() {
                     </div>
 
                     {/* Card Info */}
-                    <div>
+                    <div className="pointer-events-none select-none">
                       <div className="font-extrabold text-xs text-white line-clamp-1 group-hover:text-amber-400 transition-colors">
                         {card.name}
                       </div>
@@ -783,7 +902,7 @@ export default function BinderEditorPage() {
                       </div>
 
                       {/* Price Tag */}
-                      <div className="mt-1.5 flex items-baseline justify-between">
+                      <div className="mt-1.5 flex items-baseline justify-between pointer-events-none">
                         <span className="text-sm font-black text-amber-400">
                           {formatCurrency(card.price, binder.currency)}
                         </span>
@@ -796,7 +915,7 @@ export default function BinderEditorPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-800 rounded-xl group-hover:border-slate-700 transition-colors">
+                  <div className={`flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-800 rounded-xl group-hover:border-slate-700 transition-colors ${isReorderMode ? 'pointer-events-none select-none' : ''}`}>
                     <div className="w-10 h-10 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-500 group-hover:text-amber-400 group-hover:bg-slate-800 transition-all mb-2">
                       <Plus className="w-5 h-5" />
                     </div>
@@ -829,35 +948,123 @@ export default function BinderEditorPage() {
         </div>
 
         {/* Bottom Page Switcher Navigation */}
-        <div className="flex items-center justify-between bg-slate-900/80 border border-slate-800 rounded-2xl p-2 mt-4 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-2 mt-4 shadow-lg">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (currentPage > 1) handlePageChange(currentPage - 1);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            title={currentPage > 1 ? 'Buka halaman sebelumnya (bisa drop kartu di sini)' : undefined}
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Halaman Sebelumnya</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold text-white">
-              Halaman {currentPage} dari {binder.totalPages}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              (Slot #{startSlot} - #{endSlot})
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-center">
+              <span className="text-xs font-extrabold text-white">
+                Halaman {currentPage} dari {binder.totalPages}
+              </span>
+              <span className="text-[11px] text-slate-400 hidden sm:inline">
+                (Slot #{startSlot} - #{endSlot})
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleReorderMode}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm ${
+                isReorderMode
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-400 shadow-amber-500/20'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+              }`}
+              title="Atur posisi kartu dengan drag & drop (khusus PC)"
+            >
+              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-slate-950 stroke-[3]' : 'text-amber-400'}`} />
+              <span>{isReorderMode ? 'Mode Edit Aktif' : 'Edit Slot (Drag & Drop)'}</span>
+              {isReorderMode && changedCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black">
+                  {changedCount}
+                </span>
+              )}
+            </button>
           </div>
 
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === binder.totalPages}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (currentPage < binder.totalPages) handlePageChange(currentPage + 1);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            title={currentPage < binder.totalPages ? 'Buka halaman berikutnya (bisa drop kartu di sini)' : undefined}
           >
             <span>Halaman Berikutnya</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </main>
+
+      {/* Floating Reorder Dock at screen bottom for instant saving/canceling from any scroll position */}
+      {isReorderMode && (
+        <aside
+          aria-label="Floating Reorder Dock"
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border-2 border-amber-500/80 rounded-2xl px-4 py-2.5 shadow-2xl shadow-black/80 flex items-center gap-3 backdrop-blur-md max-w-lg w-[92vw] sm:w-auto justify-between animate-in fade-in slide-in-from-bottom-4"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping flex-shrink-0" />
+            <span className="text-xs font-black text-amber-300 whitespace-nowrap">
+              Mode Edit Slot
+            </span>
+            {changedCount > 0 ? (
+              <span className="hidden sm:inline-block text-[11px] font-bold text-slate-300">
+                • <span className="text-amber-400">{changedCount}</span> slot berubah
+              </span>
+            ) : (
+              <span className="hidden sm:inline-block text-[11px] text-slate-400">
+                • Siap drag & drop
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCancelReorder}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Batal</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowSaveConfirmModal(true)}
+              disabled={changedCount === 0}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md ${
+                changedCount > 0
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110 text-white animate-pulse'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+              }`}
+            >
+              <Save className="w-3 h-3" />
+              <span>Simpan ({changedCount})</span>
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* Edit Slot Modal */}
       <EditSlotModal
