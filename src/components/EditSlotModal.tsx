@@ -729,7 +729,7 @@ export default function EditSlotModal({
                         <img src="/logos/riftbound.png" alt="Riftbound" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
                       )}
                       {selectedGame === 'onepiece' && (
-                        <img src="/logos/onepiece.png" alt="One Piece" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
+                        <img src="/logos/onepiece.png?v=2" alt="One Piece" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
                       )}
                     </span>
                   </div>
@@ -871,7 +871,7 @@ export default function EditSlotModal({
                         }`}
                       >
                         <img
-                          src="/logos/onepiece.png"
+                          src="/logos/onepiece.png?v=2"
                           alt="One Piece"
                           className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] brightness-105 transition-transform duration-200 group-hover:scale-105"
                         />
