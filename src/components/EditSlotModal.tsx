@@ -28,6 +28,7 @@ import { CardCondition, CardStatus, PokemonCard } from '@/types';
 import { POKEMON_CARD_TEMPLATES, PokemonCardTemplate } from '@/lib/pokemonCatalog';
 import { formatCurrency } from '@/lib/qr';
 import { TcgdexCardSummary } from '@/lib/tcgdex';
+import { LocalEnCardSummary, LocalEnSetInfo } from '@/lib/localEnCards';
 import { LocalIdCardSummary } from '@/lib/localIdCards';
 import { LocalJpCardSummary } from '@/lib/localJpCards';
 import { RiftboundCardSummary, RiftboundSetInfo } from '@/lib/riftboundCards';
@@ -101,6 +102,18 @@ export default function EditSlotModal({
   const [tcgdexSearching, setTcgdexSearching] = useState(false);
   const [tcgdexFetchingCard, setTcgdexFetchingCard] = useState(false);
   const [marketRef, setMarketRef] = useState<{ usd?: number; idr?: number } | null>(null);
+
+  // Pokemon English DB (20,600+ cards across 176 sets from local scraped data)
+  const [enQuery, setEnQuery] = useState('');
+  const [enSet, setEnSet] = useState('');
+  const [enResults, setEnResults] = useState<LocalEnCardSummary[]>([]);
+  const [enSearching, setEnSearching] = useState(false);
+  const [enFetchingCard, setEnFetchingCard] = useState(false);
+  const [enSets, setEnSets] = useState<LocalEnSetInfo[]>([]);
+  const [enSetsLoaded, setEnSetsLoaded] = useState(false);
+  const [enPage, setEnPage] = useState(1);
+  const [enTotal, setEnTotal] = useState(0);
+  const [enTotalPages, setEnTotalPages] = useState(1);
 
   // Pokemon Indonesian DB
   const [localIdQuery, setLocalIdQuery] = useState('');
@@ -179,6 +192,10 @@ export default function EditSlotModal({
 
     setTcgdexQuery('');
     setTcgdexResults([]);
+    setEnQuery('');
+    setEnSet('');
+    setEnResults([]);
+    setEnPage(1);
     setMarketRef(null);
     setPresetSearch('');
     setLocalIdQuery('');
@@ -237,32 +254,55 @@ export default function EditSlotModal({
     }
   }, [selectedGame, riftboundSetsLoaded]);
 
-  // Debounced TCGdex search
+  // Load Pokemon English sets (176 sets from local scraped data)
+  useEffect(() => {
+    if (selectedGame === 'pokemon' && pokemonSource === 'tcgdex' && !enSetsLoaded) {
+      fetch('/api/localen/sets')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.sets)) {
+            setEnSets(data.sets);
+            setEnSetsLoaded(true);
+          }
+        })
+        .catch((err) => console.error('Failed to load EN sets', err));
+    }
+  }, [selectedGame, pokemonSource, enSetsLoaded]);
+
+  // Search Pokemon English cards (Local database with 20,600+ cards)
   useEffect(() => {
     if (selectedGame !== 'pokemon' || pokemonSource !== 'tcgdex') return;
-    if (!tcgdexQuery.trim() || tcgdexQuery.trim().length < 2) {
-      setTcgdexResults([]);
-      setTcgdexSearching(false);
-      return;
-    }
 
     const timer = setTimeout(async () => {
       try {
-        setTcgdexSearching(true);
-        const res = await fetch(`/api/tcgdex/search?q=${encodeURIComponent(tcgdexQuery.trim())}&limit=12`);
+        setEnSearching(true);
+        const params = new URLSearchParams();
+        if (enQuery.trim()) params.set('q', enQuery.trim());
+        if (enSet) params.set('set', enSet);
+        params.set('page', String(enPage));
+        params.set('limit', '18');
+
+        const res = await fetch(`/api/localen/search?${params.toString()}`);
         const data = await res.json();
         if (data.success) {
-          setTcgdexResults(data.cards || []);
+          setEnResults(data.cards || []);
+          setEnTotal(data.total || 0);
+          setEnTotalPages(data.totalPages || 1);
+        } else {
+          setEnResults([]);
+          setEnTotal(0);
+          setEnTotalPages(1);
         }
       } catch (err) {
-        console.error('TCGdex search failed:', err);
+        console.error('Failed to search EN cards', err);
+        setEnResults([]);
       } finally {
-        setTcgdexSearching(false);
+        setEnSearching(false);
       }
-    }, 350);
+    }, 200);
 
     return () => clearTimeout(timer);
-  }, [tcgdexQuery, selectedGame, pokemonSource]);
+  }, [enQuery, enSet, enPage, selectedGame, pokemonSource]);
 
   // Debounced Indonesian local DB search
   useEffect(() => {
@@ -436,6 +476,42 @@ export default function EditSlotModal({
       setImageUrl(cardSummary.imageUrl);
     } finally {
       setTcgdexFetchingCard(false);
+    }
+  };
+
+  // Handle picking card from Local English Pokémon DB (20,600+ cards)
+  const handleSelectLocalEnCard = async (cardSummary: LocalEnCardSummary) => {
+    try {
+      setEnFetchingCard(true);
+      const res = await fetch(`/api/localen/card/${cardSummary.id}`);
+      const data = await res.json();
+
+      if (data.success && data.card) {
+        const c = data.card;
+        setCardName(c.name);
+        setCardSet(c.setName || cardSummary.setName);
+        setCardNumber(c.formattedNumber || c.number || cardSummary.formattedNumber || cardSummary.number);
+        setRarity(c.rarity || cardSummary.rarity || 'Rare');
+        setImageUrl(c.imageUrl || cardSummary.imageUrl);
+        setSelectedGame('pokemon');
+      } else {
+        setCardName(cardSummary.name);
+        setCardSet(cardSummary.setName);
+        setCardNumber(cardSummary.formattedNumber || cardSummary.number);
+        setRarity(cardSummary.rarity || 'Rare');
+        setImageUrl(cardSummary.imageUrl);
+        setSelectedGame('pokemon');
+      }
+    } catch (err) {
+      console.error('Failed to fetch English card details', err);
+      setCardName(cardSummary.name);
+      setCardSet(cardSummary.setName);
+      setCardNumber(cardSummary.formattedNumber || cardSummary.number);
+      setRarity(cardSummary.rarity || 'Rare');
+      setImageUrl(cardSummary.imageUrl);
+      setSelectedGame('pokemon');
+    } finally {
+      setEnFetchingCard(false);
     }
   };
 
@@ -897,7 +973,7 @@ export default function EditSlotModal({
                             }`}
                           >
                             <Globe className="w-3.5 h-3.5" />
-                            <span>Inggris (EN)</span>
+                            <span>Inggris (20.600+)</span>
                           </button>
 
                           <button
@@ -928,31 +1004,93 @@ export default function EditSlotModal({
                         </div>
                       </div>
 
-                      {/* TCGdex View */}
+                      {/* English Pokémon (20,600+ Local Instant Database) */}
                       {pokemonSource === 'tcgdex' && (
                         <div className="space-y-2.5">
+                          {/* Sets dropdown */}
+                          <div className="relative">
+                            <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                            <select
+                              value={enSet}
+                              onChange={(e) => {
+                                setEnSet(e.target.value);
+                                setEnPage(1);
+                              }}
+                              className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-blue-500 appearance-none shadow-inner"
+                            >
+                              <option value="">— Semua Seri / Set Inggris (176 Set Resmi) —</option>
+                              {enSets.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name} ({s.total} kartu)
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Search input */}
                           <div className="relative">
                             <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                             <input
                               type="text"
-                              placeholder="Cari nama Pokémon resmi (contoh: Charizard ex, Moonbreon, Gengar, Pikachu 151)..."
-                              value={tcgdexQuery}
-                              onChange={(e) => setTcgdexQuery(e.target.value)}
+                              placeholder="Cari nama Inggris / nomor / nickname (contoh: Moonbreon, Charizard 151, 199/165)..."
+                              value={enQuery}
+                              onChange={(e) => {
+                                setEnQuery(e.target.value);
+                                setEnPage(1);
+                              }}
                               className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 shadow-inner"
                             />
-                            {tcgdexSearching && (
+                            {(enSearching || enFetchingCard) && (
                               <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-blue-400 animate-spin" />
                             )}
                           </div>
 
-                          {tcgdexResults.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                              {tcgdexResults.map((card, idx) => (
+                          {/* Info & Pagination Bar */}
+                          <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-blue-950/40 border border-blue-500/20 rounded-xl text-blue-200 text-xs">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Globe className="w-3.5 h-3.5 flex-shrink-0 text-blue-400" />
+                              <span className="text-[11px] truncate">
+                                {enTotal > 0 ? (
+                                  <>Ditemukan <b>{enTotal.toLocaleString()}</b> kartu Inggris</>
+                                ) : (
+                                  '20.600+ database lokal Pokémon EN instant & offline'
+                                )}
+                              </span>
+                            </div>
+                            {enTotalPages > 1 && (
+                              <div className="flex items-center gap-1.5 flex-shrink-0 text-[11px]">
                                 <button
-                                  key={`tcgdex-${card.id || idx}-${idx}`}
                                   type="button"
-                                  disabled={tcgdexFetchingCard}
-                                  onClick={() => handleSelectTcgdexCard(card)}
+                                  disabled={enPage <= 1}
+                                  onClick={() => setEnPage((p) => Math.max(1, p - 1))}
+                                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white font-medium"
+                                >
+                                  &larr; Prev
+                                </button>
+                                <span className="text-slate-400 font-medium">
+                                  {enPage} / {enTotalPages}
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={enPage >= enTotalPages}
+                                  onClick={() => setEnPage((p) => Math.min(enTotalPages, p + 1))}
+                                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white font-medium"
+                                >
+                                  Next &rarr;
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Results Grid */}
+                          {enResults.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                              {enResults.map((card, idx) => (
+                                <button
+                                  key={`localen-${card.id || idx}-${idx}`}
+                                  type="button"
+                                  disabled={enFetchingCard}
+                                  onClick={() => handleSelectLocalEnCard(card)}
                                   className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-blue-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-blue-500/10"
                                 >
                                   {card.imageUrl ? (
@@ -963,7 +1101,7 @@ export default function EditSlotModal({
                                     />
                                   ) : (
                                     <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] text-slate-500 flex-shrink-0">
-                                      TCG
+                                      EN
                                     </div>
                                   )}
                                   <div className="min-w-0 flex-1">
@@ -971,10 +1109,10 @@ export default function EditSlotModal({
                                       {card.name}
                                     </div>
                                     <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                                      #{card.localId}
+                                      {card.formattedNumber || `#${card.number}`}
                                     </div>
                                     <div className="text-[10px] text-blue-400/80 font-bold truncate">
-                                      {card.id.split('-')[0].toUpperCase()}
+                                      {card.setName}
                                     </div>
                                   </div>
                                 </button>
@@ -982,9 +1120,9 @@ export default function EditSlotModal({
                             </div>
                           )}
 
-                          {tcgdexQuery.trim().length >= 2 && !tcgdexSearching && tcgdexResults.length === 0 && (
-                            <div className="text-center text-xs text-slate-400 py-2">
-                              Tidak ada kartu ditemukan dengan kata kunci &quot;{tcgdexQuery}&quot;.
+                          {!enSearching && enResults.length === 0 && (enQuery.trim().length > 0 || enSet) && (
+                            <div className="text-center text-xs text-slate-400 py-3">
+                              Tidak ada kartu Pokémon Inggris ditemukan untuk &quot;{enQuery || enSet}&quot;.
                             </div>
                           )}
                         </div>
@@ -1785,7 +1923,7 @@ export default function EditSlotModal({
                       </button>
                       <button
                         type="submit"
-                        disabled={saving || tcgdexFetchingCard}
+                        disabled={saving || tcgdexFetchingCard || enFetchingCard}
                         className="flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black bg-gradient-to-r from-red-600 via-amber-500 to-amber-400 text-slate-950 shadow-lg shadow-red-600/25 hover:brightness-110 active:scale-95 transition-all"
                       >
                         <CheckCircle2 className="w-4 h-4 text-slate-950" />
