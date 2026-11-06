@@ -437,11 +437,6 @@ export default function BuyerBinderPage() {
                         <span className="text-xs sm:text-sm font-black text-amber-400">
                           {formatCurrency(card.price, binder.currency)}
                         </span>
-                        {card.originalPrice && card.originalPrice > card.price && (
-                          <span className="text-[9px] line-through text-slate-500">
-                            {formatCurrency(card.originalPrice, binder.currency)}
-                          </span>
-                        )}
                       </div>
                     </div>
 

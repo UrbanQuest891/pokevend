@@ -212,11 +212,6 @@ export default function CardImageLightbox({
               <span className="text-lg sm:text-xl font-black text-amber-400">
                 {formatCurrency(card.price, currency)}
               </span>
-              {card.originalPrice && card.originalPrice > card.price && (
-                <span className="text-xs line-through text-slate-500">
-                  {formatCurrency(card.originalPrice, currency)}
-                </span>
-              )}
               <span
                 className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                   card.status === 'AVAILABLE'

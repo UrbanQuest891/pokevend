@@ -16,11 +16,9 @@ import {
   Link2,
   Tag,
   ShieldCheck,
-  Percent,
   Image as ImageIcon,
   Check,
   Clock,
-  Ban,
   Layers,
   Sparkle,
   ArrowLeft,
@@ -64,6 +62,18 @@ const CONDITIONS: CardCondition[] = [
   'Graded - CGC 10',
   'Graded - Other',
 ];
+
+const formatRupiahInput = (val: number | undefined | null): string => {
+  if (val === undefined || val === null || val <= 0 || isNaN(val)) {
+    return 'Rp ';
+  }
+  return `Rp ${Math.round(val).toLocaleString('id-ID')}`;
+};
+
+const parseRupiahInput = (raw: string): number => {
+  const digits = raw.replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : 0;
+};
 
 export default function EditSlotModal({
   isOpen,
@@ -792,11 +802,6 @@ export default function EditSlotModal({
     game: selectedGame || existingCard?.game || 'pokemon',
     updatedAt: new Date().toISOString(),
   };
-
-  const discountPercent =
-    originalPrice && originalPrice > price
-      ? Math.round(((originalPrice - price) / originalPrice) * 100)
-      : null;
 
   return (
     <>
@@ -1737,129 +1742,107 @@ export default function EditSlotModal({
                       {/* Selling Price */}
                       <div>
                         <label className="block text-xs font-bold text-slate-200 mb-1.5">
-                          Harga Jual Seller ({currency}) <span className="text-red-400">*</span>
+                          Harga Jual <span className="text-red-400">*</span>
                         </label>
-                        <div className="relative">
+                        <div className="relative flex items-center">
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             required
-                            min={0}
-                            step={currency === 'IDR' ? 1000 : 0.5}
-                            value={price}
-                            onChange={(e) => setPrice(Number(e.target.value))}
-                            className="w-full pl-3.5 pr-28 py-2.5 bg-slate-900 border-2 border-amber-500/60 rounded-2xl text-base sm:text-lg font-black text-amber-300 focus:outline-none focus:border-amber-400 shadow-inner"
+                            value={price > 0 ? formatRupiahInput(price) : 'Rp '}
+                            onChange={(e) => setPrice(parseRupiahInput(e.target.value))}
+                            onFocus={(e) => {
+                              if (e.target.value === 'Rp ') {
+                                e.target.setSelectionRange(3, 3);
+                              }
+                            }}
+                            placeholder="Rp "
+                            className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border-2 border-amber-500/60 rounded-2xl text-base sm:text-lg font-black text-amber-300 focus:outline-none focus:border-amber-400 shadow-inner"
                           />
-                          <div className="absolute right-3.5 top-3 text-xs font-extrabold text-slate-400 pointer-events-none">
-                            {formatCurrency(price, currency)}
-                          </div>
-                        </div>
-
-                        {/* Quick price increment chips */}
-                        {currency === 'IDR' ? (
-                          <div className="flex items-center gap-1.5 mt-2">
-                            {[10000, 25000, 50000, 100000].map((inc) => (
-                              <button
-                                key={inc}
-                                type="button"
-                                onClick={() => setPrice((p) => p + inc)}
-                                className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-slate-300 hover:text-white transition-colors"
-                              >
-                                +{(inc / 1000).toFixed(0)}k
-                              </button>
-                            ))}
+                          {price > 0 && (
                             <button
                               type="button"
                               onClick={() => setPrice(0)}
-                              className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-slate-400 hover:text-white transition-colors ml-auto"
+                              className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Reset harga jual ke Rp "
                             >
-                              Reset
+                              <X className="w-4 h-4" />
                             </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 mt-2">
-                            {[1, 5, 10, 20].map((inc) => (
-                              <button
-                                key={inc}
-                                type="button"
-                                onClick={() => setPrice((p) => p + inc)}
-                                className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-slate-300 hover:text-white transition-colors"
-                              >
-                                +${inc}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
 
-                      {/* Original / Strikethrough Price */}
+                      {/* Cost / Modal Price (Seller Only) */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-xs font-bold text-slate-300">
-                            Harga Coret / Referensi
+                            Harga Modal
                           </label>
-                          {discountPercent && (
-                            <span className="text-[10px] font-black text-rose-400 px-1.5 py-0.2 rounded bg-rose-500/10 border border-rose-500/20">
-                              DISKON -{discountPercent}%
-                            </span>
+                        </div>
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={originalPrice && originalPrice > 0 ? formatRupiahInput(originalPrice) : 'Rp '}
+                            onChange={(e) => {
+                              const val = parseRupiahInput(e.target.value);
+                              setOriginalPrice(val > 0 ? val : undefined);
+                            }}
+                            onFocus={(e) => {
+                              if (e.target.value === 'Rp ') {
+                                e.target.setSelectionRange(3, 3);
+                              }
+                            }}
+                            placeholder="Rp "
+                            className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700 rounded-2xl text-base sm:text-lg font-black text-slate-200 focus:outline-none focus:border-blue-500 shadow-inner"
+                          />
+                          {Boolean(originalPrice && originalPrice > 0) && (
+                            <button
+                              type="button"
+                              onClick={() => setOriginalPrice(undefined)}
+                              className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Reset harga modal ke Rp "
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           )}
                         </div>
-                        <input
-                          type="number"
-                          min={0}
-                          placeholder="Kosongkan jika bukan promo"
-                          value={originalPrice || ''}
-                          onChange={(e) => setOriginalPrice(e.target.value ? Number(e.target.value) : undefined)}
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-red-500 shadow-inner"
-                        />
-                        <span className="text-[10px] text-slate-500 block mt-1.5">
-                          Pembeli akan melihat harga coret menarik di katalog.
+                        <span className="text-[11px] text-slate-400 italic block mt-1.5">
+                          *Harga modal hanya dapat dilihat oleh seller
                         </span>
                       </div>
                     </div>
 
-                    {/* Status Pill Selector */}
+                    {/* Status Pill Selector (Available & Reserved Only) */}
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-2">
                         Status Ketersediaan di Meja
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
                           onClick={() => setStatus('AVAILABLE')}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl text-xs font-black transition-all border ${
+                          className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl text-xs font-black transition-all border cursor-pointer ${
                             status === 'AVAILABLE'
                               ? 'bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-600/30 ring-2 ring-emerald-500/30'
                               : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
                           }`}
                         >
-                          <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                          <Check className="w-4 h-4 flex-shrink-0" />
                           <span>AVAILABLE</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setStatus('RESERVED')}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl text-xs font-black transition-all border ${
+                          className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl text-xs font-black transition-all border cursor-pointer ${
                             status === 'RESERVED'
                               ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-md shadow-amber-500/30 ring-2 ring-amber-500/30'
                               : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
                           }`}
                         >
-                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          <Clock className="w-4 h-4 flex-shrink-0" />
                           <span>RESERVED</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setStatus('SOLD')}
-                          className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl text-xs font-black transition-all border ${
-                            status === 'SOLD'
-                              ? 'bg-rose-600 text-white border-rose-400 shadow-md shadow-rose-600/30 ring-2 ring-rose-500/30'
-                              : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
-                          }`}
-                        >
-                          <Ban className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>SOLD</span>
                         </button>
                       </div>
                     </div>
