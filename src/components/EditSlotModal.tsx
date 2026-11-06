@@ -27,7 +27,6 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { CardCondition, CardStatus, PokemonCard } from '@/types';
-import { POKEMON_CARD_TEMPLATES, PokemonCardTemplate } from '@/lib/pokemonCatalog';
 import { formatCurrency } from '@/lib/qr';
 import { TcgdexCardSummary } from '@/lib/tcgdex';
 import { LocalEnCardSummary, LocalEnSetInfo } from '@/lib/localEnCards';
@@ -39,7 +38,7 @@ import { formatCardImageUrl } from '@/lib/imageHelper';
 import CardImageLightbox from '@/components/CardImageLightbox';
 
 export type TcgGame = 'pokemon' | 'riftbound' | 'onepiece';
-export type PokemonSubSource = 'tcgdex' | 'localid' | 'localjp' | 'preset';
+export type PokemonSubSource = 'tcgdex' | 'localid' | 'localjp';
 
 interface EditSlotModalProps {
   isOpen: boolean;
@@ -132,9 +131,6 @@ export default function EditSlotModal({
   const [localJpExpansion, setLocalJpExpansion] = useState('');
   const [jpExpansions, setJpExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
   const [jpExpansionsLoaded, setJpExpansionsLoaded] = useState(false);
-
-  // Pokemon Preset Hits
-  const [presetSearch, setPresetSearch] = useState('');
 
   // Level 2 - Riftbound
   const [riftboundLang, setRiftboundLang] = useState<'EN' | null>(null);
@@ -266,7 +262,6 @@ export default function EditSlotModal({
     setEnResults([]);
     setEnPage(1);
     setMarketRef(null);
-    setPresetSearch('');
     setLocalIdQuery('');
     setLocalIdResults([]);
     setLocalIdExpansion('');
@@ -584,20 +579,6 @@ export default function EditSlotModal({
     }
   };
 
-  // Handle picking from local preset catalog
-  const handleSelectPreset = (template: PokemonCardTemplate) => {
-    setCardName(template.name);
-    setCardSet(template.setName);
-    setCardNumber(template.cardNumber);
-    setRarity(template.rarity);
-    setPrice(currency === 'USD' ? Math.round(template.defaultPrice / 16000) : template.defaultPrice);
-    setImageUrl(template.imageUrl);
-    setMarketRef({
-      idr: template.defaultPrice,
-      usd: Math.round(template.defaultPrice / 16000),
-    });
-  };
-
   // Handle picking from Indonesian local DB
   const handleSelectLocalIdCard = async (summary: LocalIdCardSummary) => {
     try {
@@ -735,14 +716,6 @@ export default function EditSlotModal({
       setOnePieceSearching(false);
     }
   };
-
-  const filteredPresets = presetSearch.trim()
-    ? POKEMON_CARD_TEMPLATES.filter(
-        (t) =>
-          t.name.toLowerCase().includes(presetSearch.toLowerCase()) ||
-          t.setName.toLowerCase().includes(presetSearch.toLowerCase())
-      ).slice(0, 8)
-    : POKEMON_CARD_TEMPLATES.slice(0, 8);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1107,19 +1080,6 @@ export default function EditSlotModal({
                           >
                             <span className="text-sm leading-none">🇯🇵</span>
                             <span>Jepang (23.000+)</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSelectPokemonSource('preset')}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                              pokemonSource === 'preset'
-                                ? 'bg-amber-500 text-slate-950 font-black shadow-sm ring-1 ring-amber-300'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                            }`}
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>Preset Hits</span>
                           </button>
                         </div>
                       )}
@@ -1494,48 +1454,6 @@ export default function EditSlotModal({
                                   Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
                                 </div>
                               )}
-                            </div>
-                          )}
-
-                          {/* Preset Hits View */}
-                          {pokemonSource === 'preset' && (
-                            <div className="space-y-2.5">
-                              <div className="relative">
-                                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                                <input
-                                  type="text"
-                                  placeholder="Filter preset hits populer..."
-                                  value={presetSearch}
-                                  onChange={(e) => setPresetSearch(e.target.value)}
-                                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 shadow-inner"
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                                {filteredPresets.map((item, idx) => (
-                                  <button
-                                    key={`preset-${item.cardNumber || idx}-${idx}`}
-                                    type="button"
-                                    onClick={() => handleSelectPreset(item)}
-                                    className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-amber-500/60 flex flex-col items-center text-center transition-all group shadow hover:shadow-amber-500/10 cursor-pointer"
-                                  >
-                                    <img
-                                      src={item.imageUrl}
-                                      alt=""
-                                      className="w-14 h-20 object-contain rounded-lg bg-slate-950 shadow mb-1.5 group-hover:scale-105 transition-transform"
-                                    />
-                                    <div className="w-full text-xs font-black text-white group-hover:text-amber-300 truncate">
-                                      {item.name}
-                                    </div>
-                                    <div className="w-full text-[10px] text-slate-400 truncate">
-                                      {item.setName}
-                                    </div>
-                                    <div className="text-[11px] font-black text-emerald-400 mt-0.5">
-                                      {formatCurrency(item.defaultPrice, currency)}
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
                             </div>
                           )}
 
