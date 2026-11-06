@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getBinderById, updateBinder, deleteBinder } from '@/lib/storage';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
@@ -12,7 +15,16 @@ export async function GET(req: Request, context: RouteContext) {
     if (!binder) {
       return NextResponse.json({ success: false, error: 'Binder not found' }, { status: 404 });
     }
-    return NextResponse.json({ success: true, binder });
+    return NextResponse.json(
+      { success: true, binder },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('Failed to get binder:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

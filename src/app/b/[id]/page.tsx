@@ -43,7 +43,7 @@ export default function BuyerBinderPage() {
     async function loadBinder() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/binders/${binderId}`);
+        const res = await fetch(`/api/binders/${binderId}`, { cache: 'no-store' });
         const data = await res.json();
         if (data.success) {
           setBinder(data.binder);

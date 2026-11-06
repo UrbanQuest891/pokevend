@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Binder } from '@/types';
 import { generateQrDataUrl } from '@/lib/qr';
+import { resolveShareableUrl } from '@/lib/networkHelper';
 import { Printer, ArrowLeft, QrCode, Sparkles } from 'lucide-react';
 
 export default function PrintBinderStandPage() {
@@ -18,11 +19,11 @@ export default function PrintBinderStandPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/binders/${binderId}`);
+        const res = await fetch(`/api/binders/${binderId}`, { cache: 'no-store' });
         const data = await res.json();
         if (data.success) {
           setBinder(data.binder);
-          const fullUrl = `${window.location.origin}/b/${data.binder.id}`;
+          const fullUrl = await resolveShareableUrl(`/b/${data.binder.id}`);
           const qr = await generateQrDataUrl(fullUrl, { width: 600, margin: 2 });
           setQrSrc(qr);
         }

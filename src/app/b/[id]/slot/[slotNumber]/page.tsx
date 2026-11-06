@@ -2,6 +2,9 @@ import React from 'react';
 import { getSlotCard } from '@/lib/storage';
 import { formatCurrency } from '@/lib/qr';
 import { formatCardImageUrl } from '@/lib/imageHelper';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import {
   Sparkles,
   Layers,

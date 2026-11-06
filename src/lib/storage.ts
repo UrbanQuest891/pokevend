@@ -281,16 +281,11 @@ const SAMPLE_BINDERS: Binder[] = [
   },
 ];
 
-let memoryData: AppData | null = null;
-
 async function ensureDataFile(): Promise<AppData> {
-  if (memoryData) return memoryData;
-
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
     const content = await fs.readFile(DATA_FILE, 'utf-8');
-    memoryData = JSON.parse(content);
-    return memoryData!;
+    return JSON.parse(content);
   } catch {
     const defaultData: AppData = {
       profile: INITIAL_PROFILE,
@@ -299,20 +294,18 @@ async function ensureDataFile(): Promise<AppData> {
     try {
       await fs.writeFile(DATA_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
     } catch (err) {
-      console.warn('Could not write to local store.json, using in-memory store:', err);
+      console.warn('Could not write to local store.json:', err);
     }
-    memoryData = defaultData;
-    return memoryData;
+    return defaultData;
   }
 }
 
 async function persistData(data: AppData): Promise<void> {
-  memoryData = data;
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
     await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.warn('Failed to persist to file, kept in memory:', err);
+    console.warn('Failed to persist to file:', err);
   }
 }
 

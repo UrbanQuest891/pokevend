@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, QrCode, Copy, ExternalLink, Printer, Check } from 'lucide-react';
+import { X, QrCode, Copy, ExternalLink, Printer, Check, Wifi } from 'lucide-react';
 import { generateQrDataUrl } from '@/lib/qr';
+import { resolveShareableUrl } from '@/lib/networkHelper';
 
 interface QrCodeModalProps {
   isOpen: boolean;
@@ -22,35 +23,35 @@ export default function QrCodeModal({
   printUrl,
 }: QrCodeModalProps) {
   const [qrSrc, setQrSrc] = useState<string>('');
+  const [resolvedUrl, setResolvedUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     if (isOpen && targetUrl) {
-      // In browser, ensure targetUrl has full origin if relative
-      const fullUrl = targetUrl.startsWith('http')
-        ? targetUrl
-        : `${window.location.origin}${targetUrl}`;
-
-      generateQrDataUrl(fullUrl, { width: 400, margin: 2 }).then(setQrSrc);
+      resolveShareableUrl(targetUrl).then((url) => {
+        if (!isMounted) return;
+        setResolvedUrl(url);
+        generateQrDataUrl(url, { width: 400, margin: 2 }).then((qr) => {
+          if (isMounted) setQrSrc(qr);
+        });
+      });
     }
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, targetUrl]);
 
   if (!isOpen) return null;
 
+  const displayUrl = resolvedUrl || targetUrl;
+  const isLanReady = displayUrl.includes('192.168.') || displayUrl.includes('10.') || displayUrl.includes('172.');
+
   const handleCopy = () => {
-    const fullUrl = targetUrl.startsWith('http')
-      ? targetUrl
-      : `${window.location.origin}${targetUrl}`;
-    navigator.clipboard.writeText(fullUrl);
+    navigator.clipboard.writeText(displayUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const fullUrl = typeof window !== 'undefined' && targetUrl.startsWith('http')
-    ? targetUrl
-    : typeof window !== 'undefined'
-    ? `${window.location.origin}${targetUrl}`
-    : targetUrl;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm no-print">
@@ -69,6 +70,13 @@ export default function QrCodeModal({
         <h3 className="text-lg font-black text-white">{title}</h3>
         {subtitle && <p className="text-xs text-slate-400 mt-1">{subtitle}</p>}
 
+        {isLanReady && (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mt-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">
+            <Wifi className="w-3 h-3" />
+            <span>Wi-Fi Network Ready (Dapat discan semua HP)</span>
+          </div>
+        )}
+
         {/* QR Code Container with High Contrast & Pokeball badge */}
         <div className="my-5 p-4 bg-white rounded-2xl shadow-inner inline-block mx-auto border-4 border-slate-800 relative group">
           {qrSrc ? (
@@ -85,7 +93,7 @@ export default function QrCodeModal({
 
         {/* URL Pill & Copy */}
         <div className="flex items-center gap-2 p-2 bg-slate-950 border border-slate-800 rounded-xl text-xs mb-4">
-          <span className="truncate text-slate-400 flex-1 text-left font-mono pl-1">{fullUrl}</span>
+          <span className="truncate text-slate-400 flex-1 text-left font-mono pl-1">{displayUrl}</span>
           <button
             onClick={handleCopy}
             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors flex-shrink-0"
@@ -98,7 +106,7 @@ export default function QrCodeModal({
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
           <a
-            href={targetUrl}
+            href={displayUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors"

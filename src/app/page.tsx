@@ -33,7 +33,7 @@ export default function SellerDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/binders');
+      const res = await fetch('/api/binders', { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setBinders(data.binders || []);

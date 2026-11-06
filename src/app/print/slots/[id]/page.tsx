@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Binder, PokemonCard } from '@/types';
 import { generateQrDataUrl, formatCurrency } from '@/lib/qr';
+import { getNetworkOrigin } from '@/lib/networkHelper';
 import { Printer, ArrowLeft, Settings2, Sliders, CheckSquare, Square } from 'lucide-react';
 
 interface SlotQrItem {
@@ -30,7 +31,7 @@ export default function PrintSlotStickersPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/binders/${binderId}`);
+        const res = await fetch(`/api/binders/${binderId}`, { cache: 'no-store' });
         const data = await res.json();
         if (data.success) {
           const b: Binder = data.binder;
@@ -39,7 +40,7 @@ export default function PrintSlotStickersPage() {
           const pocketsPerPage = b.layoutType === '4-pocket' ? 4 : b.layoutType === '12-pocket' ? 12 : 9;
           const totalSlots = b.totalPages * pocketsPerPage;
 
-          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+          const origin = await getNetworkOrigin();
           const generatedItems: SlotQrItem[] = [];
 
           for (let s = 1; s <= totalSlots; s++) {

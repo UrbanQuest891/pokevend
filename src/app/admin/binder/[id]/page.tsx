@@ -52,7 +52,7 @@ export default function BinderEditorPage() {
   const fetchBinder = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/binders/${binderId}`);
+      const res = await fetch(`/api/binders/${binderId}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setBinder(data.binder);
