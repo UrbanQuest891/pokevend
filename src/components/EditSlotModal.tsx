@@ -721,24 +721,15 @@ export default function EditSlotModal({
                       <Eye className="w-3.5 h-3.5 text-blue-400" />
                       Preview Visual Kartu
                     </span>
-                    <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-300 font-bold flex items-center gap-1.5">
+                    <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700/80 flex items-center justify-center">
                       {selectedGame === 'pokemon' && (
-                        <>
-                          <img src="/logos/pokemon.svg" alt="Pokémon" className="h-3.5 w-auto object-contain" />
-                          <span>Pokémon TCG</span>
-                        </>
+                        <img src="/logos/pokemon.svg" alt="Pokémon" className="h-4 sm:h-5 w-auto max-h-5 object-contain" />
                       )}
                       {selectedGame === 'riftbound' && (
-                        <>
-                          <img src="/logos/riftbound.png" alt="Riftbound" className="h-3.5 w-auto object-contain" />
-                          <span>Riftbound TCG</span>
-                        </>
+                        <img src="/logos/riftbound.png" alt="Riftbound" className="h-4 sm:h-5 w-auto max-h-5 object-contain" />
                       )}
                       {selectedGame === 'onepiece' && (
-                        <>
-                          <img src="/logos/onepiece.png" alt="One Piece" className="h-3.5 w-auto object-contain" />
-                          <span>One Piece TCG</span>
-                        </>
+                        <img src="/logos/onepiece.png" alt="One Piece" className="h-4 sm:h-5 w-auto max-h-5 object-contain" />
                       )}
                     </span>
                   </div>
@@ -746,9 +737,18 @@ export default function EditSlotModal({
                   {/* Main Large Card Container */}
                   <div
                     onClick={() => imageUrl && setIsLightboxOpen(true)}
+                    role={imageUrl ? 'button' : undefined}
+                    tabIndex={imageUrl ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (imageUrl && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        setIsLightboxOpen(true);
+                      }
+                    }}
                     className={`relative w-full max-w-[270px] sm:max-w-[290px] aspect-[63/88] rounded-2xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl transition-all duration-300 group ${
                       imageUrl ? 'cursor-pointer hover:border-blue-500 hover:shadow-blue-500/20 hover:scale-[1.02]' : ''
-                    } ${showHoloPreview ? 'holo-shine' : ''}`}
+                    }`}
+                    title={imageUrl ? 'Klik kartu untuk memperbesar (zoom)' : undefined}
                   >
                     {imageUrl ? (
                       <>
@@ -759,12 +759,12 @@ export default function EditSlotModal({
                         />
 
                         {/* Hover Overlay Hint for Zoom */}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3 text-center">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3 text-center pointer-events-none">
                           <span className="p-3 rounded-full bg-blue-600/90 text-white shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
                             <ZoomIn className="w-6 h-6" />
                           </span>
                           <span className="text-xs font-black text-white drop-shadow-md">
-                            Klik untuk Zoom Penuh
+                            Klik untuk Zoom
                           </span>
                         </div>
                       </>
@@ -805,108 +805,6 @@ export default function EditSlotModal({
                         </span>
                       )}
                     </div>
-
-                    {/* Bottom Floating Price Badge */}
-                    <div className="absolute bottom-2.5 inset-x-2.5 z-10 pointer-events-none">
-                      <div className="p-2 rounded-xl bg-slate-900/95 border border-slate-700/90 backdrop-blur-md shadow-xl flex items-center justify-between">
-                        <div className="min-w-0">
-                          <div className="text-[10px] text-slate-400 font-semibold truncate">
-                            {condition}
-                          </div>
-                          <div className="text-sm font-black text-amber-300 leading-tight">
-                            {formatCurrency(price, currency)}
-                          </div>
-                        </div>
-                        {originalPrice && originalPrice > price && (
-                          <div className="text-right">
-                            <div className="text-[9px] line-through text-slate-400">
-                              {formatCurrency(originalPrice, currency)}
-                            </div>
-                            <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[9px] font-extrabold border border-rose-500/30">
-                              -{discountPercent}%
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Preview Toolbar */}
-                  <div className="w-full mt-4 flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      disabled={!imageUrl}
-                      onClick={() => setIsLightboxOpen(true)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                        imageUrl
-                          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30'
-                          : 'bg-slate-800/60 text-slate-500 cursor-not-allowed'
-                      }`}
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                      <span>Zoom Penuh</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={!imageUrl}
-                      onClick={() => setShowHoloPreview(!showHoloPreview)}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
-                        showHoloPreview
-                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
-                          : 'bg-slate-900 text-slate-300 border-slate-700 hover:text-white hover:bg-slate-800'
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Holo</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowUrlInput(!showUrlInput)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
-                      title="Ubah URL Foto Manual"
-                    >
-                      <Link2 className="w-3.5 h-3.5" />
-                      <span>URL</span>
-                    </button>
-                  </div>
-
-                  {/* Collapsible Image URL Input */}
-                  {showUrlInput && (
-                    <div className="w-full mt-3 p-3 bg-slate-900 border border-slate-700 rounded-2xl animate-in fade-in duration-150">
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                        URL Gambar Kartu Langsung
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="https://..."
-                          className="flex-1 px-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500"
-                        />
-                        {imageUrl && (
-                          <button
-                            type="button"
-                            onClick={() => setImageUrl('')}
-                            className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-bold"
-                          >
-                            Hapus
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Card Art Summary Bar */}
-                  <div className="w-full mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="truncate max-w-[160px] font-semibold text-slate-300">
-                      {cardName || 'Nama Belum Diisi'}
-                    </span>
-                    <span className="truncate max-w-[100px] text-slate-500">
-                      {cardNumber ? `#${cardNumber}` : 'No Slot'}
-                    </span>
                   </div>
                 </div>
               </div>
@@ -1873,6 +1771,20 @@ export default function EditSlotModal({
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder="misal: Unit • Domain Fury • Might 5 / Pack Fresh"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
+                        />
+                      </div>
+
+                      {/* Image URL Input */}
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-bold text-slate-300 mb-1">
+                          URL Gambar Kartu (Otomatis dari pencarian kartu atau dapat diubah manual)
+                        </label>
+                        <input
+                          type="url"
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                          placeholder="https://..."
                           className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
                         />
                       </div>
