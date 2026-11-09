@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
-
-const USD_TO_IDR_RATE = 16200;
+import { getGoogleFinanceUsdToIdrRate } from '@/lib/exchangeRate';
 
 function formatRupiah(num: number): string {
   return 'Rp ' + Math.round(num).toLocaleString('id-ID');
@@ -98,7 +97,8 @@ function matchBestProduct(
 async function fetchRealSalesFromPriceCharting(
   consoleName: string,
   productName: string,
-  condition: string
+  condition: string,
+  conversionRate: number
 ): Promise<Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd: number; title?: string }> | null> {
   try {
     const cSlug = slugify(consoleName);
@@ -156,7 +156,7 @@ async function fetchRealSalesFromPriceCharting(
         const match = rawPrice.match(/\$\s*([0-9,]+(?:\.[0-9]{1,2})?)/);
         if (rawDate && match) {
           const usd = parseFloat(match[1].replace(/,/g, ''));
-          const idr = Math.round(usd * USD_TO_IDR_RATE);
+          const idr = Math.round(usd * conversionRate);
           list.push({
             date: parseDateStr(rawDate),
             priceIdr: idr,
@@ -266,11 +266,15 @@ export async function GET(req: Request) {
     const pSlug = slugify(matchedProduct.productName);
     const productUrl = `https://www.pricecharting.com/game/${cSlug}/${pSlug}`;
 
+    // Fetch live Google Finance USD to IDR exchange rate
+    const exchangeInfo = await getGoogleFinanceUsdToIdrRate();
+
     // Fetch REAL historical completed sales directly from the PriceCharting product page
     const realTransactions = await fetchRealSalesFromPriceCharting(
       matchedProduct.consoleName,
       matchedProduct.productName,
-      condition
+      condition,
+      exchangeInfo.rate
     );
 
     if (realTransactions && realTransactions.length > 0) {
@@ -284,6 +288,7 @@ export async function GET(req: Request) {
           url: productUrl,
         },
         conditionApplied: conditionLabel,
+        exchangeRate: exchangeInfo,
         transactions: realTransactions,
       });
     }
@@ -299,7 +304,7 @@ export async function GET(req: Request) {
     }
 
     if (fallbackUsd > 0) {
-      const fallbackIdr = Math.round(fallbackUsd * USD_TO_IDR_RATE);
+      const fallbackIdr = Math.round(fallbackUsd * exchangeInfo.rate);
       return NextResponse.json({
         success: true,
         product: {
@@ -310,6 +315,7 @@ export async function GET(req: Request) {
           url: productUrl,
         },
         conditionApplied: conditionLabel,
+        exchangeRate: exchangeInfo,
         transactions: [
           {
             date: 'Benchmark Pasar',

@@ -176,6 +176,12 @@ export default function EditSlotModal({
     url?: string;
   } | null>(null);
   const [priceRefCondition, setPriceRefCondition] = useState<string | null>(null);
+  const [priceExchangeRate, setPriceExchangeRate] = useState<{
+    rate: number;
+    formattedRate: string;
+    source: string;
+    label: string;
+  } | null>(null);
   const [loadingPriceRef, setLoadingPriceRef] = useState(false);
   const [priceRefError, setPriceRefError] = useState<string | null>(null);
   const [appliedTxIndex, setAppliedTxIndex] = useState<number | null>(null);
@@ -541,6 +547,7 @@ export default function EditSlotModal({
     setPriceTransactions(null);
     setPriceRefMeta(null);
     setPriceRefCondition(null);
+    setPriceExchangeRate(null);
     setPriceRefError(null);
     setAppliedTxIndex(null);
   };
@@ -848,6 +855,9 @@ export default function EditSlotModal({
         setPriceTransactions(data.transactions);
         setPriceRefMeta(data.product || null);
         setPriceRefCondition(data.conditionApplied || null);
+        if (data.exchangeRate) {
+          setPriceExchangeRate(data.exchangeRate);
+        }
       } else {
         setPriceRefError(data.error || 'Data harga tidak ditemukan di PriceCharting.');
       }
@@ -1137,7 +1147,15 @@ export default function EditSlotModal({
                         </tbody>
                       </table>
                       <div className="px-3 py-1.5 bg-slate-950/70 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
-                        <span>Kurs: $1 = Rp 16.200</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>
+                            Kurs Google Finance:{' '}
+                            <strong className="text-emerald-400 font-bold">
+                              $1 = Rp {priceExchangeRate?.formattedRate || '18.109'}
+                            </strong>
+                          </span>
+                        </span>
                         <span className="text-amber-400/90 font-medium">Klik baris untuk pasang harga</span>
                       </div>
                     </div>

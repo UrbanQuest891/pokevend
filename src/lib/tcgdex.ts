@@ -1,5 +1,6 @@
 import TCGdex, { Query } from '@tcgdex/sdk';
 import { POKEMON_CARD_TEMPLATES } from './pokemonCatalog';
+import { getGoogleFinanceUsdToIdrRate } from './exchangeRate';
 
 // Singleton instance
 const tcgdex = new TCGdex('en');
@@ -105,8 +106,9 @@ export async function getTcgdexCardDetail(cardId: string): Promise<TcgdexCardDet
 
     let estimatedIdr: number | undefined;
     if (marketUsd) {
+      const exchange = await getGoogleFinanceUsdToIdrRate();
       // Round to nearest 5,000 IDR
-      estimatedIdr = Math.round((marketUsd * USD_TO_IDR_RATE) / 5000) * 5000;
+      estimatedIdr = Math.round((marketUsd * exchange.rate) / 5000) * 5000;
     }
 
     return {
