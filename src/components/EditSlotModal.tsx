@@ -164,6 +164,20 @@ export default function EditSlotModal({
   const [onePieceTotal, setOnePieceTotal] = useState(0);
   const [onePieceTotalPages, setOnePieceTotalPages] = useState(1);
 
+  // Price Reference State (5 Transaksi Terakhir dari PriceCharting)
+  const [priceTransactions, setPriceTransactions] = useState<
+    Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd?: number }> | null
+  >(null);
+  const [priceRefMeta, setPriceRefMeta] = useState<{
+    id?: string;
+    name?: string;
+    consoleName?: string;
+  } | null>(null);
+  const [priceRefCondition, setPriceRefCondition] = useState<string | null>(null);
+  const [loadingPriceRef, setLoadingPriceRef] = useState(false);
+  const [priceRefError, setPriceRefError] = useState<string | null>(null);
+  const [appliedTxIndex, setAppliedTxIndex] = useState<number | null>(null);
+
   // Interactive Drilldown Transition State (Step 1 -> Step 2 -> Step 3)
   const [isExitingStep, setIsExitingStep] = useState<'step2' | 'step3' | null>(null);
 
@@ -287,6 +301,11 @@ export default function EditSlotModal({
     setOnePiecePage(1);
     setShowHoloPreview(false);
     setShowUrlInput(false);
+    setPriceTransactions(null);
+    setPriceRefMeta(null);
+    setPriceRefCondition(null);
+    setPriceRefError(null);
+    setAppliedTxIndex(null);
   }, [existingCard, isOpen, currency]);
 
   // Load Pokemon Indonesian expansions
@@ -516,8 +535,17 @@ export default function EditSlotModal({
 
   if (!isOpen) return null;
 
+  const resetPriceReference = () => {
+    setPriceTransactions(null);
+    setPriceRefMeta(null);
+    setPriceRefCondition(null);
+    setPriceRefError(null);
+    setAppliedTxIndex(null);
+  };
+
   // Handle picking card from TCGdex
   const handleSelectTcgdexCard = async (cardSummary: TcgdexCardSummary) => {
+    resetPriceReference();
     try {
       setTcgdexFetchingCard(true);
       const res = await fetch(`/api/tcgdex/card/${cardSummary.id}`);
@@ -555,6 +583,7 @@ export default function EditSlotModal({
 
   // Handle picking card from Local English Pokémon DB (20,600+ cards)
   const handleSelectLocalEnCard = async (cardSummary: LocalEnCardSummary) => {
+    resetPriceReference();
     try {
       setEnFetchingCard(true);
       const res = await fetch(`/api/localen/card/${cardSummary.id}`);
@@ -591,6 +620,7 @@ export default function EditSlotModal({
 
   // Handle picking from Indonesian local DB
   const handleSelectLocalIdCard = async (summary: LocalIdCardSummary) => {
+    resetPriceReference();
     try {
       setLocalIdSearching(true);
       const res = await fetch(`/api/localid/card/${summary.id}`);
@@ -620,6 +650,7 @@ export default function EditSlotModal({
 
   // Handle picking from Japanese local DB
   const handleSelectLocalJpCard = async (summary: LocalJpCardSummary) => {
+    resetPriceReference();
     try {
       setLocalJpSearching(true);
       const res = await fetch(`/api/localjp/card/${summary.id}`);
@@ -649,6 +680,7 @@ export default function EditSlotModal({
 
   // Handle picking from Riftbound cards
   const handleSelectRiftboundCard = async (summary: RiftboundCardSummary) => {
+    resetPriceReference();
     try {
       setRiftboundSearching(true);
       const res = await fetch(`/api/riftbound/card/${encodeURIComponent(summary.id)}`);
@@ -686,6 +718,7 @@ export default function EditSlotModal({
 
   // Handle picking from One Piece cards
   const handleSelectOnePieceCard = async (summary: OnePieceCardSummary) => {
+    resetPriceReference();
     try {
       setOnePieceSearching(true);
       const res = await fetch(`/api/onepiece/card/${encodeURIComponent(summary.id)}?lang=${summary.lang}`);
@@ -784,6 +817,49 @@ export default function EditSlotModal({
     } finally {
       setClearing(false);
     }
+  };
+
+  // Cari Harga Referensi (5 Transaksi Terakhir dari PriceCharting)
+  const handleSearchPriceReference = async () => {
+    if (!cardName.trim()) {
+      setPriceRefError('Pilih kartu terlebih dahulu atau isi nama kartu di kolom detail.');
+      return;
+    }
+
+    setLoadingPriceRef(true);
+    setPriceRefError(null);
+    setAppliedTxIndex(null);
+
+    try {
+      const params = new URLSearchParams({
+        name: cardName.trim(),
+        number: cardNumber.trim(),
+        set: cardSet.trim(),
+        condition: condition,
+        game: effectiveGame,
+      });
+
+      const res = await fetch(`/api/pricecharting?${params.toString()}`);
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.transactions) && data.transactions.length > 0) {
+        setPriceTransactions(data.transactions);
+        setPriceRefMeta(data.product || null);
+        setPriceRefCondition(data.conditionApplied || null);
+      } else {
+        setPriceRefError(data.error || 'Data harga tidak ditemukan di PriceCharting.');
+      }
+    } catch (err) {
+      console.error('Error fetching price reference:', err);
+      setPriceRefError('Gagal memuat harga referensi dari PriceCharting.');
+    } finally {
+      setLoadingPriceRef(false);
+    }
+  };
+
+  const handleApplyPrice = (newPrice: number, index: number) => {
+    setPrice(newPrice);
+    setAppliedTxIndex(index);
   };
 
   // Simulated PokemonCard for lightbox preview
@@ -929,6 +1005,117 @@ export default function EditSlotModal({
                       )}
                     </div>
                   </div>
+                </div>
+
+                {/* 5 Transaksi Terakhir (PriceCharting) Table */}
+                <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-4 sm:p-5 flex flex-col gap-3 shadow-inner">
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
+                    <span className="font-extrabold text-slate-300 text-xs flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+                      5 Transaksi Terakhir
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-black tracking-wider uppercase">
+                      PriceCharting
+                    </span>
+                  </div>
+
+                  {/* Tombol Cari Harga Referensi */}
+                  <button
+                    type="button"
+                    onClick={handleSearchPriceReference}
+                    disabled={loadingPriceRef}
+                    className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-md hover:shadow-amber-500/20 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {loadingPriceRef ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Mencari di PriceCharting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-3.5 h-3.5" />
+                        <span>{priceTransactions ? 'Cari Ulang Referensi Harga' : 'Cari Harga Referensi'}</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Error Message */}
+                  {priceRefError && (
+                    <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-[11px] text-red-300 text-center leading-relaxed">
+                      {priceRefError}
+                    </div>
+                  )}
+
+                  {/* Matched Product info if available */}
+                  {priceRefMeta && (
+                    <div className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] flex flex-col gap-0.5">
+                      <div className="text-slate-200 font-bold truncate" title={priceRefMeta.name}>
+                        {priceRefMeta.name}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate flex items-center justify-between">
+                        <span>{priceRefMeta.consoleName || 'PriceCharting Data'}</span>
+                        {priceRefCondition && (
+                          <span className="text-amber-400 font-semibold">{priceRefCondition}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tabel 5 Transaksi Terakhir (Hanya 2 Kolom: Tanggal & Harga Terakhir Terjual) */}
+                  {priceTransactions && priceTransactions.length > 0 && (
+                    <div className="w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-800 bg-slate-950/90 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                            <th className="py-2.5 px-3">Tanggal</th>
+                            <th className="py-2.5 px-3 text-right">Harga Terakhir Terjual</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {priceTransactions.map((tx, idx) => (
+                            <tr
+                              key={idx}
+                              onClick={() => handleApplyPrice(tx.priceIdr, idx)}
+                              className={`transition-colors cursor-pointer group hover:bg-amber-500/10 ${
+                                appliedTxIndex === idx ? 'bg-amber-500/20 text-amber-300' : 'text-slate-200'
+                              }`}
+                              title="Klik baris ini untuk menggunakan harga sebagai Harga Jual"
+                            >
+                              <td className="py-2.5 px-3 text-slate-400 group-hover:text-slate-200 font-medium whitespace-nowrap">
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="w-3 h-3 text-slate-500 group-hover:text-amber-400" />
+                                  {tx.date}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="text-amber-400 font-black">
+                                    {tx.priceFormatted}
+                                  </span>
+                                  {appliedTxIndex === idx ? (
+                                    <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">
+                                      ✓ Digunakan
+                                    </span>
+                                  ) : (
+                                    <span className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-slate-400 group-hover:text-amber-300 bg-slate-800 px-1.5 py-0.5 rounded transition-opacity">
+                                      Gunakan
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {!priceTransactions && !loadingPriceRef && !priceRefError && (
+                    <p className="text-[11px] text-slate-400 text-center leading-relaxed py-1">
+                      Tekan tombol di atas untuk melihat 5 transaksi tanggal & harga jual terakhir dari PriceCharting.
+                    </p>
+                  )}
                 </div>
               </div>
 
