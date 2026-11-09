@@ -39,50 +39,189 @@ interface PriceChartingProduct {
   price3?: string; // Grade 9
 }
 
+interface ParsedCardCode {
+  raw: string;
+  beforeSlash: string;
+  normNum?: string;
+  rawNum?: string;
+  prefix?: string;
+  fullCode?: string;
+  tokens: string[];
+}
+
+function parseCardCode(cardNumber?: string): ParsedCardCode | null {
+  if (!cardNumber || !cardNumber.trim()) return null;
+  const raw = cardNumber.trim();
+  const beforeSlash = raw.split('/')[0].trim();
+  const tokens = new Set<string>();
+
+  tokens.add(beforeSlash.toLowerCase());
+
+  let normNum: string | undefined;
+  let rawNum: string | undefined;
+  let prefix: string | undefined;
+  let fullCode: string | undefined;
+
+  // Pattern 1: Explicit separator e.g. "OGN-039", "OP05-060", "ST01-001", "SWSH-215"
+  const separatedMatch = beforeSlash.match(/^([A-Za-z0-9]+)[-_ ]+0*([0-9]+)$/);
+  if (separatedMatch) {
+    prefix = separatedMatch[1];
+    normNum = separatedMatch[2];
+    rawNum = beforeSlash.replace(/^[A-Za-z0-9]+[-_ ]+/, '');
+    fullCode = beforeSlash;
+
+    tokens.add(normNum);
+    tokens.add(rawNum);
+    tokens.add(beforeSlash.toLowerCase());
+    tokens.add(`${prefix.toLowerCase()}-${normNum}`);
+    tokens.add(`${prefix.toLowerCase()}${normNum}`);
+  } else {
+    // Pattern 2: Pure number e.g. "215", "025", "199"
+    const pureNumMatch = beforeSlash.match(/^0*([0-9]+)$/);
+    if (pureNumMatch) {
+      normNum = pureNumMatch[1];
+      rawNum = beforeSlash;
+      tokens.add(normNum);
+      tokens.add(rawNum);
+    } else {
+      // Pattern 3: Prefix without separator e.g. "SWSH215" or "P001"
+      const unseparatedMatch = beforeSlash.match(/^([A-Za-z]+)0*([0-9]+)$/);
+      if (unseparatedMatch) {
+        prefix = unseparatedMatch[1];
+        normNum = unseparatedMatch[2];
+        rawNum = beforeSlash.replace(/^[A-Za-z]+/, '');
+        fullCode = beforeSlash;
+        tokens.add(normNum);
+        tokens.add(rawNum);
+        tokens.add(beforeSlash.toLowerCase());
+      }
+    }
+  }
+
+  return {
+    raw,
+    beforeSlash,
+    normNum,
+    rawNum,
+    prefix,
+    fullCode,
+    tokens: Array.from(tokens).filter((t) => t.length > 0),
+  };
+}
+
+function buildSearchQueries(
+  cardName: string,
+  parsedCode: ParsedCardCode | null,
+  cardSet?: string
+): string[] {
+  const cleanName = (cardName || '').trim();
+  const queries: string[] = [];
+
+  if (parsedCode) {
+    // 1. Combined keyword: Card Name + Full Code (e.g. "Kai'Sa OGN-039", "Monkey.D.Luffy OP05-060")
+    if (parsedCode.fullCode && /[A-Za-z]/.test(parsedCode.fullCode)) {
+      queries.push(`${cleanName} ${parsedCode.fullCode}`);
+    }
+
+    // 2. Combined keyword: Card Name + Normalized Number (e.g. "Kai'Sa 39", "Umbreon VMAX 215", "Charizard ex 199")
+    if (parsedCode.normNum) {
+      queries.push(`${cleanName} ${parsedCode.normNum}`);
+      queries.push(`${cleanName} #${parsedCode.normNum}`);
+    }
+
+    // 3. Full Code alone (especially effective for One Piece "OP05-060")
+    if (parsedCode.fullCode && /[A-Za-z]/.test(parsedCode.fullCode)) {
+      queries.push(parsedCode.fullCode);
+    }
+
+    // 4. Combined keyword: Card Name + Raw Number (e.g. "Kai'Sa 039", "Pikachu 025")
+    if (parsedCode.rawNum && parsedCode.rawNum !== parsedCode.normNum) {
+      queries.push(`${cleanName} ${parsedCode.rawNum}`);
+    }
+  }
+
+  // 5. Combined with Set Name
+  if (cardSet && cleanName) {
+    const cleanSet = cardSet.replace(/\([^)]*\)/g, '').trim();
+    if (parsedCode?.normNum) {
+      queries.push(`${cleanName} ${parsedCode.normNum} ${cleanSet}`);
+    }
+    queries.push(`${cleanName} ${cleanSet}`);
+  }
+
+  // 6. Last fallback: Card Name alone
+  if (cleanName) {
+    queries.push(cleanName);
+  }
+
+  return Array.from(new Set(queries.map((q) => q.trim()))).filter((q) => q.length > 0);
+}
+
 function matchBestProduct(
   products: PriceChartingProduct[],
   cardName: string,
-  cardNumber?: string,
-  cardSet?: string
+  parsedCode: ParsedCardCode | null,
+  cardSet?: string,
+  game?: string
 ): PriceChartingProduct | null {
   if (!products || products.length === 0) return null;
 
-  const cleanNum = cardNumber
-    ? cardNumber.split('/')[0].replace(/[^0-9a-zA-Z]/g, '').toLowerCase()
-    : '';
   const cleanName = (cardName || '').toLowerCase().replace(/[^a-z0-9]/g, ' ');
   const cleanSet = (cardSet || '').toLowerCase();
+  const gLower = (game || '').toLowerCase();
 
   const scored = products.map((p) => {
     let score = 0;
     const pName = (p.productName || '').toLowerCase();
     const pConsole = (p.consoleName || '').toLowerCase();
 
-    if (cleanNum) {
-      if (
-        pName.includes('#' + cleanNum) ||
-        pName.includes(' ' + cleanNum) ||
-        pName.endsWith(cleanNum) ||
-        pName.includes(cleanNum)
-      ) {
-        score += 55;
+    // 1. Card Code / Number Matching (Highest Priority)
+    if (parsedCode) {
+      const pNumMatch = pName.match(/#([0-9]+)/);
+      const pProductNum = pNumMatch ? pNumMatch[1] : null;
+
+      if (parsedCode.fullCode && pName.includes(parsedCode.fullCode.toLowerCase())) {
+        score += 150;
+      } else if (parsedCode.normNum && pProductNum === parsedCode.normNum) {
+        score += 150;
+      } else {
+        for (const tok of parsedCode.tokens) {
+          if (pName.includes('#' + tok) || pName.includes(' ' + tok) || pName.endsWith(tok)) {
+            score += 90;
+            break;
+          }
+        }
+      }
+
+      // Penalty if product explicitly contains a contradictory #number
+      if (pProductNum && parsedCode.normNum && pProductNum !== parsedCode.normNum) {
+        score -= 100;
       }
     }
 
+    // 2. Card Name Matching
     const nameTokens = cleanName.split(/\s+/).filter((t) => t.length > 1);
-    let matchedTokens = 0;
+    let matchedNameTokens = 0;
     for (const t of nameTokens) {
-      if (pName.includes(t)) matchedTokens++;
+      if (pName.includes(t)) matchedNameTokens++;
     }
     if (nameTokens.length > 0) {
-      score += (matchedTokens / nameTokens.length) * 35;
+      score += (matchedNameTokens / nameTokens.length) * 40;
     }
 
+    // 3. Game Matching (Riftbound, Pokemon, One Piece)
+    if (gLower) {
+      if (gLower === 'riftbound' && pConsole.includes('riftbound')) score += 50;
+      else if (gLower === 'pokemon' && pConsole.includes('pokemon')) score += 50;
+      else if (gLower === 'onepiece' && pConsole.includes('one piece')) score += 50;
+    }
+
+    // 4. Set Matching
     if (cleanSet) {
       const setTokens = cleanSet.split(/\s+/).filter((t) => t.length > 2);
       for (const st of setTokens) {
         if (pConsole.includes(st) || pName.includes(st)) {
-          score += 15;
+          score += 25;
         }
       }
     }
@@ -191,6 +330,7 @@ export async function GET(req: Request) {
     const cardNumber = searchParams.get('number') || '';
     const cardSet = searchParams.get('set') || '';
     const condition = searchParams.get('condition') || 'Raw - NM';
+    const game = searchParams.get('game') || '';
 
     if (!cardName.trim()) {
       return NextResponse.json(
@@ -199,15 +339,11 @@ export async function GET(req: Request) {
       );
     }
 
-    const cleanNum = cardNumber ? cardNumber.split('/')[0].trim() : '';
+    // Parse card code & number
+    const parsedCode = parseCardCode(cardNumber);
 
-    // Search variants on PriceCharting
-    const queries = [
-      `${cardName} ${cleanNum} ${cardSet}`.trim(),
-      `${cardName} ${cleanNum}`.trim(),
-      `${cardName} ${cardSet}`.trim(),
-      cardName.trim(),
-    ].filter((q, idx, arr) => q.length > 0 && arr.indexOf(q) === idx);
+    // Build targeted search queries using combined keyword: card name + card code
+    const queries = buildSearchQueries(cardName, parsedCode, cardSet);
 
     let matchedProduct: PriceChartingProduct | null = null;
 
@@ -229,7 +365,7 @@ export async function GET(req: Request) {
 
         const data = await pcRes.json();
         if (Array.isArray(data.products) && data.products.length > 0) {
-          const match = matchBestProduct(data.products, cardName, cardNumber, cardSet);
+          const match = matchBestProduct(data.products, cardName, parsedCode, cardSet, game);
           if (match) {
             matchedProduct = match;
             break;
