@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
 import { getGoogleFinanceUsdToIdrRate } from '@/lib/exchangeRate';
+import { fetchSnkrdunkPrices } from '@/lib/snkrdunk';
+import { fetchPokepediaPrices } from '@/lib/pokepedia';
 
 function formatRupiah(num: number): string {
   return 'Rp ' + Math.round(num).toLocaleString('id-ID');
@@ -285,7 +287,16 @@ async function fetchRealSalesFromPriceCharting(
     }
 
     const parseSales = (sel: string) => {
-      const list: Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd: number; title?: string }> = [];
+      const list: Array<{
+        date: string;
+        priceIdr: number;
+        priceFormatted: string;
+        priceOrig: number;
+        priceOrigFormatted: string;
+        currency: 'USD';
+        priceUsd: number;
+        title?: string;
+      }> = [];
       $(`${sel} table tbody tr`).each((_, el) => {
         if (list.length >= 5) return false;
         const rawDate = $(el).find('td.date').text().trim();
@@ -300,6 +311,9 @@ async function fetchRealSalesFromPriceCharting(
             date: parseDateStr(rawDate),
             priceIdr: idr,
             priceFormatted: formatRupiah(idr),
+            priceOrig: usd,
+            priceOrigFormatted: `$${usd.toLocaleString('en-US')}`,
+            currency: 'USD',
             priceUsd: usd,
             title: rawTitle || undefined,
           });
@@ -331,12 +345,52 @@ export async function GET(req: Request) {
     const cardSet = searchParams.get('set') || '';
     const condition = searchParams.get('condition') || 'Raw - NM';
     const game = searchParams.get('game') || '';
+    const lang = (searchParams.get('lang') || '').toUpperCase();
 
     if (!cardName.trim()) {
       return NextResponse.json(
         { success: false, error: 'Nama kartu diperlukan untuk mencari harga referensi.' },
         { status: 400 }
       );
+    }
+
+    // Rules for language-specific marketplaces:
+    // 1. Japanese submenu/language -> snkrdunk.com (SNKRDUNK)
+    // 2. Indonesian submenu/language -> pokepedia.id (Pokepedia)
+    // 3. English submenu/language -> pricecharting.com (PriceCharting)
+    const isJapanese =
+      lang === 'JP' ||
+      /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(cardName + ' ' + cardSet);
+    const isIndonesian = lang === 'ID';
+
+    if (isJapanese) {
+      const snkrResult = await fetchSnkrdunkPrices(cardName, cardNumber, cardSet, condition);
+      if (snkrResult) {
+        return NextResponse.json({
+          success: true,
+          ...snkrResult,
+        });
+      }
+      return NextResponse.json({
+        success: false,
+        provider: 'snkrdunk',
+        error: `Kartu "${cardName}" tidak ditemukan di SNKRDUNK. Pastikan nomor/kode kartu sesuai dengan edisi Jepang.`,
+      });
+    }
+
+    if (isIndonesian) {
+      const pokeResult = await fetchPokepediaPrices(cardName, cardNumber, cardSet, condition);
+      if (pokeResult) {
+        return NextResponse.json({
+          success: true,
+          ...pokeResult,
+        });
+      }
+      return NextResponse.json({
+        success: false,
+        provider: 'pokepedia',
+        error: `Kartu "${cardName}" tidak ditemukan di Pokepedia.id.`,
+      });
     }
 
     // Parse card code & number
@@ -379,6 +433,7 @@ export async function GET(req: Request) {
     if (!matchedProduct) {
       return NextResponse.json({
         success: false,
+        provider: 'pricecharting',
         error: `Kartu "${cardName}" tidak ditemukan di PriceCharting. Coba periksa nama atau nomor kartu.`,
       });
     }
@@ -416,6 +471,7 @@ export async function GET(req: Request) {
     if (realTransactions && realTransactions.length > 0) {
       return NextResponse.json({
         success: true,
+        provider: 'pricecharting',
         product: {
           id: matchedProduct.id,
           name: matchedProduct.productName,
@@ -443,6 +499,7 @@ export async function GET(req: Request) {
       const fallbackIdr = Math.round(fallbackUsd * exchangeInfo.rate);
       return NextResponse.json({
         success: true,
+        provider: 'pricecharting',
         product: {
           id: matchedProduct.id,
           name: matchedProduct.productName,
@@ -457,6 +514,9 @@ export async function GET(req: Request) {
             date: 'Benchmark Pasar',
             priceIdr: fallbackIdr,
             priceFormatted: formatRupiah(fallbackIdr),
+            priceOrig: fallbackUsd,
+            priceOrigFormatted: `$${fallbackUsd.toLocaleString('en-US')}`,
+            currency: 'USD',
             priceUsd: fallbackUsd,
             title: `Harga Rata-Rata ${conditionLabel} PriceCharting`,
           },
@@ -466,12 +526,13 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: false,
+      provider: 'pricecharting',
       error: 'Tidak ditemukan riwayat transaksi untuk kartu ini di PriceCharting.',
     });
   } catch (error) {
     console.error('PriceCharting route error:', error);
     return NextResponse.json(
-      { success: false, error: 'Terjadi kendala saat menghubungkan ke PriceCharting.' },
+      { success: false, error: 'Terjadi kendala saat menghubungkan ke penyedia harga.' },
       { status: 500 }
     );
   }

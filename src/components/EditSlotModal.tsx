@@ -165,9 +165,22 @@ export default function EditSlotModal({
   const [onePieceTotal, setOnePieceTotal] = useState(0);
   const [onePieceTotalPages, setOnePieceTotalPages] = useState(1);
 
-  // Price Reference State (5 Transaksi Terakhir dari PriceCharting)
+  // Card Language & Market Provider Routing (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia)
+  const [cardLanguage, setCardLanguage] = useState<'EN' | 'JP' | 'ID'>('EN');
+  const [priceProvider, setPriceProvider] = useState<'pricecharting' | 'snkrdunk' | 'pokepedia'>('pricecharting');
+
+  // Price Reference State (5 Transaksi Terakhir)
   const [priceTransactions, setPriceTransactions] = useState<
-    Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd?: number; title?: string }> | null
+    Array<{
+      date: string;
+      priceIdr: number;
+      priceFormatted: string;
+      priceOrig?: number;
+      priceOrigFormatted?: string;
+      currency?: string;
+      priceUsd?: number;
+      title?: string;
+    }> | null
   >(null);
   const [priceRefMeta, setPriceRefMeta] = useState<{
     id?: string;
@@ -214,11 +227,23 @@ export default function EditSlotModal({
 
   const handleSelectPokemonSource = (src: PokemonSubSource) => {
     setPokemonSource(src);
+    if (src === 'localid') {
+      setCardLanguage('ID');
+      setPriceProvider('pokepedia');
+    } else if (src === 'localjp') {
+      setCardLanguage('JP');
+      setPriceProvider('snkrdunk');
+    } else {
+      setCardLanguage('EN');
+      setPriceProvider('pricecharting');
+    }
     setIsExitingStep(null);
   };
 
   const handleSelectOnePieceLang = (lang: 'EN' | 'JP') => {
     setOnePieceLang(lang);
+    setCardLanguage(lang);
+    setPriceProvider(lang === 'JP' ? 'snkrdunk' : 'pricecharting');
     setOnePiecePage(1);
     setOnePieceSet('');
     setIsExitingStep(null);
@@ -226,6 +251,8 @@ export default function EditSlotModal({
 
   const handleSelectRiftboundLang = () => {
     setRiftboundLang('EN');
+    setCardLanguage('EN');
+    setPriceProvider('pricecharting');
     setIsExitingStep(null);
   };
 
@@ -269,6 +296,19 @@ export default function EditSlotModal({
       } else {
         setSelectedGame('pokemon');
       }
+
+      // Infer card language & market provider
+      const rawText = `${existingCard.name || ''} ${existingCard.setName || ''} ${existingCard.notes || ''}`;
+      if (/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(rawText) || (existingCard.notes && existingCard.notes.includes('[JP]'))) {
+        setCardLanguage('JP');
+        setPriceProvider('snkrdunk');
+      } else if (existingCard.notes && existingCard.notes.includes('[ID]')) {
+        setCardLanguage('ID');
+        setPriceProvider('pokepedia');
+      } else {
+        setCardLanguage('EN');
+        setPriceProvider('pricecharting');
+      }
     } else {
       setCardName('');
       setCardSet('');
@@ -280,6 +320,8 @@ export default function EditSlotModal({
       setStatus('AVAILABLE');
       setImageUrl('https://images.pokemontcg.io/sv3pt5/199_hires.png');
       setNotes('');
+      setCardLanguage('EN');
+      setPriceProvider('pricecharting');
     }
 
     setSelectedGame(null);
@@ -555,6 +597,8 @@ export default function EditSlotModal({
   // Handle picking card from TCGdex
   const handleSelectTcgdexCard = async (cardSummary: TcgdexCardSummary) => {
     resetPriceReference();
+    setCardLanguage('EN');
+    setPriceProvider('pricecharting');
     try {
       setTcgdexFetchingCard(true);
       const res = await fetch(`/api/tcgdex/card/${cardSummary.id}`);
@@ -593,6 +637,8 @@ export default function EditSlotModal({
   // Handle picking card from Local English Pokémon DB (20,600+ cards)
   const handleSelectLocalEnCard = async (cardSummary: LocalEnCardSummary) => {
     resetPriceReference();
+    setCardLanguage('EN');
+    setPriceProvider('pricecharting');
     try {
       setEnFetchingCard(true);
       const res = await fetch(`/api/localen/card/${cardSummary.id}`);
@@ -630,6 +676,8 @@ export default function EditSlotModal({
   // Handle picking from Indonesian local DB
   const handleSelectLocalIdCard = async (summary: LocalIdCardSummary) => {
     resetPriceReference();
+    setCardLanguage('ID');
+    setPriceProvider('pokepedia');
     try {
       setLocalIdSearching(true);
       const res = await fetch(`/api/localid/card/${summary.id}`);
@@ -660,6 +708,8 @@ export default function EditSlotModal({
   // Handle picking from Japanese local DB
   const handleSelectLocalJpCard = async (summary: LocalJpCardSummary) => {
     resetPriceReference();
+    setCardLanguage('JP');
+    setPriceProvider('snkrdunk');
     try {
       setLocalJpSearching(true);
       const res = await fetch(`/api/localjp/card/${summary.id}`);
@@ -690,6 +740,8 @@ export default function EditSlotModal({
   // Handle picking from Riftbound cards
   const handleSelectRiftboundCard = async (summary: RiftboundCardSummary) => {
     resetPriceReference();
+    setCardLanguage('EN');
+    setPriceProvider('pricecharting');
     try {
       setRiftboundSearching(true);
       const res = await fetch(`/api/riftbound/card/${encodeURIComponent(summary.id)}`);
@@ -728,6 +780,9 @@ export default function EditSlotModal({
   // Handle picking from One Piece cards
   const handleSelectOnePieceCard = async (summary: OnePieceCardSummary) => {
     resetPriceReference();
+    const isOpEn = summary.lang === 'EN';
+    setCardLanguage(isOpEn ? 'EN' : 'JP');
+    setPriceProvider(isOpEn ? 'pricecharting' : 'snkrdunk');
     try {
       setOnePieceSearching(true);
       const res = await fetch(`/api/onepiece/card/${encodeURIComponent(summary.id)}?lang=${summary.lang}`);
@@ -828,12 +883,71 @@ export default function EditSlotModal({
     }
   };
 
-  // Cari Harga Referensi (5 Transaksi Terakhir dari PriceCharting)
-  const handleSearchPriceReference = async () => {
+  const effectiveLanguage: 'EN' | 'JP' | 'ID' = (() => {
+    if (pokemonSource === 'localid') return 'ID';
+    if (pokemonSource === 'localjp') return 'JP';
+    if (pokemonSource === 'tcgdex') return 'EN';
+    if (onePieceLang === 'JP') return 'JP';
+    if (onePieceLang === 'EN') return 'EN';
+    if (riftboundLang === 'EN') return 'EN';
+    if (cardLanguage) return cardLanguage;
+    const rawCheck = `${cardName} ${cardSet} ${notes}`;
+    if (/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(rawCheck) || notes.includes('[JP]')) return 'JP';
+    if (notes.includes('[ID]')) return 'ID';
+    return 'EN';
+  })();
+
+  const activeProvider =
+    priceProvider && priceTransactions
+      ? priceProvider
+      : effectiveLanguage === 'JP'
+      ? 'snkrdunk'
+      : effectiveLanguage === 'ID'
+      ? 'pokepedia'
+      : 'pricecharting';
+
+  const providerLabel =
+    activeProvider === 'snkrdunk'
+      ? 'SNKRDUNK'
+      : activeProvider === 'pokepedia'
+      ? 'POKEPEDIA.ID'
+      : 'PRICECHARTING';
+
+  const providerBadgeColor =
+    activeProvider === 'snkrdunk'
+      ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
+      : activeProvider === 'pokepedia'
+      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+      : 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+
+  const providerSearchBtnClass =
+    activeProvider === 'snkrdunk'
+      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 shadow-md hover:shadow-cyan-500/20'
+      : activeProvider === 'pokepedia'
+      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-md hover:shadow-emerald-500/20'
+      : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-md hover:shadow-amber-500/20';
+
+  const providerSearchBtnText = loadingPriceRef
+    ? `Mencari di ${activeProvider === 'snkrdunk' ? 'SNKRDUNK' : activeProvider === 'pokepedia' ? 'Pokepedia' : 'PriceCharting'}...`
+    : priceTransactions
+    ? `Cari Ulang di ${activeProvider === 'snkrdunk' ? 'SNKRDUNK' : activeProvider === 'pokepedia' ? 'Pokepedia' : 'PriceCharting'}`
+    : `Cari di ${activeProvider === 'snkrdunk' ? 'SNKRDUNK' : activeProvider === 'pokepedia' ? 'Pokepedia' : 'PriceCharting'}`;
+
+  const providerEmptyHint =
+    activeProvider === 'snkrdunk'
+      ? 'Tekan tombol di atas untuk melihat 5 listing harga jual pasar Jepang dari SNKRDUNK.'
+      : activeProvider === 'pokepedia'
+      ? 'Tekan tombol di atas untuk melihat 5 referensi harga pasar Indonesia dari Pokepedia.id.'
+      : 'Tekan tombol di atas untuk melihat 5 transaksi tanggal & harga jual terakhir dari PriceCharting.';
+
+  // Cari Harga Referensi (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia)
+  const handleSearchPriceReference = async (overrideLang?: 'EN' | 'JP' | 'ID') => {
     if (!cardName.trim()) {
       setPriceRefError('Pilih kartu terlebih dahulu atau isi nama kartu di kolom detail.');
       return;
     }
+
+    const targetLang = overrideLang || effectiveLanguage;
 
     setLoadingPriceRef(true);
     setPriceRefError(null);
@@ -846,6 +960,7 @@ export default function EditSlotModal({
         set: cardSet.trim(),
         condition: condition,
         game: effectiveGame,
+        lang: targetLang,
       });
 
       const res = await fetch(`/api/pricecharting?${params.toString()}`);
@@ -855,15 +970,31 @@ export default function EditSlotModal({
         setPriceTransactions(data.transactions);
         setPriceRefMeta(data.product || null);
         setPriceRefCondition(data.conditionApplied || null);
+        setPriceProvider(
+          data.provider ||
+            (targetLang === 'JP' ? 'snkrdunk' : targetLang === 'ID' ? 'pokepedia' : 'pricecharting')
+        );
         if (data.exchangeRate) {
           setPriceExchangeRate(data.exchangeRate);
         }
       } else {
-        setPriceRefError(data.error || 'Data harga tidak ditemukan di PriceCharting.');
+        const prov =
+          data.provider === 'snkrdunk'
+            ? 'SNKRDUNK'
+            : data.provider === 'pokepedia'
+            ? 'Pokepedia.id'
+            : 'PriceCharting';
+        setPriceRefError(data.error || `Data harga tidak ditemukan di ${prov}.`);
       }
     } catch (err) {
       console.error('Error fetching price reference:', err);
-      setPriceRefError('Gagal memuat harga referensi dari PriceCharting.');
+      const prov =
+        targetLang === 'JP'
+          ? 'SNKRDUNK'
+          : targetLang === 'ID'
+          ? 'Pokepedia'
+          : 'PriceCharting';
+      setPriceRefError(`Gagal memuat harga referensi dari ${prov}.`);
     } finally {
       setLoadingPriceRef(false);
     }
@@ -1019,35 +1150,99 @@ export default function EditSlotModal({
                   </div>
                 </div>
 
-                {/* 5 Transaksi Terakhir (PriceCharting) Table */}
+                {/* 5 Transaksi Terakhir Table */}
                 <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-4 sm:p-5 flex flex-col gap-3 shadow-inner">
                   {/* Header */}
                   <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                     <span className="font-extrabold text-slate-300 text-xs flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+                      <TrendingUp className={`w-3.5 h-3.5 ${
+                        activeProvider === 'snkrdunk'
+                          ? 'text-cyan-400'
+                          : activeProvider === 'pokepedia'
+                          ? 'text-emerald-400'
+                          : 'text-amber-400'
+                      }`} />
                       5 Transaksi Terakhir
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] font-black tracking-wider uppercase">
-                      PriceCharting
+                    <span className={`px-2 py-0.5 rounded-full border text-[10px] font-black tracking-wider uppercase ${providerBadgeColor}`}>
+                      {providerLabel}
                     </span>
+                  </div>
+
+                  {/* Provider / Language Quick Switch Pills */}
+                  <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCardLanguage('EN');
+                        setPriceProvider('pricecharting');
+                        setPriceTransactions(null);
+                        setPriceRefError(null);
+                        setPriceRefMeta(null);
+                      }}
+                      className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
+                        effectiveLanguage === 'EN'
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                      title="Pencarian harga pasar kartu Bahasa Inggris via PriceCharting.com"
+                    >
+                      EN • PriceCharting
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCardLanguage('JP');
+                        setPriceProvider('snkrdunk');
+                        setPriceTransactions(null);
+                        setPriceRefError(null);
+                        setPriceRefMeta(null);
+                      }}
+                      className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
+                        effectiveLanguage === 'JP'
+                          ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                      title="Pencarian harga pasar kartu Bahasa Jepang via SNKRDUNK.com"
+                    >
+                      JP • SNKRDUNK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCardLanguage('ID');
+                        setPriceProvider('pokepedia');
+                        setPriceTransactions(null);
+                        setPriceRefError(null);
+                        setPriceRefMeta(null);
+                      }}
+                      className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
+                        effectiveLanguage === 'ID'
+                          ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                      title="Pencarian harga pasar kartu Bahasa Indonesia via Pokepedia.id"
+                    >
+                      ID • Pokepedia
+                    </button>
                   </div>
 
                   {/* Tombol Cari Harga Referensi */}
                   <button
                     type="button"
-                    onClick={handleSearchPriceReference}
+                    onClick={() => handleSearchPriceReference()}
                     disabled={loadingPriceRef}
-                    className="w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-md hover:shadow-amber-500/20 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed ${providerSearchBtnClass}`}
                   >
                     {loadingPriceRef ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Mencari di PriceCharting...</span>
+                        <span>{providerSearchBtnText}</span>
                       </>
                     ) : (
                       <>
                         <Search className="w-3.5 h-3.5" />
-                        <span>{priceTransactions ? 'Cari Ulang Referensi Harga' : 'Cari Harga Referensi'}</span>
+                        <span>{providerSearchBtnText}</span>
                       </>
                     )}
                   </button>
@@ -1071,19 +1266,33 @@ export default function EditSlotModal({
                             href={priceRefMeta.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-amber-400 hover:text-amber-300 text-[10px] font-bold flex items-center gap-1 shrink-0 underline transition-colors"
+                            className={`text-[10px] font-bold flex items-center gap-1 shrink-0 underline transition-colors ${
+                              activeProvider === 'snkrdunk'
+                                ? 'text-cyan-400 hover:text-cyan-300'
+                                : activeProvider === 'pokepedia'
+                                ? 'text-emerald-400 hover:text-emerald-300'
+                                : 'text-amber-400 hover:text-amber-300'
+                            }`}
                             onClick={(e) => e.stopPropagation()}
-                            title="Buka halaman resmi kartu ini di PriceCharting (tab baru)"
+                            title={`Buka di ${providerLabel} (tab baru)`}
                           >
-                            <span>PriceCharting</span>
+                            <span>{providerLabel}</span>
                             <ExternalLink className="w-2.5 h-2.5" />
                           </a>
                         )}
                       </div>
                       <div className="text-[10px] text-slate-400 truncate flex items-center justify-between">
-                        <span>{priceRefMeta.consoleName || 'PriceCharting Data'}</span>
+                        <span>{priceRefMeta.consoleName || `${providerLabel} Data`}</span>
                         {priceRefCondition && (
-                          <span className="text-amber-400 font-semibold">{priceRefCondition}</span>
+                          <span className={`font-semibold ${
+                            activeProvider === 'snkrdunk'
+                              ? 'text-cyan-400'
+                              : activeProvider === 'pokepedia'
+                              ? 'text-emerald-400'
+                              : 'text-amber-400'
+                          }`}>
+                            {priceRefCondition}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1095,7 +1304,7 @@ export default function EditSlotModal({
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-slate-800 bg-slate-950/90 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th className="py-2.5 px-3">Tanggal</th>
+                            <th className="py-2.5 px-3">Tanggal / Tipe</th>
                             <th className="py-2.5 px-3 text-right">Harga Terakhir Terjual</th>
                           </tr>
                         </thead>
@@ -1104,7 +1313,7 @@ export default function EditSlotModal({
                             <tr
                               key={idx}
                               onClick={() => handleApplyPrice(tx.priceIdr, idx)}
-                              className={`transition-colors cursor-pointer group hover:bg-amber-500/10 ${
+                              className={`transition-colors cursor-pointer group hover:bg-slate-800/60 ${
                                 appliedTxIndex === idx ? 'bg-amber-500/20 text-amber-300' : 'text-slate-200'
                               }`}
                               title={
@@ -1115,21 +1324,37 @@ export default function EditSlotModal({
                             >
                               <td className="py-2.5 px-3 text-slate-400 group-hover:text-slate-200 font-medium whitespace-nowrap">
                                 <span className="flex items-center gap-1.5">
-                                  <Clock className="w-3 h-3 text-slate-500 group-hover:text-amber-400" />
+                                  <Clock className={`w-3 h-3 ${
+                                    activeProvider === 'snkrdunk'
+                                      ? 'text-cyan-500 group-hover:text-cyan-400'
+                                      : activeProvider === 'pokepedia'
+                                      ? 'text-emerald-500 group-hover:text-emerald-400'
+                                      : 'text-slate-500 group-hover:text-amber-400'
+                                  }`} />
                                   {tx.date}
                                 </span>
                               </td>
                               <td className="py-2.5 px-3 text-right font-bold whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
                                   <div className="flex flex-col items-end">
-                                    <span className="text-amber-400 font-black">
+                                    <span className={`font-black ${
+                                      activeProvider === 'snkrdunk'
+                                        ? 'text-cyan-400'
+                                        : activeProvider === 'pokepedia'
+                                        ? 'text-emerald-400'
+                                        : 'text-amber-400'
+                                    }`}>
                                       {tx.priceFormatted}
                                     </span>
-                                    {typeof tx.priceUsd === 'number' && (
+                                    {tx.priceOrigFormatted ? (
+                                      <span className="text-[10px] text-slate-400 font-normal">
+                                        ({tx.priceOrigFormatted})
+                                      </span>
+                                    ) : typeof tx.priceUsd === 'number' ? (
                                       <span className="text-[10px] text-slate-400 font-normal">
                                         (${tx.priceUsd.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})
                                       </span>
-                                    )}
+                                    ) : null}
                                   </div>
                                   {appliedTxIndex === idx ? (
                                     <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">
@@ -1150,10 +1375,25 @@ export default function EditSlotModal({
                         <span className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           <span>
-                            Kurs Google Finance:{' '}
-                            <strong className="text-emerald-400 font-bold">
-                              $1 = Rp {priceExchangeRate?.formattedRate || '18.109'}
-                            </strong>
+                            {activeProvider === 'snkrdunk' ? (
+                              <>
+                                Kurs Google Finance:{' '}
+                                <strong className="text-cyan-400 font-bold">
+                                  1 JPY = Rp {priceExchangeRate?.formattedRate || '114.4'}
+                                </strong>
+                              </>
+                            ) : activeProvider === 'pokepedia' ? (
+                              <strong className="text-emerald-400 font-bold">
+                                Mata Uang Langsung IDR (Pokepedia)
+                              </strong>
+                            ) : (
+                              <>
+                                Kurs Google Finance:{' '}
+                                <strong className="text-emerald-400 font-bold">
+                                  $1 = Rp {priceExchangeRate?.formattedRate || '18.109'}
+                                </strong>
+                              </>
+                            )}
                           </span>
                         </span>
                         <span className="text-amber-400/90 font-medium">Klik baris untuk pasang harga</span>
@@ -1163,7 +1403,7 @@ export default function EditSlotModal({
 
                   {!priceTransactions && !loadingPriceRef && !priceRefError && (
                     <p className="text-[11px] text-slate-400 text-center leading-relaxed py-1">
-                      Tekan tombol di atas untuk melihat 5 transaksi tanggal & harga jual terakhir dari PriceCharting.
+                      {providerEmptyHint}
                     </p>
                   )}
                 </div>
