@@ -23,6 +23,7 @@ import {
   Sparkle,
   ArrowLeft,
   RotateCcw,
+  ExternalLink,
 } from 'lucide-react';
 import { CardCondition, CardStatus, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
@@ -166,12 +167,13 @@ export default function EditSlotModal({
 
   // Price Reference State (5 Transaksi Terakhir dari PriceCharting)
   const [priceTransactions, setPriceTransactions] = useState<
-    Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd?: number }> | null
+    Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd?: number; title?: string }> | null
   >(null);
   const [priceRefMeta, setPriceRefMeta] = useState<{
     id?: string;
     name?: string;
     consoleName?: string;
+    url?: string;
   } | null>(null);
   const [priceRefCondition, setPriceRefCondition] = useState<string | null>(null);
   const [loadingPriceRef, setLoadingPriceRef] = useState(false);
@@ -1049,9 +1051,24 @@ export default function EditSlotModal({
 
                   {/* Matched Product info if available */}
                   {priceRefMeta && (
-                    <div className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] flex flex-col gap-0.5">
-                      <div className="text-slate-200 font-bold truncate" title={priceRefMeta.name}>
-                        {priceRefMeta.name}
+                    <div className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-slate-200 font-bold truncate" title={priceRefMeta.name}>
+                          {priceRefMeta.name}
+                        </span>
+                        {priceRefMeta.url && (
+                          <a
+                            href={priceRefMeta.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-amber-400 hover:text-amber-300 text-[10px] font-bold flex items-center gap-1 shrink-0 underline transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Buka halaman resmi kartu ini di PriceCharting (tab baru)"
+                          >
+                            <span>PriceCharting</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400 truncate flex items-center justify-between">
                         <span>{priceRefMeta.consoleName || 'PriceCharting Data'}</span>
@@ -1080,7 +1097,11 @@ export default function EditSlotModal({
                               className={`transition-colors cursor-pointer group hover:bg-amber-500/10 ${
                                 appliedTxIndex === idx ? 'bg-amber-500/20 text-amber-300' : 'text-slate-200'
                               }`}
-                              title="Klik baris ini untuk menggunakan harga sebagai Harga Jual"
+                              title={
+                                tx.title
+                                  ? `${tx.title}\n• Klik baris ini untuk menerapkan harga ke kolom Harga Jual`
+                                  : 'Klik baris ini untuk menerapkan harga ke kolom Harga Jual'
+                              }
                             >
                               <td className="py-2.5 px-3 text-slate-400 group-hover:text-slate-200 font-medium whitespace-nowrap">
                                 <span className="flex items-center gap-1.5">
@@ -1090,9 +1111,16 @@ export default function EditSlotModal({
                               </td>
                               <td className="py-2.5 px-3 text-right font-bold whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
-                                  <span className="text-amber-400 font-black">
-                                    {tx.priceFormatted}
-                                  </span>
+                                  <div className="flex flex-col items-end">
+                                    <span className="text-amber-400 font-black">
+                                      {tx.priceFormatted}
+                                    </span>
+                                    {typeof tx.priceUsd === 'number' && (
+                                      <span className="text-[10px] text-slate-400 font-normal">
+                                        (${tx.priceUsd.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})
+                                      </span>
+                                    )}
+                                  </div>
                                   {appliedTxIndex === idx ? (
                                     <span className="text-[10px] font-black text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">
                                       ✓ Digunakan
@@ -1108,6 +1136,10 @@ export default function EditSlotModal({
                           ))}
                         </tbody>
                       </table>
+                      <div className="px-3 py-1.5 bg-slate-950/70 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                        <span>Kurs: $1 = Rp 16.200</span>
+                        <span className="text-amber-400/90 font-medium">Klik baris untuk pasang harga</span>
+                      </div>
                     </div>
                   )}
 

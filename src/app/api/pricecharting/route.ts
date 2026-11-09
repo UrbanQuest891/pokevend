@@ -1,23 +1,32 @@
 import { NextResponse } from 'next/server';
+import * as cheerio from 'cheerio';
 
 const USD_TO_IDR_RATE = 16200;
 
-function parseUsd(priceStr?: string | null): number {
-  if (!priceStr) return 0;
-  const num = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
-  return isNaN(num) ? 0 : num;
-}
-
-function formatDateIndo(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const d = date.getDate().toString().padStart(2, '0');
-  const m = months[date.getMonth()];
-  const y = date.getFullYear();
-  return `${d} ${m} ${y}`;
-}
-
 function formatRupiah(num: number): string {
   return 'Rp ' + Math.round(num).toLocaleString('id-ID');
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/['"]/g, '')
+    .replace(/[^a-z0-9&]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function parseDateStr(rawDate: string): string {
+  const parts = rawDate.split('-');
+  if (parts.length === 3) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const y = parts[0];
+    const mIdx = parseInt(parts[1], 10) - 1;
+    const d = parts[2].padStart(2, '0');
+    if (mIdx >= 0 && mIdx < 12) {
+      return `${d} ${months[mIdx]} ${y}`;
+    }
+  }
+  return rawDate;
 }
 
 interface PriceChartingProduct {
@@ -26,8 +35,8 @@ interface PriceChartingProduct {
   consoleName: string;
   consoleUid?: string;
   imageUri?: string;
-  price1?: string; // Ungraded / Loose
-  price2?: string; // Graded PSA 10
+  price1?: string; // Ungraded
+  price2?: string; // PSA 10
   price3?: string; // Grade 9
 }
 
@@ -50,7 +59,6 @@ function matchBestProduct(
     const pName = (p.productName || '').toLowerCase();
     const pConsole = (p.consoleName || '').toLowerCase();
 
-    // High score for exact number match
     if (cleanNum) {
       if (
         pName.includes('#' + cleanNum) ||
@@ -62,7 +70,6 @@ function matchBestProduct(
       }
     }
 
-    // Name token match
     const nameTokens = cleanName.split(/\s+/).filter((t) => t.length > 1);
     let matchedTokens = 0;
     for (const t of nameTokens) {
@@ -72,7 +79,6 @@ function matchBestProduct(
       score += (matchedTokens / nameTokens.length) * 35;
     }
 
-    // Set token match
     if (cleanSet) {
       const setTokens = cleanSet.split(/\s+/).filter((t) => t.length > 2);
       for (const st of setTokens) {
@@ -87,6 +93,95 @@ function matchBestProduct(
 
   scored.sort((a, b) => b.score - a.score);
   return scored[0]?.product || null;
+}
+
+async function fetchRealSalesFromPriceCharting(
+  consoleName: string,
+  productName: string,
+  condition: string
+): Promise<Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd: number; title?: string }> | null> {
+  try {
+    const cSlug = slugify(consoleName);
+    const pSlug = slugify(productName);
+    const targetUrl = `https://www.pricecharting.com/game/${cSlug}/${pSlug}`;
+
+    // Read full rendered HTML via Jina Reader to get the exact completed auctions table
+    const jinaUrl = `https://r.jina.ai/${targetUrl}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    const res = await fetch(jinaUrl, {
+      headers: {
+        'X-Return-Format': 'html',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    // Determine target container based on condition
+    let selector = '.completed-auctions-used';
+    const condLower = (condition || '').toLowerCase();
+    if (
+      condLower.includes('psa 10') ||
+      condLower.includes('cgc 10') ||
+      condLower.includes('bgs 10')
+    ) {
+      selector = '.completed-auctions-manual-only';
+    } else if (
+      condLower.includes('psa 9') ||
+      condLower.includes('grade 9') ||
+      condLower.includes('bgs 9')
+    ) {
+      selector = '.completed-auctions-graded';
+    } else if (condLower.includes('grade 8')) {
+      selector = '.completed-auctions-box-only';
+    } else if (condLower.includes('grade 7')) {
+      selector = '.completed-auctions-cib';
+    }
+
+    const parseSales = (sel: string) => {
+      const list: Array<{ date: string; priceIdr: number; priceFormatted: string; priceUsd: number; title?: string }> = [];
+      $(`${sel} table tbody tr`).each((_, el) => {
+        if (list.length >= 5) return false;
+        const rawDate = $(el).find('td.date').text().trim();
+        const rawTitle = $(el).find('td.title').text().trim().replace(/\[eBay\]/g, '').trim();
+        const rawPrice = $(el).find('td.numeric .js-price').first().text().trim();
+
+        const match = rawPrice.match(/\$\s*([0-9,]+(?:\.[0-9]{1,2})?)/);
+        if (rawDate && match) {
+          const usd = parseFloat(match[1].replace(/,/g, ''));
+          const idr = Math.round(usd * USD_TO_IDR_RATE);
+          list.push({
+            date: parseDateStr(rawDate),
+            priceIdr: idr,
+            priceFormatted: formatRupiah(idr),
+            priceUsd: usd,
+            title: rawTitle || undefined,
+          });
+        }
+      });
+      return list;
+    };
+
+    let sales = parseSales(selector);
+    if (sales.length === 0 && selector !== '.completed-auctions-used') {
+      sales = parseSales('.completed-auctions-used');
+    }
+    if (sales.length === 0) {
+      sales = parseSales('.completed-auctions-manual-only');
+    }
+
+    return sales.length > 0 ? sales : null;
+  } catch (err) {
+    console.warn('Real sales fetch from PriceCharting failed:', err);
+    return null;
+  }
 }
 
 export async function GET(req: Request) {
@@ -126,7 +221,7 @@ export async function GET(req: Request) {
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
               Accept: 'application/json',
             },
-            next: { revalidate: 3600 }, // Cache 1 hour
+            next: { revalidate: 3600 },
           }
         );
 
@@ -152,79 +247,84 @@ export async function GET(req: Request) {
       });
     }
 
-    // Determine condition tier
+    // Determine condition label
     const condLower = (condition || '').toLowerCase();
-    let targetUsdStr = matchedProduct.price1; // default loose / ungraded
     let conditionLabel = 'Ungraded / Raw';
-
-    if (
-      condLower.includes('psa 10') ||
-      condLower.includes('bgs 10') ||
-      condLower.includes('cgc 10')
-    ) {
-      targetUsdStr = matchedProduct.price2 || matchedProduct.price3 || matchedProduct.price1;
+    if (condLower.includes('psa 10') || condLower.includes('cgc 10') || condLower.includes('bgs 10')) {
       conditionLabel = 'Graded PSA 10';
-    } else if (
-      condLower.includes('psa 9') ||
-      condLower.includes('bgs 9') ||
-      condLower.includes('grade 9') ||
-      condLower.includes('graded')
-    ) {
-      targetUsdStr = matchedProduct.price3 || matchedProduct.price1;
+    } else if (condLower.includes('psa 9') || condLower.includes('grade 9') || condLower.includes('bgs 9')) {
       conditionLabel = 'Graded 9';
+    } else if (condLower.includes('grade 8')) {
+      conditionLabel = 'Graded 8';
+    } else if (condLower.includes('grade 7')) {
+      conditionLabel = 'Graded 7';
     } else if (condLower.includes('lp')) {
       conditionLabel = 'Raw - Lightly Played (LP)';
-    } else if (condLower.includes('mp') || condLower.includes('hp')) {
-      conditionLabel = 'Raw - Played';
     }
 
-    let baseUsd = parseUsd(targetUsdStr);
-    if (baseUsd <= 0) {
-      baseUsd =
-        parseUsd(matchedProduct.price1) ||
-        parseUsd(matchedProduct.price3) ||
-        parseUsd(matchedProduct.price2) ||
-        15;
+    const cSlug = slugify(matchedProduct.consoleName);
+    const pSlug = slugify(matchedProduct.productName);
+    const productUrl = `https://www.pricecharting.com/game/${cSlug}/${pSlug}`;
+
+    // Fetch REAL historical completed sales directly from the PriceCharting product page
+    const realTransactions = await fetchRealSalesFromPriceCharting(
+      matchedProduct.consoleName,
+      matchedProduct.productName,
+      condition
+    );
+
+    if (realTransactions && realTransactions.length > 0) {
+      return NextResponse.json({
+        success: true,
+        product: {
+          id: matchedProduct.id,
+          name: matchedProduct.productName,
+          consoleName: matchedProduct.consoleName,
+          imageUri: matchedProduct.imageUri,
+          url: productUrl,
+        },
+        conditionApplied: conditionLabel,
+        transactions: realTransactions,
+      });
     }
 
-    // Adjust for wear if raw
-    if (condLower.includes('lp')) baseUsd *= 0.85;
-    if (condLower.includes('mp')) baseUsd *= 0.7;
-    if (condLower.includes('hp') || condLower.includes('damage')) baseUsd *= 0.5;
+    // If real transaction list is not available on page, use official aggregate benchmark price
+    let fallbackUsd = 0;
+    if (conditionLabel === 'Graded PSA 10') {
+      fallbackUsd = parseFloat((matchedProduct.price2 || '').replace(/[^0-9.]/g, '')) || 0;
+    } else if (conditionLabel === 'Graded 9') {
+      fallbackUsd = parseFloat((matchedProduct.price3 || '').replace(/[^0-9.]/g, '')) || 0;
+    } else {
+      fallbackUsd = parseFloat((matchedProduct.price1 || '').replace(/[^0-9.]/g, '')) || 0;
+    }
 
-    const baseIdr = baseUsd * USD_TO_IDR_RATE;
-
-    // Generate exactly 5 recent transactions with realistic transaction comp dates
-    const dayOffsets = [1, 4, 8, 14, 21];
-    const multipliers = [1.0, 1.025, 0.985, 1.012, 0.97];
-    const now = new Date();
-
-    const transactions = dayOffsets.map((days, idx) => {
-      const saleDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-      const mult = multipliers[idx];
-      const saleUsd = Math.round(baseUsd * mult * 100) / 100;
-      const rawIdr = baseIdr * mult;
-      // Round IDR to nearest 5.000
-      const saleIdr = Math.max(5000, Math.round(rawIdr / 5000) * 5000);
-
-      return {
-        date: formatDateIndo(saleDate),
-        priceIdr: saleIdr,
-        priceFormatted: formatRupiah(saleIdr),
-        priceUsd: saleUsd,
-      };
-    });
+    if (fallbackUsd > 0) {
+      const fallbackIdr = Math.round(fallbackUsd * USD_TO_IDR_RATE);
+      return NextResponse.json({
+        success: true,
+        product: {
+          id: matchedProduct.id,
+          name: matchedProduct.productName,
+          consoleName: matchedProduct.consoleName,
+          imageUri: matchedProduct.imageUri,
+          url: productUrl,
+        },
+        conditionApplied: conditionLabel,
+        transactions: [
+          {
+            date: 'Benchmark Pasar',
+            priceIdr: fallbackIdr,
+            priceFormatted: formatRupiah(fallbackIdr),
+            priceUsd: fallbackUsd,
+            title: `Harga Rata-Rata ${conditionLabel} PriceCharting`,
+          },
+        ],
+      });
+    }
 
     return NextResponse.json({
-      success: true,
-      product: {
-        id: matchedProduct.id,
-        name: matchedProduct.productName,
-        consoleName: matchedProduct.consoleName,
-        imageUri: matchedProduct.imageUri,
-      },
-      conditionApplied: conditionLabel,
-      transactions,
+      success: false,
+      error: 'Tidak ditemukan riwayat transaksi untuk kartu ini di PriceCharting.',
     });
   } catch (error) {
     console.error('PriceCharting route error:', error);
