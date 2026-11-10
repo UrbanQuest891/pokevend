@@ -353,14 +353,7 @@ async function fetchRealSalesFromPriceCharting(
       return list;
     };
 
-    let sales = parseSales(selector);
-    if (sales.length === 0 && selector !== '.completed-auctions-used') {
-      sales = parseSales('.completed-auctions-used');
-    }
-    if (sales.length === 0) {
-      sales = parseSales('.completed-auctions-manual-only');
-    }
-
+    const sales = parseSales(selector);
     return sales.length > 0 ? sales : null;
   } catch (err) {
     console.warn('Real sales fetch from PriceCharting failed:', err);
@@ -418,7 +411,8 @@ export async function GET(req: Request) {
       return NextResponse.json({
         success: false,
         provider: 'snkrdunk',
-        error: `Kartu "${cardName}" tidak ditemukan di SNKRDUNK. Pastikan nomor/kode kartu sesuai dengan edisi Jepang.`,
+        transactions: [],
+        error: 'Data penjualan tidak ditemukan',
       });
     }
 
@@ -433,7 +427,8 @@ export async function GET(req: Request) {
       return NextResponse.json({
         success: false,
         provider: 'pokepedia',
-        error: `Kartu "${cardName}" tidak ditemukan di Pokepedia.id.`,
+        transactions: [],
+        error: 'Data penjualan tidak ditemukan',
       });
     }
 
@@ -478,7 +473,8 @@ export async function GET(req: Request) {
       return NextResponse.json({
         success: false,
         provider: 'pricecharting',
-        error: `Kartu "${cardName}" tidak ditemukan di PriceCharting. Coba periksa nama atau nomor kartu.`,
+        transactions: [],
+        error: 'Data penjualan tidak ditemukan',
       });
     }
 
@@ -569,9 +565,19 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({
-      success: false,
+      success: true,
       provider: 'pricecharting',
-      error: 'Tidak ditemukan riwayat transaksi untuk kartu ini di PriceCharting.',
+      product: {
+        id: matchedProduct.id,
+        name: matchedProduct.productName,
+        consoleName: matchedProduct.consoleName,
+        imageUri: matchedProduct.imageUri,
+        url: productUrl,
+      },
+      conditionApplied: conditionLabel,
+      exchangeRate: exchangeInfo,
+      transactions: [],
+      error: 'Data penjualan tidak ditemukan',
     });
   } catch (error) {
     console.error('PriceCharting route error:', error);

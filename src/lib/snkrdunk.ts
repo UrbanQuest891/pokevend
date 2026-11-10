@@ -571,7 +571,7 @@ export async function fetchSnkrdunkPrices(
             const matchingTrades = (fallbackJson.trades || []).filter(
               (t: any) => t.title === mappedCondition.label
             );
-            trades = matchingTrades.length > 0 ? matchingTrades : (fallbackJson.trades || []).slice(0, 5);
+            trades = matchingTrades;
           }
         } catch (err) {}
       }
@@ -612,10 +612,6 @@ export async function fetchSnkrdunkPrices(
         quantity: '1枚',
         conditionLabel: mappedCondition.label,
       });
-    }
-
-    if (transactions.length === 0) {
-      return null;
     }
 
     return {

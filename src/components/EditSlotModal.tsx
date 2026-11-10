@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   RotateCcw,
   ExternalLink,
+  AlertCircle,
 } from 'lucide-react';
 import { CardCondition, CardStatus, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
@@ -1081,6 +1082,7 @@ export default function EditSlotModal({
 
     setLoadingPriceRef(true);
     setPriceRefError(null);
+    setPriceTransactions(null);
     setAppliedTxIndex(null);
 
     try {
@@ -1116,26 +1118,30 @@ export default function EditSlotModal({
           setPriceExchangeRate(data.exchangeRate);
         }
       } else {
-        const prov =
-          data.provider === 'snkrdunk'
-            ? 'SNKRDUNK'
-            : data.provider === 'pokepedia'
-            ? 'Pokepedia.id'
-            : 'PriceCharting';
-        setPriceRefError(data.error || `Data harga tidak ditemukan di ${prov}.`);
+        if (data.product) {
+          setPriceRefMeta(data.product);
+          setPriceRefCondition(data.conditionApplied || null);
+        } else {
+          setPriceRefMeta(null);
+          setPriceRefCondition(null);
+        }
         if (data.candidates) {
           setPriceCandidates(data.candidates);
         }
+        setPriceProvider(
+          data.provider ||
+            (targetLang === 'JP' ? 'snkrdunk' : targetLang === 'ID' ? 'pokepedia' : 'pricecharting')
+        );
+        if (data.exchangeRate) {
+          setPriceExchangeRate(data.exchangeRate);
+        }
+        setPriceTransactions([]);
+        setPriceRefError(data.error || 'Data penjualan tidak ditemukan');
       }
     } catch (err) {
       console.error('Error fetching price reference:', err);
-      const prov =
-        targetLang === 'JP'
-          ? 'SNKRDUNK'
-          : targetLang === 'ID'
-          ? 'Pokepedia'
-          : 'PriceCharting';
-      setPriceRefError(`Gagal memuat harga referensi dari ${prov}.`);
+      setPriceTransactions([]);
+      setPriceRefError('Data penjualan tidak ditemukan');
     } finally {
       setLoadingPriceRef(false);
     }
@@ -1411,7 +1417,7 @@ export default function EditSlotModal({
                   </button>
 
                   {/* Error Message */}
-                  {priceRefError && (
+                  {priceRefError && priceTransactions === null && (
                     <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-[11px] text-red-300 text-center leading-relaxed">
                       {priceRefError}
                     </div>
@@ -1653,6 +1659,34 @@ export default function EditSlotModal({
                         </span>
                         <span className="text-amber-400/90 font-medium">Klik baris untuk pasang harga</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Empty state: data penjualan tidak ditemukan */}
+                  {priceTransactions && priceTransactions.length === 0 && !loadingPriceRef && (
+                    <div className="w-full py-6 px-4 rounded-xl border border-slate-800 bg-slate-900/90 text-center flex flex-col items-center justify-center gap-1.5 shadow-sm">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-0.5">
+                        <AlertCircle className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-amber-400">
+                        data penjualan tidak ditemukan
+                      </span>
+                      <span className="text-[11px] text-slate-400 max-w-[280px] leading-relaxed">
+                        {priceRefCondition
+                          ? `Tidak ditemukan riwayat transaksi penjualan untuk kondisi "${priceRefCondition}" di ${providerLabel}.`
+                          : `Tidak ditemukan riwayat transaksi penjualan untuk kartu ini di ${providerLabel}.`}
+                      </span>
+                      {priceRefMeta?.url && (
+                        <a
+                          href={priceRefMeta.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 text-[10px] text-cyan-400 hover:text-cyan-300 underline flex items-center gap-1 font-semibold"
+                        >
+                          <span>Lihat halaman resmi {providerLabel}</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
                     </div>
                   )}
 
