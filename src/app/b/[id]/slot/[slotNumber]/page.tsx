@@ -2,6 +2,7 @@ import React from 'react';
 import { getSlotCard } from '@/lib/storage';
 import { formatCurrency } from '@/lib/qr';
 import { formatCardImageUrl } from '@/lib/imageHelper';
+import { formatCardDisplayName, translateCardSet } from '@/lib/cardTranslator';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -48,9 +49,11 @@ export default async function SlotDetailPage(props: SlotPageProps) {
   const pageNumber = Math.ceil(slotNum / pocketsPerPage);
 
   const cleanPhone = (binder.contactNumber || '081234567890').replace(/[^0-9]/g, '');
+  const displayName = card ? formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game) : '';
+  const displaySet = card ? translateCardSet(card.setName, card.cardNumber, card.game) : '';
   const waText = card
     ? encodeURIComponent(
-        `Halo ${binder.sellerName}! Saya tertarik membeli kartu [Slot #${slotNum}] ${card.name} (${formatCurrency(
+        `Halo ${binder.sellerName}! Saya tertarik membeli kartu [Slot #${slotNum}] ${displayName} (${formatCurrency(
           card.price,
           binder.currency
         )}) di ${binder.name}. Apakah masih ready?`
@@ -158,9 +161,9 @@ export default async function SlotDetailPage(props: SlotPageProps) {
             {/* Card Metadata Box */}
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 space-y-3">
               <div>
-                <h2 className="text-lg font-black text-white">{card.name}</h2>
+                <h2 className="text-lg font-black text-white">{displayName}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {card.setName} {card.cardNumber ? `• #${card.cardNumber}` : ''}
+                  {displaySet} {card.cardNumber ? `• #${card.cardNumber}` : ''}
                 </p>
               </div>
 
@@ -191,7 +194,7 @@ export default async function SlotDetailPage(props: SlotPageProps) {
                     Tertarik dengan kartu ini? Katakan kepada penjual:
                   </p>
                   <div className="p-2.5 bg-emerald-500/20 rounded-xl font-extrabold text-sm text-emerald-200">
-                    "Saya mau ambil Slot #{slotNum} ({card.name})"
+                    "Saya mau ambil Slot #{slotNum} ({displayName})"
                   </div>
                 </div>
               ) : (

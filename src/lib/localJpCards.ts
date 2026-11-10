@@ -8,6 +8,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { formatCardDisplayName, translateCardSet } from './cardTranslator';
 
 export interface LocalJpCard {
   id: string;
@@ -263,7 +264,9 @@ export function searchLocalJpCards(
 
   const matched = cards.filter((c) => {
     const nameLower = c.name.toLowerCase();
+    const transName = formatCardDisplayName(c.name, c.collectorNumber, c.expansion, 'pokemon').toLowerCase();
     const expLower = c.expansion.toLowerCase();
+    const transSet = translateCardSet(c.expansion, c.collectorNumber, 'pokemon').toLowerCase();
     const numLower = c.collectorNumber.toLowerCase();
     const speciesLower = c.species.toLowerCase();
     const pokeNumLower = c.pokedexNumber.toLowerCase();
@@ -273,7 +276,9 @@ export function searchLocalJpCards(
     // Direct matches
     if (
       nameLower.includes(q) ||
+      transName.includes(q) ||
       expLower.includes(q) ||
+      transSet.includes(q) ||
       numLower.includes(q) ||
       speciesLower.includes(q) ||
       pokeNumLower.includes(q) ||

@@ -6,6 +6,7 @@ import { Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
 import { formatCardImageUrl } from '@/lib/imageHelper';
 import { smoothScrollToElement } from '@/lib/scrollHelper';
+import { formatCardDisplayName, translateCardSet } from '@/lib/cardTranslator';
 import WishlistDrawer, { WishlistItem } from '@/components/WishlistDrawer';
 import CardImageLightbox from '@/components/CardImageLightbox';
 import {
@@ -113,9 +114,13 @@ export default function BuyerBinderPage() {
     if (hideSold && card.status === 'SOLD') return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
+      const displayName = formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game).toLowerCase();
+      const displaySet = translateCardSet(card.setName, card.cardNumber, card.game).toLowerCase();
       const match =
         card.name.toLowerCase().includes(q) ||
+        displayName.includes(q) ||
         card.setName.toLowerCase().includes(q) ||
+        displaySet.includes(q) ||
         (card.rarity && card.rarity.toLowerCase().includes(q));
       if (!match) return false;
     }
@@ -421,7 +426,7 @@ export default function BuyerBinderPage() {
                     {/* Card Title & Condition */}
                     <div>
                       <h4 className="font-bold text-xs text-white line-clamp-1 group-hover:text-amber-300 transition-colors">
-                        {card.name}
+                        {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
                       </h4>
                       <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
                         {card.game && card.game !== 'pokemon' && (
@@ -429,7 +434,7 @@ export default function BuyerBinderPage() {
                             {card.game}
                           </span>
                         )}
-                        <span className="truncate">{card.condition} • {card.setName}</span>
+                        <span className="truncate">{card.condition} • {translateCardSet(card.setName, card.cardNumber, card.game)}</span>
                       </p>
 
                       {/* Price Badge */}
@@ -567,8 +572,10 @@ export default function BuyerBinderPage() {
                       </div>
 
                       <div>
-                        <h4 className="font-bold text-xs text-white line-clamp-1">{card.name}</h4>
-                        <p className="text-[10px] text-slate-400 truncate">{card.condition}</p>
+                        <h4 className="font-bold text-xs text-white line-clamp-1">
+                          {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
+                        </h4>
+                        <p className="text-[10px] text-slate-400 truncate">{card.condition} • {translateCardSet(card.setName, card.cardNumber, card.game)}</p>
                         <div className="mt-1 font-black text-amber-400 text-xs sm:text-sm">
                           {formatCurrency(card.price, binder.currency)}
                         </div>
@@ -614,10 +621,10 @@ export default function BuyerBinderPage() {
                 SLOT #{selectedCardDetail.slotNumber}
               </span>
               <h3 className="font-black text-base text-white mt-2 leading-snug">
-                {selectedCardDetail.card.name}
+                {formatCardDisplayName(selectedCardDetail.card.name, selectedCardDetail.card.cardNumber, selectedCardDetail.card.setName, selectedCardDetail.card.game)}
               </h3>
               <p className="text-xs text-slate-400">
-                {selectedCardDetail.card.setName} {selectedCardDetail.card.cardNumber ? `• ${selectedCardDetail.card.cardNumber}` : ''}
+                {translateCardSet(selectedCardDetail.card.setName, selectedCardDetail.card.cardNumber, selectedCardDetail.card.game)} {selectedCardDetail.card.cardNumber ? `• ${selectedCardDetail.card.cardNumber}` : ''}
               </p>
             </div>
 

@@ -36,6 +36,7 @@ import { LocalCnCardSummary, LocalCnSetInfo } from '@/lib/localCnCards';
 import { RiftboundCardSummary, RiftboundSetInfo } from '@/lib/riftboundCards';
 import { OnePieceCardSummary, OnePieceSetInfo } from '@/lib/onepieceCards';
 import { formatCardImageUrl } from '@/lib/imageHelper';
+import { formatCardDisplayName, translateCardSet } from '@/lib/cardTranslator';
 import CardImageLightbox from '@/components/CardImageLightbox';
 
 export type TcgGame = 'pokemon' | 'riftbound' | 'onepiece';
@@ -318,8 +319,8 @@ export default function EditSlotModal({
   // Initialize modal state on open or card change
   useEffect(() => {
     if (existingCard) {
-      setCardName(existingCard.name || '');
-      setCardSet(existingCard.setName || '');
+      setCardName(formatCardDisplayName(existingCard.name, existingCard.cardNumber, existingCard.setName, existingCard.game));
+      setCardSet(translateCardSet(existingCard.setName || '', existingCard.cardNumber, existingCard.game));
       setCardNumber(existingCard.cardNumber || '');
       setRarity(existingCard.rarity || '');
       setCondition(existingCard.condition || 'Raw - NM');
@@ -807,14 +808,18 @@ export default function EditSlotModal({
 
       if (data.success && data.card) {
         const c = data.card;
-        setCardName(c.name);
-        setCardSet(c.expansion || '');
+        const translatedName = formatCardDisplayName(c.name, c.collectorNumber, c.expansion, 'pokemon');
+        const translatedSet = translateCardSet(c.expansion || '', c.collectorNumber, 'pokemon');
+        setCardName(translatedName);
+        setCardSet(translatedSet);
         setCardNumber(c.collectorNumber || '');
         setImageUrl(c.imageUrl || '');
         setMarketRef(null);
       } else {
-        setCardName(summary.name);
-        setCardSet(summary.expansion || '');
+        const translatedName = formatCardDisplayName(summary.name, summary.collectorNumber, summary.expansion, 'pokemon');
+        const translatedSet = translateCardSet(summary.expansion || '', summary.collectorNumber, 'pokemon');
+        setCardName(translatedName);
+        setCardSet(translatedSet);
         setCardNumber(summary.collectorNumber || '');
         setImageUrl(summary.imageUrl || '');
       }
@@ -839,20 +844,24 @@ export default function EditSlotModal({
 
       if (data.success && data.card) {
         const c = data.card;
-        setCardName(c.name);
-        setCardSet(c.setName || '');
+        const translatedName = formatCardDisplayName(c.name, c.number, c.setName, 'pokemon');
+        const translatedSet = translateCardSet(c.setName || '', c.number, 'pokemon');
+        setCardName(translatedName);
+        setCardSet(translatedSet);
         setCardNumber(c.number || '');
         setRarity(c.rarity || 'Common');
         setImageUrl(c.imageUrl || '');
-        setNotes(`[CN] ${c.fullName || c.name} • ${c.setName}`);
+        setNotes(`[CN] ${c.fullName || c.name} • ${translatedSet}`);
         setMarketRef(null);
       } else {
-        setCardName(summary.name);
-        setCardSet(summary.setName || '');
+        const translatedName = formatCardDisplayName(summary.name, summary.number, summary.setName, 'pokemon');
+        const translatedSet = translateCardSet(summary.setName || '', summary.number, 'pokemon');
+        setCardName(translatedName);
+        setCardSet(translatedSet);
         setCardNumber(summary.number || '');
         setRarity(summary.rarity || '');
         setImageUrl(summary.imageUrl || '');
-        setNotes(`[CN] ${summary.fullName || summary.name} • ${summary.setName}`);
+        setNotes(`[CN] ${summary.fullName || summary.name} • ${translatedSet}`);
       }
     } catch (err) {
       console.error(err);
@@ -916,13 +925,16 @@ export default function EditSlotModal({
 
       if (data.success && data.card) {
         const c = data.card;
-        setCardName(c.name);
-        setCardSet(c.cardSet || c.seriesName || '');
+        const translatedName = formatCardDisplayName(c.name, c.cardNumber, c.cardSet || c.seriesName, 'onepiece');
+        const translatedSet = translateCardSet(c.cardSet || c.seriesName || '', c.cardNumber, 'onepiece');
+        setCardName(translatedName);
+        setCardSet(translatedSet);
         setCardNumber(c.cardNumber || '');
         setRarity(c.rarity || 'Common');
         setImageUrl(c.imageUrl || '');
 
         const details = [
+          c.name !== translatedName ? `Original: ${c.name}` : null,
           c.category,
           c.color,
           c.attribute && c.attribute !== '-' ? c.attribute : null,
@@ -935,8 +947,10 @@ export default function EditSlotModal({
         setNotes(`[${c.lang}] ${details}`);
         setMarketRef(null);
       } else {
-        setCardName(summary.name);
-        setCardSet(summary.cardSet || '');
+        const translatedName = formatCardDisplayName(summary.name, summary.cardNumber, summary.cardSet, 'onepiece');
+        const translatedSet = translateCardSet(summary.cardSet || '', summary.cardNumber, 'onepiece');
+        setCardName(translatedName);
+        setCardSet(translatedSet);
         setCardNumber(summary.cardNumber || '');
         setRarity(summary.rarity || '');
         setImageUrl(summary.imageUrl || '');
@@ -2240,13 +2254,18 @@ export default function EditSlotModal({
                                       )}
                                       <div className="min-w-0 flex-1">
                                         <div className="text-xs font-black text-white group-hover:text-purple-300 truncate">
-                                          {card.name}
+                                          {formatCardDisplayName(card.name, card.collectorNumber, card.expansion, 'pokemon')}
                                         </div>
+                                        {formatCardDisplayName(card.name, card.collectorNumber, card.expansion, 'pokemon') !== card.name && (
+                                          <div className="text-[10px] text-slate-400 truncate">
+                                            {card.name}
+                                          </div>
+                                        )}
                                         <div className="text-[11px] text-slate-400 truncate mt-0.5">
                                           {card.collectorNumber ? `#${card.collectorNumber}` : card.category}
                                         </div>
                                         <div className="text-[10px] text-purple-400/80 font-bold truncate">
-                                          {card.expansion}
+                                          {translateCardSet(card.expansion, card.collectorNumber, 'pokemon')}
                                         </div>
                                       </div>
                                     </button>
@@ -2619,8 +2638,13 @@ export default function EditSlotModal({
                                   )}
                                   <div className="min-w-0 flex-1">
                                     <div className="text-xs font-black text-white group-hover:text-rose-300 truncate">
-                                      {card.name}
+                                      {formatCardDisplayName(card.name, card.cardNumber, card.cardSet, 'onepiece')}
                                     </div>
+                                    {formatCardDisplayName(card.name, card.cardNumber, card.cardSet, 'onepiece') !== card.name && (
+                                      <div className="text-[10px] text-slate-400 truncate">
+                                        {card.name}
+                                      </div>
+                                    )}
                                     <div className="text-[11px] text-slate-400 truncate mt-0.5">
                                       {card.cardNumber} • <span className="font-semibold text-rose-400">{card.rarity}</span>
                                     </div>
@@ -2628,7 +2652,7 @@ export default function EditSlotModal({
                                       {card.category} {card.color ? `• ${card.color}` : ''}
                                     </div>
                                     <div className="text-[9px] text-slate-500 truncate">
-                                      {card.cardSet}
+                                      {translateCardSet(card.cardSet, card.cardNumber, 'onepiece')}
                                     </div>
                                   </div>
                                 </button>

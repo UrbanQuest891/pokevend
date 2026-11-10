@@ -11,6 +11,7 @@ import { Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
 import { formatCardImageUrl } from '@/lib/imageHelper';
 import { smoothScrollToElement } from '@/lib/scrollHelper';
+import { formatCardDisplayName, translateCardSet } from '@/lib/cardTranslator';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -871,7 +872,7 @@ export default function BinderEditorPage() {
                     {/* Card Info */}
                     <div className="pointer-events-none select-none">
                       <div className="font-extrabold text-xs text-white line-clamp-1 group-hover:text-amber-400 transition-colors">
-                        {card.name}
+                        {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
                       </div>
                       <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
                         {card.game && card.game !== 'pokemon' && (
@@ -879,7 +880,7 @@ export default function BinderEditorPage() {
                             {card.game}
                           </span>
                         )}
-                        <span className="truncate">{card.condition} • {card.setName}</span>
+                        <span className="truncate">{card.condition} • {translateCardSet(card.setName, card.cardNumber, card.game)}</span>
                       </div>
 
                       {/* Price Tag */}

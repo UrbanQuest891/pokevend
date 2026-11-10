@@ -10,6 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 import { formatCardImageUrl } from './imageHelper';
+import { formatCardDisplayName, translateCardSet } from './cardTranslator';
 
 export interface OnePieceCard {
   id: string;
@@ -214,10 +215,14 @@ export function searchOnePieceCards({
 
   if (q) {
     filtered = filtered.filter((c) => {
+      const transName = formatCardDisplayName(c.name, c.cardNumber, c.cardSet, 'onepiece').toLowerCase();
+      const transSet = translateCardSet(c.cardSet, c.cardNumber, 'onepiece').toLowerCase();
       return (
         c.name.toLowerCase().includes(q) ||
+        transName.includes(q) ||
         c.cardNumber.toLowerCase().includes(q) ||
         c.cardSet.toLowerCase().includes(q) ||
+        transSet.includes(q) ||
         c.rarity.toLowerCase().includes(q) ||
         c.category.toLowerCase().includes(q) ||
         c.color.toLowerCase().includes(q) ||
