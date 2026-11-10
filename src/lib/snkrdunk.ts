@@ -13,6 +13,17 @@ export interface SnkrdunkTransaction {
   conditionLabel?: string; // "A", "PSA10", etc.
 }
 
+export interface SnkrdunkCandidate {
+  id: string;
+  title: string;
+  url: string;
+  imageUrl?: string;
+  price?: string;
+  badge?: string;
+  score?: number;
+  isSelected?: boolean;
+}
+
 export interface SnkrdunkResult {
   provider: 'snkrdunk';
   product: {
@@ -28,6 +39,7 @@ export interface SnkrdunkResult {
   conditionApplied: string;
   exchangeRate: ExchangeRateInfo;
   transactions: SnkrdunkTransaction[];
+  candidates?: SnkrdunkCandidate[];
 }
 
 function formatRupiah(num: number): string {
@@ -137,11 +149,173 @@ export function mapToSnkrdunkCondition(condition?: string): SnkrdunkConditionMap
   return { code: 'trading_card_single_little_scratches', label: 'B', displayName: 'Kondisi B (Near Mint)' };
 }
 
+export function getVariantBadge(title: string): string {
+  if (!title) return 'Varian';
+  if (title.includes('レッドコミパラ') || title.includes('SEC-RSP') || title.includes('RSP')) return 'SEC-RSP (Red)';
+  if (title.includes('SEC-SPC') || title.includes('手配書') || title.includes('WANTED')) return 'SEC-SPC (Wanted)';
+  if (title.includes('コミパラ') || title.includes('SEC-SP')) return 'SEC-SP (Manga)';
+  if (title.includes('SEC-P') || (title.includes('パラレル') && !title.includes('コミパラ'))) return 'SEC-P (Parallel)';
+  if (title.includes('チャンピオンシップ')) return 'Championship';
+  if (title.includes('アニバーサリー')) return 'Anniversary';
+  if (title.includes('マスターボール')) return 'Master Ball';
+  if (title.includes('モンスターボール')) return 'Poke Ball';
+
+  const m = title.match(/(SAR|SR|UR|AR|CHR|CSR|HR|SEC|SP|R|UC|C|L|SEC-P|L-P|SR-P|R-P)/i);
+  if (m) return m[1].toUpperCase();
+
+  const parenMatch = title.match(/\(([^)]+)\)/);
+  if (parenMatch && parenMatch[1].length <= 15) return parenMatch[1];
+
+  return title.slice(0, 16);
+}
+
+function scoreCandidate(
+  candidate: { title: string; url: string; imageUrl?: string },
+  cardInfo: {
+    cardNumber?: string;
+    cardSet?: string;
+    rarity?: string;
+    imageUrl?: string;
+    notes?: string;
+    targetUrl?: string;
+  }
+): number {
+  if (cardInfo.targetUrl && candidate.url === cardInfo.targetUrl) {
+    return 10000;
+  }
+
+  const title = candidate.title;
+  let score = 0;
+
+  // 1. Language penalty (Japanese marketplace should avoid English / Asian / Simplified Chinese editions)
+  if (
+    title.includes('【英語版】') ||
+    title.includes('English') ||
+    title.includes('【アジア版】') ||
+    title.includes('【簡体中国語版】')
+  ) {
+    return -9999;
+  }
+
+  // 2. Exact card number check
+  const cleanCode = (cardInfo.cardNumber || '').split('/')[0].trim();
+  if (cleanCode && title.includes(cleanCode)) {
+    score += 50;
+  }
+
+  // 3. Card Set matching
+  const setLower = (cardInfo.cardSet || '').toLowerCase();
+  if (setLower) {
+    if (setLower.includes('op-13') || setLower.includes('受け継がれる意志')) {
+      if (title.includes('受け継がれる意志')) score += 30;
+      if (title.includes('アニバーサリー') || title.includes('チャンピオンシップ')) score -= 40;
+    } else if (setLower.includes('op-05') || setLower.includes('新時代の主役')) {
+      if (title.includes('新時代の主役')) score += 30;
+    } else if (setLower.includes('チャンピオンシップ')) {
+      if (title.includes('チャンピオンシップ')) score += 50;
+    }
+  }
+
+  // 4. Bandai One Piece Image Suffix matching (_p1, _p2, _p3, _p4, _p5, etc.)
+  let rawImg = cardInfo.imageUrl || '';
+  try {
+    rawImg = decodeURIComponent(rawImg);
+  } catch {}
+
+  const pMatch = rawImg.match(/_p([0-9]+)\.(png|jpg|jpeg|webp)/i);
+  const rMatch = rawImg.match(/_r([0-9]+)\.(png|jpg|jpeg|webp)/i);
+  const isBaseNoSuffix = !pMatch && !rMatch && rawImg.includes('.png');
+
+  if (pMatch) {
+    const pNum = parseInt(pMatch[1], 10);
+    if (pNum === 3) {
+      // _p3 in OP13-118 is Red Comic Parallel (SEC-RSP / レッドコミパラ)
+      if (title.includes('RSP') || title.includes('レッドコミパラ') || title.includes('赤コミパラ')) {
+        score += 250;
+      } else if (title.includes('SEC-SP') || title.includes('コミパラ')) {
+        score -= 60;
+      } else if (title.includes('SEC-P')) {
+        score -= 60;
+      }
+    } else if (pNum === 2) {
+      // _p2 in OP13-118 / OP05-119 is Comic Parallel (SEC-SP / コミパラ)
+      if (
+        (title.includes('SEC-SP') || title.includes('コミパラ') || title.includes('スーパーパラレル')) &&
+        !title.includes('レッド') &&
+        !title.includes('RSP')
+      ) {
+        score += 250;
+      } else if (title.includes('レッドコミパラ') || title.includes('RSP')) {
+        score -= 60;
+      }
+    } else if (pNum === 1) {
+      // _p1 is Regular Parallel (SEC-P / パラレル)
+      if (
+        title.includes('SEC-P') ||
+        (title.includes('パラレル') && !title.includes('コミパラ') && !title.includes('SP'))
+      ) {
+        score += 250;
+      }
+    } else if (pNum === 4) {
+      // _p4 is WANTED poster (SEC-SPC / 手配書)
+      if (title.includes('手配書') || title.includes('SEC-SPC') || title.includes('WANTED')) {
+        score += 250;
+      }
+    } else if (pNum === 5) {
+      // _p5 is Championship
+      if (title.includes('チャンピオンシップ')) {
+        score += 250;
+      }
+    }
+  } else if (isBaseNoSuffix) {
+    // Base card: should NOT have -P, -SP, -RSP, -SPC, コミパラ, パラレル, 手配書
+    const hasParallelMarkers = /-(P|SP|RSP|SPC)|パラレル|コミパラ|手配書|チャンピオンシップ/i.test(title);
+    if (!hasParallelMarkers) {
+      score += 200;
+    } else {
+      score -= 70;
+    }
+  }
+
+  // 5. Card Rarity and Notes matching
+  const rarity = (cardInfo.rarity || '').toUpperCase();
+  const notes = (cardInfo.notes || '').toLowerCase();
+
+  if (rarity.includes('RSP') || notes.includes('red comic') || notes.includes('レッドコミパラ')) {
+    if (title.includes('RSP') || title.includes('レッドコミパラ')) score += 120;
+  }
+  if (rarity.includes('SEC-P') || notes.includes('parallel') || notes.includes('パラレル')) {
+    if (title.includes('SEC-P') && !title.includes('RSP') && !title.includes('SP')) score += 100;
+  }
+  if (rarity.includes('SAR') || notes.includes('sar')) {
+    if (title.includes('SAR')) score += 120;
+    if (title.includes('SR') && !title.includes('SAR')) score -= 50;
+  }
+  if (rarity.includes('UR') || notes.includes('ur')) {
+    if (title.includes('UR')) score += 120;
+  }
+  if (rarity.includes('AR') || notes.includes('ar')) {
+    if (title.includes('AR') && !title.includes('SAR')) score += 120;
+  }
+  if (notes.includes('master ball') || notes.includes('マスターボール')) {
+    if (title.includes('マスターボール')) score += 120;
+  }
+  if (notes.includes('poke ball') || notes.includes('モンスターボール')) {
+    if (title.includes('モンスターボール')) score += 100;
+  }
+
+  return score;
+}
+
 export async function fetchSnkrdunkPrices(
   cardName: string,
   cardNumber?: string,
   cardSet?: string,
-  condition?: string
+  condition?: string,
+  rarity?: string,
+  imageUrl?: string,
+  notes?: string,
+  targetUrl?: string
 ): Promise<SnkrdunkResult | null> {
   try {
     const cleanCode = (cardNumber || '').split('/')[0].trim();
@@ -155,9 +329,11 @@ export async function fetchSnkrdunkPrices(
 
     const uniqueQueries = Array.from(new Set(queries.filter((q) => q.length > 0)));
 
-    let productUrl: string | null = null;
-    let productTitle: string = '';
-    let productImageUrl: string | undefined;
+    // Candidate map across queries
+    const candidateMap = new Map<
+      string,
+      { id: string; title: string; url: string; imageUrl?: string; price?: string }
+    >();
 
     for (const q of uniqueQueries) {
       const searchUrl = `https://snkrdunk.com/search?keywords=${encodeURIComponent(q)}`;
@@ -183,6 +359,8 @@ export async function fetchSnkrdunkPrices(
         const links = $('a[class*="productTile"], a[href*="/apparels/"], a[href*="/products/"]').toArray();
         for (const el of links) {
           const href = $(el).attr('href') || '';
+          if (href.includes('/used/')) continue; // Skip individual used listings
+
           const fullUrl = href.startsWith('http') ? href : `https://snkrdunk.com${href}`;
           const title =
             $(el).find('[class*="productName"]').text().trim() ||
@@ -190,26 +368,68 @@ export async function fetchSnkrdunkPrices(
             $(el).find('img').attr('alt') ||
             '';
           const img = $(el).find('img').attr('src') || '';
+          const priceText = $(el).find('[class*="productPrice"]').text().trim();
+          const cleanTitle = title.replace(/\s+/g, ' ');
 
           if (fullUrl.includes('/apparels/') || fullUrl.includes('/products/')) {
-            if (!cleanCode || title.includes(cleanCode)) {
-              productUrl = fullUrl;
-              productTitle = title.replace(/\s+/g, ' ');
-              productImageUrl = img || undefined;
-              break;
+            if (!cleanCode || cleanTitle.includes(cleanCode)) {
+              if (!candidateMap.has(fullUrl)) {
+                const idMatch = fullUrl.match(/\/apparels\/([0-9]+)/) || fullUrl.match(/\/products\/([0-9]+)/);
+                candidateMap.set(fullUrl, {
+                  id: idMatch ? idMatch[1] : fullUrl.replace(/[^0-9]/g, ''),
+                  title: cleanTitle,
+                  url: fullUrl,
+                  imageUrl: img || undefined,
+                  price: priceText ? priceText.replace(/[^0-9,]/g, '') : undefined,
+                });
+              }
             }
           }
         }
 
-        if (productUrl) break;
+        if (candidateMap.size > 0 && cleanCode) {
+          break;
+        }
       } catch (err) {
         console.warn('SNKRDUNK search attempt failed:', q, err);
       }
     }
 
-    if (!productUrl) {
+    if (candidateMap.size === 0) {
       return null;
     }
+
+    // Score all candidates
+    const scoredCandidates: SnkrdunkCandidate[] = Array.from(candidateMap.values()).map((cand) => {
+      const score = scoreCandidate(cand, {
+        cardNumber,
+        cardSet,
+        rarity,
+        imageUrl,
+        notes,
+        targetUrl,
+      });
+      return {
+        ...cand,
+        badge: getVariantBadge(cand.title),
+        score,
+        isSelected: false,
+      };
+    });
+
+    // Sort candidates by score descending
+    scoredCandidates.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    // Best matching candidate
+    const chosenProduct = scoredCandidates[0];
+    chosenProduct.isSelected = true;
+
+    // Filter valid variants to return (up to 8 variants)
+    const validCandidates = scoredCandidates.filter((c) => (c.score || 0) > -5000).slice(0, 8);
+
+    const productUrl = chosenProduct.url;
+    const productTitle = chosenProduct.title;
+    const productImageUrl = chosenProduct.imageUrl;
 
     // 2. Fetch live JPY to IDR exchange rate from Google Finance
     const jpyRate = await getGoogleFinanceJpyToIdrRate();
@@ -413,6 +633,7 @@ export async function fetchSnkrdunkPrices(
       conditionApplied: `${mappedCondition.displayName}`,
       exchangeRate: jpyRate,
       transactions,
+      candidates: validCandidates,
     };
   } catch (error) {
     console.error('fetchSnkrdunkPrices error:', error);

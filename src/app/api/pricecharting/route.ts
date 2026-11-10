@@ -346,6 +346,10 @@ export async function GET(req: Request) {
     const condition = searchParams.get('condition') || 'Raw - NM';
     const game = searchParams.get('game') || '';
     const lang = (searchParams.get('lang') || '').toUpperCase();
+    const rarity = searchParams.get('rarity') || '';
+    const imageUrl = searchParams.get('imageUrl') || '';
+    const notes = searchParams.get('notes') || '';
+    const targetUrl = searchParams.get('targetUrl') || '';
 
     if (!cardName.trim()) {
       return NextResponse.json(
@@ -364,7 +368,16 @@ export async function GET(req: Request) {
     const isIndonesian = lang === 'ID';
 
     if (isJapanese) {
-      const snkrResult = await fetchSnkrdunkPrices(cardName, cardNumber, cardSet, condition);
+      const snkrResult = await fetchSnkrdunkPrices(
+        cardName,
+        cardNumber,
+        cardSet,
+        condition,
+        rarity,
+        imageUrl,
+        notes,
+        targetUrl
+      );
       if (snkrResult) {
         return NextResponse.json({
           success: true,

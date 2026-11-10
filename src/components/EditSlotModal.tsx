@@ -193,12 +193,24 @@ export default function EditSlotModal({
     id?: string;
     name?: string;
     consoleName?: string;
+    imageUri?: string;
     url?: string;
     benchmarkPriceYen?: number;
     benchmarkPriceIdr?: number;
     benchmarkFormatted?: string;
   } | null>(null);
   const [priceRefCondition, setPriceRefCondition] = useState<string | null>(null);
+  const [priceCandidates, setPriceCandidates] = useState<
+    Array<{
+      id: string;
+      title: string;
+      url: string;
+      imageUrl?: string;
+      price?: string;
+      badge?: string;
+      isSelected?: boolean;
+    }>
+  >([]);
   const [priceExchangeRate, setPriceExchangeRate] = useState<{
     rate: number;
     formattedRate: string;
@@ -602,6 +614,7 @@ export default function EditSlotModal({
     setPriceExchangeRate(null);
     setPriceRefError(null);
     setAppliedTxIndex(null);
+    setPriceCandidates([]);
   };
 
   // Handle picking card from TCGdex
@@ -951,7 +964,10 @@ export default function EditSlotModal({
       : 'Tekan tombol di atas untuk melihat 5 transaksi tanggal & harga jual terakhir dari PriceCharting.';
 
   // Cari Harga Referensi (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia)
-  const handleSearchPriceReference = async (overrideLang?: 'EN' | 'JP' | 'ID') => {
+  const handleSearchPriceReference = async (
+    overrideLang?: 'EN' | 'JP' | 'ID',
+    overrideTargetUrl?: string
+  ) => {
     if (!cardName.trim()) {
       setPriceRefError('Pilih kartu terlebih dahulu atau isi nama kartu di kolom detail.');
       return;
@@ -971,7 +987,14 @@ export default function EditSlotModal({
         condition: condition,
         game: effectiveGame,
         lang: targetLang,
+        rarity: rarity.trim(),
+        imageUrl: imageUrl.trim(),
+        notes: notes.trim(),
       });
+
+      if (overrideTargetUrl) {
+        params.append('targetUrl', overrideTargetUrl);
+      }
 
       const res = await fetch(`/api/pricecharting?${params.toString()}`);
       const data = await res.json();
@@ -980,6 +1003,7 @@ export default function EditSlotModal({
         setPriceTransactions(data.transactions);
         setPriceRefMeta(data.product || null);
         setPriceRefCondition(data.conditionApplied || null);
+        setPriceCandidates(data.candidates || []);
         setPriceProvider(
           data.provider ||
             (targetLang === 'JP' ? 'snkrdunk' : targetLang === 'ID' ? 'pokepedia' : 'pricecharting')
@@ -995,6 +1019,9 @@ export default function EditSlotModal({
             ? 'Pokepedia.id'
             : 'PriceCharting';
         setPriceRefError(data.error || `Data harga tidak ditemukan di ${prov}.`);
+        if (data.candidates) {
+          setPriceCandidates(data.candidates);
+        }
       }
     } catch (err) {
       console.error('Error fetching price reference:', err);
@@ -1189,6 +1216,7 @@ export default function EditSlotModal({
                         setPriceTransactions(null);
                         setPriceRefError(null);
                         setPriceRefMeta(null);
+                        setPriceCandidates([]);
                       }}
                       className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
                         effectiveLanguage === 'EN'
@@ -1207,6 +1235,7 @@ export default function EditSlotModal({
                         setPriceTransactions(null);
                         setPriceRefError(null);
                         setPriceRefMeta(null);
+                        setPriceCandidates([]);
                       }}
                       className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
                         effectiveLanguage === 'JP'
@@ -1225,6 +1254,7 @@ export default function EditSlotModal({
                         setPriceTransactions(null);
                         setPriceRefError(null);
                         setPriceRefMeta(null);
+                        setPriceCandidates([]);
                       }}
                       className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
                         effectiveLanguage === 'ID'
@@ -1266,56 +1296,126 @@ export default function EditSlotModal({
 
                   {/* Matched Product info if available */}
                   {priceRefMeta && (
-                    <div className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] flex flex-col gap-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-slate-200 font-bold truncate" title={priceRefMeta.name}>
-                          {priceRefMeta.name}
-                        </span>
-                        {priceRefMeta.url && (
-                          <a
-                            href={priceRefMeta.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`text-[10px] font-bold flex items-center gap-1 shrink-0 underline transition-colors ${
-                              activeProvider === 'snkrdunk'
-                                ? 'text-cyan-400 hover:text-cyan-300'
-                                : activeProvider === 'pokepedia'
-                                ? 'text-emerald-400 hover:text-emerald-300'
-                                : 'text-amber-400 hover:text-amber-300'
-                            }`}
-                            onClick={(e) => e.stopPropagation()}
-                            title={`Buka di ${providerLabel} (tab baru)`}
-                          >
-                            <span>{providerLabel}</span>
-                            <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate flex items-center justify-between">
-                        <span>{priceRefMeta.consoleName || `${providerLabel} Data`}</span>
-                        {priceRefCondition && (
-                          <span className={`font-semibold ${
-                            activeProvider === 'snkrdunk'
-                              ? 'text-cyan-400'
-                              : activeProvider === 'pokepedia'
-                              ? 'text-emerald-400'
-                              : 'text-amber-400'
-                          }`}>
-                            {priceRefCondition}
-                          </span>
-                        )}
-                      </div>
-                      {priceRefMeta.benchmarkFormatted && (
-                        <div className="flex items-center justify-between text-[10px] bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800/80 mt-0.5">
-                          <span className="text-slate-400 font-medium">Nilai Rata-rata / Mulai ({priceRefCondition || 'Kondisi Terpilih'}):</span>
-                          <span className="text-cyan-400 font-black">
-                            {priceRefMeta.benchmarkFormatted}{' '}
-                            {priceRefMeta.benchmarkPriceIdr && (
-                              <span className="text-slate-400 font-normal">
-                                (Rp {priceRefMeta.benchmarkPriceIdr.toLocaleString('id-ID')})
+                    <div className="px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] flex flex-col gap-2">
+                      <div className="flex items-start gap-2.5">
+                        {priceRefMeta.imageUri ? (
+                          <img
+                            src={priceRefMeta.imageUri}
+                            alt={priceRefMeta.name || 'Kartu'}
+                            className="w-10 h-14 object-contain rounded-md bg-slate-950 border border-slate-800 shrink-0 shadow-sm"
+                          />
+                        ) : null}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-slate-200 font-bold truncate text-[11px]" title={priceRefMeta.name}>
+                              {priceRefMeta.name}
+                            </span>
+                            {priceRefMeta.url && (
+                              <a
+                                href={priceRefMeta.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`text-[10px] font-bold flex items-center gap-1 shrink-0 underline transition-colors ${
+                                  activeProvider === 'snkrdunk'
+                                    ? 'text-cyan-400 hover:text-cyan-300'
+                                    : activeProvider === 'pokepedia'
+                                    ? 'text-emerald-400 hover:text-emerald-300'
+                                    : 'text-amber-400 hover:text-amber-300'
+                                }`}
+                                onClick={(e) => e.stopPropagation()}
+                                title={`Buka di ${providerLabel} (tab baru)`}
+                              >
+                                <span>{providerLabel}</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate flex items-center justify-between mt-0.5">
+                            <span className="truncate">{priceRefMeta.consoleName || `${providerLabel} Data`}</span>
+                            {priceRefCondition && (
+                              <span className={`font-semibold shrink-0 ml-1 ${
+                                activeProvider === 'snkrdunk'
+                                  ? 'text-cyan-400'
+                                  : activeProvider === 'pokepedia'
+                                  ? 'text-emerald-400'
+                                  : 'text-amber-400'
+                              }`}>
+                                {priceRefCondition}
                               </span>
                             )}
-                          </span>
+                          </div>
+                          {priceRefMeta.benchmarkFormatted && (
+                            <div className="flex items-center justify-between text-[10px] bg-slate-950/70 px-2 py-1 rounded-lg border border-slate-800/80 mt-1">
+                              <span className="text-slate-400 font-medium">Mulai ({priceRefCondition || 'Kondisi'}):</span>
+                              <span className="text-cyan-400 font-black">
+                                {priceRefMeta.benchmarkFormatted}{' '}
+                                {priceRefMeta.benchmarkPriceIdr && (
+                                  <span className="text-slate-400 font-normal">
+                                    (Rp {priceRefMeta.benchmarkPriceIdr.toLocaleString('id-ID')})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Candidate Variants Strip (Multi-variant Picker for One Piece / SNKRDUNK) */}
+                      {priceCandidates && priceCandidates.length > 1 && (
+                        <div className="pt-2 border-t border-slate-800/80">
+                          <div className="flex items-center justify-between mb-1.5 text-[10px]">
+                            <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                              <span>Varian Kartu di SNKRDUNK</span>
+                              <span className="text-cyan-400 font-extrabold px-1.5 py-0.2 rounded-full bg-cyan-950/70 border border-cyan-800/50">
+                                {priceCandidates.length}
+                              </span>
+                            </span>
+                            <span className="text-[9px] text-slate-400 italic">Klik varian untuk ganti</span>
+                          </div>
+                          <div className="flex items-stretch gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar">
+                            {priceCandidates.map((cand) => {
+                              const isCurrent = cand.url === priceRefMeta.url || cand.isSelected;
+                              return (
+                                <button
+                                  key={cand.id || cand.url}
+                                  type="button"
+                                  onClick={() => handleSearchPriceReference(effectiveLanguage, cand.url)}
+                                  className={`flex-shrink-0 flex flex-col items-center p-1.5 rounded-xl border text-center transition-all w-20 cursor-pointer ${
+                                    isCurrent
+                                      ? 'bg-cyan-500/20 border-cyan-400 ring-1 ring-cyan-400/60 shadow-sm'
+                                      : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'
+                                  }`}
+                                  title={cand.title}
+                                >
+                                  {cand.imageUrl ? (
+                                    <img
+                                      src={cand.imageUrl}
+                                      alt={cand.title}
+                                      className="w-12 h-16 object-contain rounded bg-slate-900 border border-slate-800 mb-1"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-16 rounded bg-slate-900 border border-slate-800 flex items-center justify-center mb-1 text-[9px] text-slate-500">
+                                      Kartu
+                                    </div>
+                                  )}
+                                  <span className="text-[9px] font-bold text-slate-200 line-clamp-1 w-full leading-tight">
+                                    {cand.badge || cand.title.slice(0, 10)}
+                                  </span>
+                                  {cand.price && (
+                                    <span className="text-[8px] font-extrabold text-cyan-400 truncate w-full mt-0.5">
+                                      ¥{cand.price}~
+                                    </span>
+                                  )}
+                                  {isCurrent && (
+                                    <span className="mt-1 text-[7px] font-black uppercase tracking-wider text-slate-950 bg-cyan-400 px-1.5 py-0.5 rounded-full">
+                                      Dipilih
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
