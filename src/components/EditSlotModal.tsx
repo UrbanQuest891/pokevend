@@ -952,8 +952,9 @@ export default function EditSlotModal({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cardName.trim()) {
-      alert('Nama kartu wajib diisi');
+    const effectiveCardName = cardName.trim() || notes.trim() || 'Kartu TCG';
+    if (!effectiveCardName) {
+      alert('Pilih kartu dari pencarian atau isi catatan penjual');
       return;
     }
 
@@ -963,7 +964,7 @@ export default function EditSlotModal({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: cardName,
+          name: effectiveCardName,
           setName: cardSet,
           cardNumber,
           rarity,
@@ -1394,6 +1395,26 @@ export default function EditSlotModal({
                     >
                       ID • Pokepedia
                     </button>
+                  </div>
+
+                  {/* Pilihan Kondisi / Grading untuk Harga Pasar & Kartu */}
+                  <div className="flex items-center justify-between gap-2 px-1 text-xs">
+                    <span className="text-[11px] font-bold text-slate-400">Kondisi / Grading:</span>
+                    <select
+                      value={condition}
+                      onChange={(e) => {
+                        const newCond = e.target.value as CardCondition;
+                        setCondition(newCond);
+                        resetPriceReference();
+                      }}
+                      className="py-1 px-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-amber-300 font-bold focus:outline-none focus:border-amber-400 shadow-inner cursor-pointer"
+                    >
+                      {CONDITIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Tombol Cari Harga Referensi */}
@@ -2755,107 +2776,23 @@ export default function EditSlotModal({
                   </div>
 
                   {/* Card Metadata Section */}
-                  <div className="p-4 sm:p-5 bg-slate-950/60 border border-slate-800 rounded-3xl space-y-3.5">
+                  <div className="p-4 sm:p-5 bg-slate-950/60 border border-slate-800 rounded-3xl space-y-3">
                     <span className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4" />
                       Detail Informasi Kartu
                     </span>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* Card Name */}
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-300 mb-1">
-                          Nama Kartu <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={cardName}
-                          onChange={(e) => setCardName(e.target.value)}
-                          placeholder="misal: Charizard ex SIR / Blazing Scorcher / Luffy"
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                      </div>
-
-                      {/* Set / Seri */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">Set / Seri</label>
-                        <input
-                          type="text"
-                          value={cardSet}
-                          onChange={(e) => setCardSet(e.target.value)}
-                          placeholder="misal: Scarlet & Violet: 151 / Origins / OP-05"
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                      </div>
-
-                      {/* Card Number */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">Nomor / Kode Kartu</label>
-                        <input
-                          type="text"
-                          value={cardNumber}
-                          onChange={(e) => setCardNumber(e.target.value)}
-                          placeholder="misal: 199/165 / OGN-001/298 / OP05-119"
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                      </div>
-
-                      {/* Rarity */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">Rarity</label>
-                        <input
-                          type="text"
-                          value={rarity}
-                          onChange={(e) => setRarity(e.target.value)}
-                          placeholder="misal: Illustration Rare / Common / Manga Rare"
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                      </div>
-
-                      {/* Condition */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1">Kondisi / Grading</label>
-                        <select
-                          value={condition}
-                          onChange={(e) => setCondition(e.target.value as CardCondition)}
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        >
-                          {CONDITIONS.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Seller Notes */}
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-300 mb-1">
-                          Catatan Penjual (Deskripsi, status card, swirl holo, dll.)
-                        </label>
-                        <input
-                          type="text"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="misal: Unit • Domain Fury • Might 5 / Pack Fresh"
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                      </div>
-
-                      {/* Image URL Input */}
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold text-slate-300 mb-1">
-                          URL Gambar Kartu (Otomatis dari pencarian kartu atau dapat diubah manual)
-                        </label>
-                        <input
-                          type="url"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="https://..."
-                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        Catatan Penjual (Deskripsi, status card, swirl holo, dll.)
+                      </label>
+                      <input
+                        type="text"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="misal: Unit • Domain Fury • Might 5 / Pack Fresh / Swirl Holo"
+                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500 shadow-inner"
+                      />
                     </div>
                   </div>
 
