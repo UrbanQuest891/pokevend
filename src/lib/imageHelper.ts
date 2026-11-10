@@ -10,8 +10,8 @@ export function formatCardImageUrl(url: string | null | undefined): string {
   const trimmed = url.trim();
   if (trimmed.startsWith('/api/proxy-image')) return trimmed;
 
-  // Bandai One Piece Card Game blocks direct cross-origin browser image embeds (CORP: same-site)
-  if (trimmed.includes('onepiece-cardgame.com')) {
+  // Bandai One Piece and TCGCollector images benefit from local disk caching & proxying
+  if (trimmed.includes('onepiece-cardgame.com') || trimmed.includes('tcgcollector.com')) {
     return `/api/proxy-image?url=${encodeURIComponent(trimmed)}`;
   }
 

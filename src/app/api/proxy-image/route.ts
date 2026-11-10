@@ -14,6 +14,8 @@ const ALLOWED_HOSTS = [
   'images.pokemontcg.io',
   'assets.tcgdex.net',
   'cmsassets.rgpub.io',
+  'static.tcgcollector.com',
+  'tcgcollector.com',
 ];
 
 const CACHE_DIR = path.join(process.cwd(), '.cache', 'card_images');

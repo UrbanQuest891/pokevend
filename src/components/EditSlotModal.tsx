@@ -31,13 +31,14 @@ import { TcgdexCardSummary } from '@/lib/tcgdex';
 import { LocalEnCardSummary, LocalEnSetInfo } from '@/lib/localEnCards';
 import { LocalIdCardSummary } from '@/lib/localIdCards';
 import { LocalJpCardSummary } from '@/lib/localJpCards';
+import { LocalCnCardSummary, LocalCnSetInfo } from '@/lib/localCnCards';
 import { RiftboundCardSummary, RiftboundSetInfo } from '@/lib/riftboundCards';
 import { OnePieceCardSummary, OnePieceSetInfo } from '@/lib/onepieceCards';
 import { formatCardImageUrl } from '@/lib/imageHelper';
 import CardImageLightbox from '@/components/CardImageLightbox';
 
 export type TcgGame = 'pokemon' | 'riftbound' | 'onepiece';
-export type PokemonSubSource = 'tcgdex' | 'localid' | 'localjp';
+export type PokemonSubSource = 'tcgdex' | 'localid' | 'localjp' | 'localcn';
 
 interface EditSlotModalProps {
   isOpen: boolean;
@@ -150,6 +151,18 @@ export default function EditSlotModal({
   const [jpExpansions, setJpExpansions] = useState<{ code: string; productName: string; count: number }[]>([]);
   const [jpExpansionsLoaded, setJpExpansionsLoaded] = useState(false);
 
+  // Pokemon Chinese DB (13,600+ cards across 147 sets from TCGCollector)
+  const [cnQuery, setCnQuery] = useState('');
+  const [cnSet, setCnSet] = useState('');
+  const [cnResults, setCnResults] = useState<LocalCnCardSummary[]>([]);
+  const [cnSearching, setCnSearching] = useState(false);
+  const [cnFetchingCard, setCnFetchingCard] = useState(false);
+  const [cnSets, setCnSets] = useState<LocalCnSetInfo[]>([]);
+  const [cnSetsLoaded, setCnSetsLoaded] = useState(false);
+  const [cnPage, setCnPage] = useState(1);
+  const [cnTotal, setCnTotal] = useState(0);
+  const [cnTotalPages, setCnTotalPages] = useState(1);
+
   // Level 2 - Riftbound
   const [riftboundLang, setRiftboundLang] = useState<'EN' | null>(null);
   const [riftboundQuery, setRiftboundQuery] = useState('');
@@ -172,8 +185,8 @@ export default function EditSlotModal({
   const [onePieceTotal, setOnePieceTotal] = useState(0);
   const [onePieceTotalPages, setOnePieceTotalPages] = useState(1);
 
-  // Card Language & Market Provider Routing (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia)
-  const [cardLanguage, setCardLanguage] = useState<'EN' | 'JP' | 'ID'>('EN');
+  // Card Language & Market Provider Routing (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia, CN: PriceCharting)
+  const [cardLanguage, setCardLanguage] = useState<'EN' | 'JP' | 'ID' | 'CN'>('EN');
   const [priceProvider, setPriceProvider] = useState<'pricecharting' | 'snkrdunk' | 'pokepedia'>('pricecharting');
 
   // Price Reference State (5 Transaksi Terakhir)
@@ -255,6 +268,11 @@ export default function EditSlotModal({
     } else if (src === 'localjp') {
       setCardLanguage('JP');
       setPriceProvider('snkrdunk');
+    } else if (src === 'localcn') {
+      setCardLanguage('CN');
+      setPriceProvider('pricecharting');
+      setCnPage(1);
+      setCnSet('');
     } else {
       setCardLanguage('EN');
       setPriceProvider('pricecharting');
@@ -406,6 +424,24 @@ export default function EditSlotModal({
     }
   }, [selectedGame, pokemonSource, jpExpansionsLoaded]);
 
+  // Load Pokemon Chinese sets (147 sets from TCGCollector)
+  useEffect(() => {
+    if (selectedGame === 'pokemon' && pokemonSource === 'localcn' && !cnSetsLoaded) {
+      fetch('/api/localcn/sets')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.sets)) {
+            setCnSets(data.sets);
+            setCnSetsLoaded(true);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load CN sets:', err);
+          setCnSetsLoaded(true);
+        });
+    }
+  }, [selectedGame, pokemonSource, cnSetsLoaded]);
+
   // Load Riftbound sets
   useEffect(() => {
     if (selectedGame === 'riftbound' && !riftboundSetsLoaded) {
@@ -522,6 +558,36 @@ export default function EditSlotModal({
 
     return () => clearTimeout(timer);
   }, [localJpQuery, localJpExpansion, selectedGame, pokemonSource]);
+
+  // Debounced Chinese local DB search
+  useEffect(() => {
+    if (selectedGame !== 'pokemon' || pokemonSource !== 'localcn') return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setCnSearching(true);
+        const params = new URLSearchParams({
+          q: cnQuery.trim(),
+          set: cnSet,
+          page: String(cnPage),
+          limit: '18',
+        });
+        const res = await fetch(`/api/localcn/search?${params.toString()}`);
+        const data = await res.json();
+        if (data.success) {
+          setCnResults(data.cards || []);
+          setCnTotal(data.total || 0);
+          setCnTotalPages(data.totalPages || 1);
+        }
+      } catch (err) {
+        console.error('LocalCn search failed:', err);
+      } finally {
+        setCnSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [cnQuery, cnSet, cnPage, selectedGame, pokemonSource]);
 
   // Debounced Riftbound search
   useEffect(() => {
@@ -760,6 +826,42 @@ export default function EditSlotModal({
     }
   };
 
+  // Handle picking from Chinese local DB
+  const handleSelectLocalCnCard = async (summary: LocalCnCardSummary) => {
+    resetPriceReference();
+    setCardLanguage('CN');
+    setPriceProvider('pricecharting');
+    try {
+      setCnFetchingCard(true);
+      const res = await fetch(`/api/localcn/card/${encodeURIComponent(summary.id)}`);
+      const data = await res.json();
+
+      if (data.success && data.card) {
+        const c = data.card;
+        setCardName(c.name);
+        setCardSet(c.setName || '');
+        setCardNumber(c.number || '');
+        setRarity(c.rarity || 'Common');
+        setImageUrl(c.imageUrl || '');
+        setNotes(`[CN] ${c.fullName || c.name} • ${c.setName}`);
+        setMarketRef(null);
+      } else {
+        setCardName(summary.name);
+        setCardSet(summary.setName || '');
+        setCardNumber(summary.number || '');
+        setRarity(summary.rarity || '');
+        setImageUrl(summary.imageUrl || '');
+        setNotes(`[CN] ${summary.fullName || summary.name} • ${summary.setName}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setCardName(summary.name);
+      setImageUrl(summary.imageUrl || '');
+    } finally {
+      setCnFetchingCard(false);
+    }
+  };
+
   // Handle picking from Riftbound cards
   const handleSelectRiftboundCard = async (summary: RiftboundCardSummary) => {
     resetPriceReference();
@@ -906,16 +1008,18 @@ export default function EditSlotModal({
     }
   };
 
-  const effectiveLanguage: 'EN' | 'JP' | 'ID' = (() => {
+  const effectiveLanguage: 'EN' | 'JP' | 'ID' | 'CN' = (() => {
     if (pokemonSource === 'localid') return 'ID';
     if (pokemonSource === 'localjp') return 'JP';
+    if (pokemonSource === 'localcn') return 'CN';
     if (pokemonSource === 'tcgdex') return 'EN';
     if (onePieceLang === 'JP') return 'JP';
     if (onePieceLang === 'EN') return 'EN';
     if (riftboundLang === 'EN') return 'EN';
     if (cardLanguage) return cardLanguage;
     const rawCheck = `${cardName} ${cardSet} ${notes}`;
-    if (/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(rawCheck) || notes.includes('[JP]')) return 'JP';
+    if (notes.includes('[CN]')) return 'CN';
+    if (/[\u3040-\u30ff]/.test(rawCheck) || notes.includes('[JP]')) return 'JP';
     if (notes.includes('[ID]')) return 'ID';
     return 'EN';
   })();
@@ -963,9 +1067,9 @@ export default function EditSlotModal({
       ? 'Tekan tombol di atas untuk melihat 5 referensi harga pasar Indonesia dari Pokepedia.id.'
       : 'Tekan tombol di atas untuk melihat 5 transaksi tanggal & harga jual terakhir dari PriceCharting.';
 
-  // Cari Harga Referensi (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia)
+  // Cari Harga Referensi (EN: PriceCharting, JP: SNKRDUNK, ID: Pokepedia, CN: PriceCharting)
   const handleSearchPriceReference = async (
-    overrideLang?: 'EN' | 'JP' | 'ID',
+    overrideLang?: 'EN' | 'JP' | 'ID' | 'CN',
     overrideTargetUrl?: string
   ) => {
     if (!cardName.trim()) {
@@ -1226,6 +1330,25 @@ export default function EditSlotModal({
                       title="Pencarian harga pasar kartu Bahasa Inggris via PriceCharting.com"
                     >
                       EN • PriceCharting
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCardLanguage('CN');
+                        setPriceProvider('pricecharting');
+                        setPriceTransactions(null);
+                        setPriceRefError(null);
+                        setPriceRefMeta(null);
+                        setPriceCandidates([]);
+                      }}
+                      className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-center transition-all ${
+                        effectiveLanguage === 'CN'
+                          ? 'bg-rose-500 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                      title="Pencarian harga pasar kartu Bahasa China via PriceCharting.com"
+                    >
+                      CN • PriceCharting
                     </button>
                     <button
                       type="button"
@@ -1693,6 +1816,19 @@ export default function EditSlotModal({
                             <span className="text-sm leading-none">🇯🇵</span>
                             <span>Jepang (23.000+)</span>
                           </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectPokemonSource('localcn')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                              pokemonSource === 'localcn'
+                                ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-400/50'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                            }`}
+                          >
+                            <span className="text-sm leading-none">🇨🇳</span>
+                            <span>China (13.600+)</span>
+                          </button>
                         </div>
                       )}
 
@@ -2064,6 +2200,133 @@ export default function EditSlotModal({
                               {!localJpSearching && localJpResults.length === 0 && localJpQuery.trim().length > 0 && (
                                 <div className="text-center text-xs text-slate-400 py-2">
                                   Tidak ada kartu ditemukan untuk &quot;{localJpQuery}&quot;.
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Chinese Pokemon Card Search View */}
+                          {pokemonSource === 'localcn' && (
+                            <div className="space-y-3">
+                              {/* Set Selector Dropdown */}
+                              <div className="relative">
+                                <ChevronDown className="w-4 h-4 absolute right-3.5 top-3 text-slate-400 pointer-events-none" />
+                                <select
+                                  value={cnSet}
+                                  onChange={(e) => {
+                                    setCnSet(e.target.value);
+                                    setCnPage(1);
+                                  }}
+                                  className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs text-white focus:outline-none focus:border-rose-500 appearance-none shadow-inner"
+                                >
+                                  <option value="">— Semua Set China ({cnSets.length || 147} Set) —</option>
+                                  {cnSets.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.name} ({s.count} kartu)
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Search Input */}
+                              <div className="relative">
+                                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                                <input
+                                  type="text"
+                                  placeholder="Cari kartu Pokémon China (contoh: Pikachu, Charizard, 001/086, Secret Rare)..."
+                                  value={cnQuery}
+                                  onChange={(e) => {
+                                    setCnQuery(e.target.value);
+                                    setCnPage(1);
+                                  }}
+                                  className="w-full pl-10 pr-10 py-2.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 shadow-inner"
+                                />
+                                {cnSearching && (
+                                  <Loader2 className="w-4 h-4 absolute right-3.5 top-3 text-rose-400 animate-spin" />
+                                )}
+                              </div>
+
+                              {/* Info & Result count / Pagination */}
+                              <div className="flex items-center justify-between text-xs px-1 text-slate-400">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm">🇨🇳</span>
+                                  <span className="text-[11px]">
+                                    {cnSearching ? (
+                                      'Sedang mencari kartu China...'
+                                    ) : (
+                                      <>
+                                        Ditemukan <strong className="text-white">{cnTotal.toLocaleString()}</strong> kartu Pokémon China
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
+
+                                {cnTotalPages > 1 && (
+                                  <div className="flex items-center gap-1.5 text-[11px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => setCnPage((p) => Math.max(1, p - 1))}
+                                      disabled={cnPage <= 1 || cnSearching}
+                                      className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold cursor-pointer"
+                                    >
+                                      &larr; Prev
+                                    </button>
+                                    <span className="font-mono text-slate-300">
+                                      {cnPage}/{cnTotalPages}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setCnPage((p) => Math.min(cnTotalPages, p + 1))}
+                                      disabled={cnPage >= cnTotalPages || cnSearching}
+                                      className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white font-bold cursor-pointer"
+                                    >
+                                      Next &rarr;
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Results Grid */}
+                              {cnResults.length > 0 && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                                  {cnResults.map((card, idx) => (
+                                    <button
+                                      key={`cn-${card.id || idx}-${idx}`}
+                                      type="button"
+                                      disabled={cnSearching || cnFetchingCard}
+                                      onClick={() => handleSelectLocalCnCard(card)}
+                                      className="p-2 rounded-2xl bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-rose-500/60 flex items-center gap-2.5 text-left transition-all group shadow hover:shadow-rose-500/10 cursor-pointer"
+                                    >
+                                      {card.imageUrl ? (
+                                        <img
+                                          src={formatCardImageUrl(card.imageUrl)}
+                                          alt=""
+                                          className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] font-bold text-rose-400 flex-shrink-0">
+                                          CN
+                                        </div>
+                                      )}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-xs font-black text-white group-hover:text-rose-300 truncate">
+                                          {card.name}
+                                        </div>
+                                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                                          {card.number ? `#${card.number}` : ''} {card.rarity ? `• ${card.rarity}` : ''}
+                                        </div>
+                                        <div className="text-[10px] text-rose-400/80 font-bold truncate">
+                                          {card.setName}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {!cnSearching && cnResults.length === 0 && (cnQuery.trim().length > 0 || cnSet) && (
+                                <div className="text-center text-xs text-slate-400 py-4">
+                                  Tidak ada kartu ditemukan untuk pencarian ini.
                                 </div>
                               )}
                             </div>

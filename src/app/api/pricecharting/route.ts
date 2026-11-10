@@ -114,10 +114,26 @@ function parseCardCode(cardNumber?: string): ParsedCardCode | null {
 function buildSearchQueries(
   cardName: string,
   parsedCode: ParsedCardCode | null,
-  cardSet?: string
+  cardSet?: string,
+  lang?: string
 ): string[] {
   const cleanName = (cardName || '').trim();
   const queries: string[] = [];
+  const isChinese = (lang || '').toUpperCase() === 'CN';
+
+  if (isChinese) {
+    if (parsedCode?.normNum) {
+      queries.push(`Pokemon Chinese ${cleanName} ${parsedCode.normNum}`);
+      queries.push(`Chinese ${cleanName} ${parsedCode.normNum}`);
+      queries.push(`${cleanName} ${parsedCode.normNum}`);
+    }
+    if (cardSet) {
+      const cleanSet = cardSet.replace(/\([^)]*\)/g, '').trim();
+      queries.push(`Chinese ${cleanName} ${cleanSet}`);
+    }
+    queries.push(`Pokemon Chinese ${cleanName}`);
+    queries.push(`Chinese ${cleanName}`);
+  }
 
   if (parsedCode) {
     // 1. Combined keyword: Card Name + Full Code (e.g. "Kai'Sa OGN-039", "Monkey.D.Luffy OP05-060")
@@ -164,18 +180,33 @@ function matchBestProduct(
   cardName: string,
   parsedCode: ParsedCardCode | null,
   cardSet?: string,
-  game?: string
+  game?: string,
+  lang?: string
 ): PriceChartingProduct | null {
   if (!products || products.length === 0) return null;
 
   const cleanName = (cardName || '').toLowerCase().replace(/[^a-z0-9]/g, ' ');
   const cleanSet = (cardSet || '').toLowerCase();
   const gLower = (game || '').toLowerCase();
+  const isChinese = (lang || '').toUpperCase() === 'CN';
 
   const scored = products.map((p) => {
     let score = 0;
     const pName = (p.productName || '').toLowerCase();
     const pConsole = (p.consoleName || '').toLowerCase();
+
+    // Language specificity (Chinese vs English vs Japanese)
+    if (isChinese) {
+      if (pConsole.includes('chinese')) {
+        score += 150;
+      } else if (pConsole.includes('japanese')) {
+        score -= 80;
+      }
+    } else {
+      if (pConsole.includes('chinese')) {
+        score -= 80;
+      }
+    }
 
     // 1. Card Code / Number Matching (Highest Priority)
     if (parsedCode) {
@@ -361,10 +392,10 @@ export async function GET(req: Request) {
     // Rules for language-specific marketplaces:
     // 1. Japanese submenu/language -> snkrdunk.com (SNKRDUNK)
     // 2. Indonesian submenu/language -> pokepedia.id (Pokepedia)
-    // 3. English submenu/language -> pricecharting.com (PriceCharting)
+    // 3. English & Chinese submenu/language -> pricecharting.com (PriceCharting)
     const isJapanese =
       lang === 'JP' ||
-      /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(cardName + ' ' + cardSet);
+      (lang !== 'CN' && /[\u3040-\u30ff]/.test(cardName + ' ' + cardSet));
     const isIndonesian = lang === 'ID';
 
     if (isJapanese) {
@@ -410,7 +441,7 @@ export async function GET(req: Request) {
     const parsedCode = parseCardCode(cardNumber);
 
     // Build targeted search queries using combined keyword: card name + card code
-    const queries = buildSearchQueries(cardName, parsedCode, cardSet);
+    const queries = buildSearchQueries(cardName, parsedCode, cardSet, lang);
 
     let matchedProduct: PriceChartingProduct | null = null;
 
@@ -432,7 +463,7 @@ export async function GET(req: Request) {
 
         const data = await pcRes.json();
         if (Array.isArray(data.products) && data.products.length > 0) {
-          const match = matchBestProduct(data.products, cardName, parsedCode, cardSet, game);
+          const match = matchBestProduct(data.products, cardName, parsedCode, cardSet, game, lang);
           if (match) {
             matchedProduct = match;
             break;
