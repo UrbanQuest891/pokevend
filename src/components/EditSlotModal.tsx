@@ -1550,7 +1550,9 @@ export default function EditSlotModal({
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-slate-800 bg-slate-950/90 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th className="py-2.5 px-3">Tanggal & Kondisi</th>
+                            <th className="py-2.5 px-3">
+                              {activeProvider === 'snkrdunk' ? 'Tanggal & Kondisi' : 'Tanggal'}
+                            </th>
                             <th className="py-2.5 px-3 text-right">Harga Terakhir Terjual</th>
                           </tr>
                         </thead>
@@ -1580,7 +1582,7 @@ export default function EditSlotModal({
                                     }`} />
                                     {tx.date}
                                   </span>
-                                  {tx.title && (
+                                  {activeProvider === 'snkrdunk' && tx.title && (
                                     <span className="text-[10px] text-slate-500 group-hover:text-slate-400 pl-4.5">
                                       {tx.title}
                                     </span>
