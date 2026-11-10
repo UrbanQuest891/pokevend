@@ -8,8 +8,15 @@ export type CardCondition =
   | 'Graded - PSA 10'
   | 'Graded - PSA 9'
   | 'Graded - PSA 8'
+  | 'Graded - BGS 10 Black Label'
+  | 'Graded - BGS 10 Gold Label'
   | 'Graded - BGS 9.5'
+  | 'Graded - BGS 9'
   | 'Graded - CGC 10'
+  | 'Graded - ARS 10+'
+  | 'Graded - ARS 10'
+  | 'Graded - ARS 9'
+  | 'Graded - ARS 8 or below'
   | 'Graded - Other';
 
 export type CardStatus = 'AVAILABLE' | 'RESERVED' | 'SOLD';

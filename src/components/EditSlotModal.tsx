@@ -59,8 +59,15 @@ const CONDITIONS: CardCondition[] = [
   'Graded - PSA 10',
   'Graded - PSA 9',
   'Graded - PSA 8',
+  'Graded - BGS 10 Black Label',
+  'Graded - BGS 10 Gold Label',
   'Graded - BGS 9.5',
+  'Graded - BGS 9',
   'Graded - CGC 10',
+  'Graded - ARS 10+',
+  'Graded - ARS 10',
+  'Graded - ARS 9',
+  'Graded - ARS 8 or below',
   'Graded - Other',
 ];
 
@@ -187,6 +194,9 @@ export default function EditSlotModal({
     name?: string;
     consoleName?: string;
     url?: string;
+    benchmarkPriceYen?: number;
+    benchmarkPriceIdr?: number;
+    benchmarkFormatted?: string;
   } | null>(null);
   const [priceRefCondition, setPriceRefCondition] = useState<string | null>(null);
   const [priceExchangeRate, setPriceExchangeRate] = useState<{
@@ -1295,6 +1305,19 @@ export default function EditSlotModal({
                           </span>
                         )}
                       </div>
+                      {priceRefMeta.benchmarkFormatted && (
+                        <div className="flex items-center justify-between text-[10px] bg-slate-950/70 px-2.5 py-1.5 rounded-lg border border-slate-800/80 mt-0.5">
+                          <span className="text-slate-400 font-medium">Nilai Rata-rata / Mulai ({priceRefCondition || 'Kondisi Terpilih'}):</span>
+                          <span className="text-cyan-400 font-black">
+                            {priceRefMeta.benchmarkFormatted}{' '}
+                            {priceRefMeta.benchmarkPriceIdr && (
+                              <span className="text-slate-400 font-normal">
+                                (Rp {priceRefMeta.benchmarkPriceIdr.toLocaleString('id-ID')})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1304,7 +1327,7 @@ export default function EditSlotModal({
                       <table className="w-full text-left text-xs">
                         <thead>
                           <tr className="border-b border-slate-800 bg-slate-950/90 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                            <th className="py-2.5 px-3">Tanggal / Tipe</th>
+                            <th className="py-2.5 px-3">Tanggal & Kondisi</th>
                             <th className="py-2.5 px-3 text-right">Harga Terakhir Terjual</th>
                           </tr>
                         </thead>
@@ -1323,16 +1346,23 @@ export default function EditSlotModal({
                               }
                             >
                               <td className="py-2.5 px-3 text-slate-400 group-hover:text-slate-200 font-medium whitespace-nowrap">
-                                <span className="flex items-center gap-1.5">
-                                  <Clock className={`w-3 h-3 ${
-                                    activeProvider === 'snkrdunk'
-                                      ? 'text-cyan-500 group-hover:text-cyan-400'
-                                      : activeProvider === 'pokepedia'
-                                      ? 'text-emerald-500 group-hover:text-emerald-400'
-                                      : 'text-slate-500 group-hover:text-amber-400'
-                                  }`} />
-                                  {tx.date}
-                                </span>
+                                <div className="flex flex-col">
+                                  <span className="flex items-center gap-1.5">
+                                    <Clock className={`w-3 h-3 ${
+                                      activeProvider === 'snkrdunk'
+                                        ? 'text-cyan-500 group-hover:text-cyan-400'
+                                        : activeProvider === 'pokepedia'
+                                        ? 'text-emerald-500 group-hover:text-emerald-400'
+                                        : 'text-slate-500 group-hover:text-amber-400'
+                                    }`} />
+                                    {tx.date}
+                                  </span>
+                                  {tx.title && (
+                                    <span className="text-[10px] text-slate-500 group-hover:text-slate-400 pl-4.5">
+                                      {tx.title}
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="py-2.5 px-3 text-right font-bold whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
