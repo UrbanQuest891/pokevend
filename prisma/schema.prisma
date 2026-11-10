@@ -1,0 +1,100 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model CardCatalog {
+  id         String   @id
+  game       String   // 'pokemon' | 'onepiece' | 'riftbound'
+  lang       String   // 'EN' | 'ID' | 'JP' | 'CN'
+  name       String
+  fullName   String?
+  cardNumber String   @default("")
+  rarity     String   @default("")
+  setName    String   @default("")
+  setId      String?
+  imageUrl   String   @default("")
+  category   String?
+  color      String?
+  attribute  String?
+  type       String?
+  costLife   String?
+  power      String?
+  counter    String?
+  effect     String?
+  detailUrl  String?
+  createdAt  DateTime @default(now())
+
+  @@index([game, lang])
+  @@index([name])
+  @@index([cardNumber])
+  @@index([setName])
+}
+
+model CardSet {
+  id        String   @id
+  game      String   // 'pokemon' | 'onepiece' | 'riftbound'
+  lang      String   // 'EN' | 'ID' | 'JP' | 'CN'
+  code      String
+  name      String
+  symbolUrl String?
+  count     Int      @default(0)
+
+  @@index([game, lang])
+}
+
+model Binder {
+  id            String   @id
+  name          String
+  description   String?
+  sellerName    String?
+  boothName     String?
+  contactNumber String?
+  coverColor    String?
+  badge         String?
+  currency      String   @default("IDR")
+  layoutType    String   @default("9-pocket")
+  totalPages    Int      @default(3)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  slots         Slot[]
+}
+
+model Slot {
+  id            String   @id @default(cuid())
+  binderId      String
+  slotNumber    Int
+  name          String
+  setName       String?
+  cardNumber    String?
+  rarity        String?
+  condition     String   @default("Raw - NM")
+  price         Float    @default(0)
+  originalPrice Float?
+  status        String   @default("AVAILABLE") // AVAILABLE | RESERVED | SOLD
+  imageUrl      String?
+  notes         String?
+  game          String   @default("pokemon")
+  updatedAt     DateTime @updatedAt
+
+  binder        Binder   @relation(fields: [binderId], references: [id], onDelete: Cascade)
+
+  @@unique([binderId, slotNumber])
+}
+
+model SellerProfile {
+  id            String   @id @default("default-profile")
+  sellerName    String
+  boothName     String
+  eventCity     String
+  contactNumber String
+  instagram     String
+  currency      String   @default("IDR")
+  bannerNotice  String?
+  updatedAt     DateTime @updatedAt
+}

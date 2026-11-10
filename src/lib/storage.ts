@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { AppData, Binder, PokemonCard, SellerProfile } from '@/types';
+import { AppData, Binder, CardCondition, CardStatus, BinderLayout, PokemonCard, SellerProfile } from '@/types';
+import prisma from './prisma';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'store.json');
@@ -23,261 +24,14 @@ const SAMPLE_BINDERS: Binder[] = [
     sellerName: 'PokeVault Indonesia',
     boothName: 'Table #A-14',
     contactNumber: '081234567890',
-    coverColor: '#DC2626', // Red
+    coverColor: '#DC2626',
     badge: '🏆 Top Tier Hits',
     currency: 'IDR',
     layoutType: '9-pocket',
     totalPages: 3,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    slots: {
-      1: {
-        id: 'card-1',
-        name: 'Charizard ex #199/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '199/165',
-        rarity: 'Special Illustration Rare',
-        condition: 'Raw - NM',
-        price: 2450000,
-        originalPrice: 2700000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/199_hires.png',
-        notes: 'Pack fresh, centering sangat bagus (9.5 candidate), swirl tidak ada.',
-        updatedAt: new Date().toISOString(),
-      },
-      2: {
-        id: 'card-2',
-        name: 'Umbreon VMAX "Moonbreon" #215/203',
-        setName: 'Sword & Shield: Evolving Skies',
-        cardNumber: '215/203',
-        rarity: 'Secret Rare Alt Art',
-        condition: 'Graded - PSA 10',
-        price: 15500000,
-        originalPrice: 16500000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/swsh7/215_hires.png',
-        notes: 'PSA 10 Gem Mint. Case mulus tanpa baret. Grail item!',
-        updatedAt: new Date().toISOString(),
-      },
-      3: {
-        id: 'card-3',
-        name: 'Gengar VMAX Alt Art #271/264',
-        setName: 'Sword & Shield: Fusion Strike',
-        cardNumber: '271/264',
-        rarity: 'Secret Rare Alt Art',
-        condition: 'Raw - NM',
-        price: 4800000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/swsh8/271_hires.png',
-        notes: 'Sangat bersih, texture tajam, tidak ada whitening di sudut.',
-        updatedAt: new Date().toISOString(),
-      },
-      4: {
-        id: 'card-4',
-        name: 'Pikachu "Grey Felt Hat" #085',
-        setName: 'SVP Black Star Promos (Van Gogh)',
-        cardNumber: '085',
-        rarity: 'Promo',
-        condition: 'Raw - Mint',
-        price: 1850000,
-        originalPrice: 2000000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/smp/SM85_hires.png',
-        notes: 'Masih segel original sleeve (Sealed). Museum edition.',
-        updatedAt: new Date().toISOString(),
-      },
-      5: {
-        id: 'card-5',
-        name: 'Giratina V Alt Art #186/196',
-        setName: 'Sword & Shield: Lost Origin',
-        cardNumber: '186/196',
-        rarity: 'Ultra Rare Alt Art',
-        condition: 'Raw - NM',
-        price: 5200000,
-        status: 'RESERVED',
-        imageUrl: 'https://images.pokemontcg.io/swsh11/186_hires.png',
-        notes: 'Sedang di-hold oleh buyer hingga pkl 14:00.',
-        updatedAt: new Date().toISOString(),
-      },
-      6: {
-        id: 'card-6',
-        name: 'Rayquaza VMAX Alt Art #218/203',
-        setName: 'Sword & Shield: Evolving Skies',
-        cardNumber: '218/203',
-        rarity: 'Secret Rare Alt Art',
-        condition: 'Raw - NM',
-        price: 6800000,
-        originalPrice: 7200000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/swsh7/218_hires.png',
-        notes: 'Kondisi istimewa, centering 50/50 simetris.',
-        updatedAt: new Date().toISOString(),
-      },
-      7: {
-        id: 'card-7',
-        name: 'Mew ex Special Illustration Rare #232/091',
-        setName: 'Paldean Fates',
-        cardNumber: '232/091',
-        rarity: 'Special Illustration Rare',
-        condition: 'Raw - NM',
-        price: 1650000,
-        status: 'SOLD',
-        imageUrl: 'https://images.pokemontcg.io/sv4pt5/232_hires.png',
-        notes: 'Sudah laku terjual pagi tadi.',
-        updatedAt: new Date().toISOString(),
-      },
-      8: {
-        id: 'card-8',
-        name: 'Iono Special Illustration Rare #269/193',
-        setName: 'Scarlet & Violet: Paldea Evolved',
-        cardNumber: '269/193',
-        rarity: 'Special Illustration Rare',
-        condition: 'Raw - NM',
-        price: 1350000,
-        originalPrice: 1500000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv2/269_hires.png',
-        notes: 'Waifu card terfavorit SV era. Foil sangat bersih.',
-        updatedAt: new Date().toISOString(),
-      },
-      9: {
-        id: 'card-9',
-        name: 'Charizard Base Set Unlimited #4/102',
-        setName: 'Base Set (Vintage 1999)',
-        cardNumber: '4/102',
-        rarity: 'Holo Rare',
-        condition: 'Raw - LP',
-        price: 4900000,
-        originalPrice: 5500000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/base1/4_hires.png',
-        notes: 'Light Played vintage asli 1999. Holo foil terawat, minor edge wear di belakang.',
-        updatedAt: new Date().toISOString(),
-      },
-      10: {
-        id: 'card-10',
-        name: 'Blastoise ex SIR #200/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '200/165',
-        rarity: 'Special Illustration Rare',
-        condition: 'Raw - NM',
-        price: 1100000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/200_hires.png',
-        notes: 'Artwork bawah laut legendaris. Flawless.',
-        updatedAt: new Date().toISOString(),
-      },
-      11: {
-        id: 'card-11',
-        name: 'Venusaur ex SIR #198/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '198/165',
-        rarity: 'Special Illustration Rare',
-        condition: 'Raw - NM',
-        price: 950000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/198_hires.png',
-        notes: 'Cocok melengkapi trio starter Kanto 151.',
-        updatedAt: new Date().toISOString(),
-      },
-      12: {
-        id: 'card-12',
-        name: 'Magikarp Illustration Rare #203/193',
-        setName: 'Scarlet & Violet: Paldea Evolved',
-        cardNumber: '203/193',
-        rarity: 'Illustration Rare',
-        condition: 'Raw - Mint',
-        price: 1950000,
-        originalPrice: 2200000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv2/203_hires.png',
-        notes: 'Artwork Shinji Kanda terpopuler. Sangat langka ditarik!',
-        updatedAt: new Date().toISOString(),
-      },
-    },
-  },
-  {
-    id: 'binder-budget-singles',
-    name: '⭐ Popular Singles & AR (Under Rp 500k)',
-    description: 'Binder pilihan untuk kolektor budget, Art Rare (AR), Trainer Gallery, dan kartu playable.',
-    sellerName: 'PokeVault Indonesia',
-    boothName: 'Table #A-14',
-    contactNumber: '081234567890',
-    coverColor: '#2563EB', // Blue
-    badge: '💸 Budget Friendly',
-    currency: 'IDR',
-    layoutType: '9-pocket',
-    totalPages: 2,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    slots: {
-      1: {
-        id: 'budget-1',
-        name: 'Pikachu AR #173/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '173/165',
-        rarity: 'Illustration Rare',
-        condition: 'Raw - NM',
-        price: 380000,
-        originalPrice: 420000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/173_hires.png',
-        notes: 'Pikachu manis bersama teman-teman starter.',
-        updatedAt: new Date().toISOString(),
-      },
-      2: {
-        id: 'budget-2',
-        name: 'Mewtwo Promo #052',
-        setName: 'Scarlet & Violet: 151 Ultra Premium',
-        cardNumber: '052',
-        rarity: 'Promo',
-        condition: 'Raw - NM',
-        price: 250000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/52_hires.png',
-        notes: 'Mewtwo AR gedung perkotaan malam hari.',
-        updatedAt: new Date().toISOString(),
-      },
-      3: {
-        id: 'budget-3',
-        name: 'Charmander AR #168/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '168/165',
-        rarity: 'Illustration Rare',
-        condition: 'Raw - NM',
-        price: 450000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/168_hires.png',
-        notes: 'Artwork tebing ngintip.',
-        updatedAt: new Date().toISOString(),
-      },
-      4: {
-        id: 'budget-4',
-        name: 'Squirtle AR #170/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '170/165',
-        rarity: 'Illustration Rare',
-        condition: 'Raw - NM',
-        price: 420000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/170_hires.png',
-        notes: 'Squirtle santai di pantai.',
-        updatedAt: new Date().toISOString(),
-      },
-      5: {
-        id: 'budget-5',
-        name: 'Bulbasaur AR #166/165',
-        setName: 'Scarlet & Violet: 151',
-        cardNumber: '166/165',
-        rarity: 'Illustration Rare',
-        condition: 'Raw - NM',
-        price: 390000,
-        status: 'AVAILABLE',
-        imageUrl: 'https://images.pokemontcg.io/sv3pt5/166_hires.png',
-        notes: 'Bulbasaur tidur di dahan pohon.',
-        updatedAt: new Date().toISOString(),
-      },
-    },
+    slots: {},
   },
 ];
 
@@ -309,47 +63,228 @@ async function persistData(data: AppData): Promise<void> {
   }
 }
 
+function mapPrismaSlotToPokemonCard(slot: any): PokemonCard {
+  return {
+    id: slot.id,
+    name: slot.name,
+    setName: slot.setName || '',
+    cardNumber: slot.cardNumber || '',
+    rarity: slot.rarity || '',
+    condition: (slot.condition as CardCondition) || 'Raw - NM',
+    price: Number(slot.price) || 0,
+    originalPrice: slot.originalPrice != null ? Number(slot.originalPrice) : undefined,
+    status: (slot.status as CardStatus) || 'AVAILABLE',
+    imageUrl: slot.imageUrl || '',
+    notes: slot.notes || '',
+    game: slot.game || 'pokemon',
+    updatedAt: slot.updatedAt ? new Date(slot.updatedAt).toISOString() : new Date().toISOString(),
+  };
+}
+
+function mapPrismaBinderToBinder(b: any): Binder {
+  const slotsRecord: Record<number, PokemonCard> = {};
+  if (b.slots && Array.isArray(b.slots)) {
+    for (const s of b.slots) {
+      slotsRecord[s.slotNumber] = mapPrismaSlotToPokemonCard(s);
+    }
+  }
+  return {
+    id: b.id,
+    name: b.name,
+    description: b.description || '',
+    sellerName: b.sellerName || '',
+    boothName: b.boothName || '',
+    contactNumber: b.contactNumber || '',
+    coverColor: b.coverColor || '#3B82F6',
+    badge: b.badge || '',
+    currency: (b.currency as 'IDR' | 'USD') || 'IDR',
+    layoutType: (b.layoutType as BinderLayout) || '9-pocket',
+    totalPages: b.totalPages || 3,
+    slots: slotsRecord,
+    createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: b.updatedAt ? new Date(b.updatedAt).toISOString() : new Date().toISOString(),
+  };
+}
+
 export async function getAppData(): Promise<AppData> {
-  return await ensureDataFile();
+  const profile = await getProfile();
+  const binders = await getBinders();
+  return { profile, binders };
 }
 
 export async function getProfile(): Promise<SellerProfile> {
+  try {
+    const profile = await prisma.sellerProfile.findUnique({
+      where: { id: 'default-profile' },
+    });
+    if (profile) {
+      return {
+        sellerName: profile.sellerName,
+        boothName: profile.boothName,
+        eventCity: profile.eventCity || undefined,
+        contactNumber: profile.contactNumber,
+        instagram: profile.instagram || undefined,
+        currency: (profile.currency as 'IDR' | 'USD') || 'IDR',
+        bannerNotice: profile.bannerNotice || undefined,
+      };
+    }
+  } catch (err) {
+    console.warn('Prisma getProfile fallback to file:', err);
+  }
   const data = await ensureDataFile();
   return data.profile;
 }
 
 export async function updateProfile(newProfile: Partial<SellerProfile>): Promise<SellerProfile> {
-  const data = await ensureDataFile();
-  data.profile = { ...data.profile, ...newProfile };
-  await persistData(data);
-  return data.profile;
+  try {
+    const updated = await prisma.sellerProfile.upsert({
+      where: { id: 'default-profile' },
+      update: {
+        ...(newProfile.sellerName && { sellerName: newProfile.sellerName }),
+        ...(newProfile.boothName && { boothName: newProfile.boothName }),
+        ...(newProfile.eventCity !== undefined && { eventCity: newProfile.eventCity }),
+        ...(newProfile.contactNumber && { contactNumber: newProfile.contactNumber }),
+        ...(newProfile.instagram !== undefined && { instagram: newProfile.instagram }),
+        ...(newProfile.currency && { currency: newProfile.currency }),
+        ...(newProfile.bannerNotice !== undefined && { bannerNotice: newProfile.bannerNotice }),
+      },
+      create: {
+        id: 'default-profile',
+        sellerName: newProfile.sellerName || 'PokeVault Indonesia',
+        boothName: newProfile.boothName || 'Table #A-14',
+        eventCity: newProfile.eventCity || 'Jakarta',
+        contactNumber: newProfile.contactNumber || '081234567890',
+        instagram: newProfile.instagram || '@pokevault_id',
+        currency: newProfile.currency || 'IDR',
+        bannerNotice: newProfile.bannerNotice || '',
+      },
+    });
+
+    const fileData = await ensureDataFile();
+    fileData.profile = { ...fileData.profile, ...newProfile };
+    await persistData(fileData);
+
+    return {
+      sellerName: updated.sellerName,
+      boothName: updated.boothName,
+      eventCity: updated.eventCity || undefined,
+      contactNumber: updated.contactNumber,
+      instagram: updated.instagram || undefined,
+      currency: (updated.currency as 'IDR' | 'USD') || 'IDR',
+      bannerNotice: updated.bannerNotice || undefined,
+    };
+  } catch (err) {
+    console.warn('Prisma updateProfile fallback to file:', err);
+    const data = await ensureDataFile();
+    data.profile = { ...data.profile, ...newProfile };
+    await persistData(data);
+    return data.profile;
+  }
 }
 
 export async function getBinders(): Promise<Binder[]> {
+  try {
+    const binders = await prisma.binder.findMany({
+      include: { slots: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (binders && binders.length > 0) {
+      return binders.map(mapPrismaBinderToBinder);
+    }
+  } catch (err) {
+    console.warn('Prisma getBinders fallback to file:', err);
+  }
   const data = await ensureDataFile();
   return data.binders;
 }
 
 export async function getBinderById(id: string): Promise<Binder | null> {
+  try {
+    const binder = await prisma.binder.findUnique({
+      where: { id },
+      include: { slots: true },
+    });
+    if (binder) {
+      return mapPrismaBinderToBinder(binder);
+    }
+  } catch (err) {
+    console.warn('Prisma getBinderById fallback to file:', err);
+  }
   const data = await ensureDataFile();
   return data.binders.find((b) => b.id === id) || null;
 }
 
-export async function createBinder(binderInput: Omit<Binder, 'createdAt' | 'updatedAt' | 'slots'> & { slots?: Record<number, PokemonCard> }): Promise<Binder> {
-  const data = await ensureDataFile();
-  const now = new Date().toISOString();
-  const newBinder: Binder = {
-    ...binderInput,
-    slots: binderInput.slots || {},
-    createdAt: now,
-    updatedAt: now,
-  };
-  data.binders.push(newBinder);
-  await persistData(data);
-  return newBinder;
+export async function createBinder(
+  binderInput: Omit<Binder, 'createdAt' | 'updatedAt' | 'slots'> & { slots?: Record<number, PokemonCard> }
+): Promise<Binder> {
+  try {
+    const created = await prisma.binder.create({
+      data: {
+        id: binderInput.id,
+        name: binderInput.name,
+        description: binderInput.description || '',
+        sellerName: binderInput.sellerName || '',
+        boothName: binderInput.boothName || '',
+        contactNumber: binderInput.contactNumber || '',
+        coverColor: binderInput.coverColor || '#3B82F6',
+        badge: binderInput.badge || '',
+        currency: binderInput.currency || 'IDR',
+        layoutType: binderInput.layoutType || '9-pocket',
+        totalPages: binderInput.totalPages || 3,
+      },
+    });
+
+    const fileData = await ensureDataFile();
+    const newBinder: Binder = {
+      ...binderInput,
+      slots: binderInput.slots || {},
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+    };
+    fileData.binders.push(newBinder);
+    await persistData(fileData);
+
+    return newBinder;
+  } catch (err) {
+    console.warn('Prisma createBinder fallback:', err);
+    const data = await ensureDataFile();
+    const now = new Date().toISOString();
+    const newBinder: Binder = {
+      ...binderInput,
+      slots: binderInput.slots || {},
+      createdAt: now,
+      updatedAt: now,
+    };
+    data.binders.push(newBinder);
+    await persistData(data);
+    return newBinder;
+  }
 }
 
-export async function updateBinder(id: string, updates: Partial<Omit<Binder, 'id' | 'createdAt'>>): Promise<Binder | null> {
+export async function updateBinder(
+  id: string,
+  updates: Partial<Omit<Binder, 'id' | 'createdAt'>>
+): Promise<Binder | null> {
+  try {
+    await prisma.binder.update({
+      where: { id },
+      data: {
+        ...(updates.name && { name: updates.name }),
+        ...(updates.description !== undefined && { description: updates.description }),
+        ...(updates.sellerName !== undefined && { sellerName: updates.sellerName }),
+        ...(updates.boothName !== undefined && { boothName: updates.boothName }),
+        ...(updates.contactNumber !== undefined && { contactNumber: updates.contactNumber }),
+        ...(updates.coverColor && { coverColor: updates.coverColor }),
+        ...(updates.badge !== undefined && { badge: updates.badge }),
+        ...(updates.currency && { currency: updates.currency }),
+        ...(updates.layoutType && { layoutType: updates.layoutType }),
+        ...(updates.totalPages !== undefined && { totalPages: updates.totalPages }),
+      },
+    });
+  } catch (err) {
+    console.warn('Prisma updateBinder error:', err);
+  }
+
   const data = await ensureDataFile();
   const index = data.binders.findIndex((b) => b.id === id);
   if (index === -1) return null;
@@ -365,6 +300,14 @@ export async function updateBinder(id: string, updates: Partial<Omit<Binder, 'id
 }
 
 export async function deleteBinder(id: string): Promise<boolean> {
+  try {
+    await prisma.binder.delete({
+      where: { id },
+    });
+  } catch (err) {
+    console.warn('Prisma deleteBinder error:', err);
+  }
+
   const data = await ensureDataFile();
   const initialLength = data.binders.length;
   data.binders = data.binders.filter((b) => b.id !== id);
@@ -375,7 +318,10 @@ export async function deleteBinder(id: string): Promise<boolean> {
   return false;
 }
 
-export async function getSlotCard(binderId: string, slotNumber: number): Promise<{ binder: Binder; card: PokemonCard | null } | null> {
+export async function getSlotCard(
+  binderId: string,
+  slotNumber: number
+): Promise<{ binder: Binder; card: PokemonCard | null } | null> {
   const binder = await getBinderById(binderId);
   if (!binder) return null;
   const card = binder.slots[slotNumber] || null;
@@ -387,11 +333,58 @@ export async function updateSlotCard(
   slotNumber: number,
   cardData: Partial<PokemonCard> & { name: string; price: number; condition: PokemonCard['condition'] }
 ): Promise<{ binder: Binder; card: PokemonCard } | null> {
+  const now = new Date();
+  try {
+    await prisma.slot.upsert({
+      where: {
+        binderId_slotNumber: { binderId, slotNumber },
+      },
+      update: {
+        name: cardData.name,
+        setName: cardData.setName || '',
+        cardNumber: cardData.cardNumber || '',
+        rarity: cardData.rarity || '',
+        condition: cardData.condition,
+        price: Number(cardData.price) || 0,
+        originalPrice: cardData.originalPrice != null ? Number(cardData.originalPrice) : null,
+        status: cardData.status || 'AVAILABLE',
+        imageUrl: cardData.imageUrl || '',
+        notes: cardData.notes || '',
+        game: cardData.game || 'pokemon',
+        updatedAt: now,
+      },
+      create: {
+        binderId,
+        slotNumber,
+        name: cardData.name,
+        setName: cardData.setName || '',
+        cardNumber: cardData.cardNumber || '',
+        rarity: cardData.rarity || '',
+        condition: cardData.condition,
+        price: Number(cardData.price) || 0,
+        originalPrice: cardData.originalPrice != null ? Number(cardData.originalPrice) : null,
+        status: cardData.status || 'AVAILABLE',
+        imageUrl: cardData.imageUrl || '',
+        notes: cardData.notes || '',
+        game: cardData.game || 'pokemon',
+        updatedAt: now,
+      },
+    });
+
+    await prisma.binder.update({
+      where: { id: binderId },
+      data: { updatedAt: now },
+    });
+  } catch (err) {
+    console.warn('Prisma updateSlotCard fallback:', err);
+  }
+
+  // Also sync to local store.json
   const data = await ensureDataFile();
   const binderIndex = data.binders.findIndex((b) => b.id === binderId);
   if (binderIndex === -1) return null;
 
-  const now = new Date().toISOString();
+  const nowStr = now.toISOString();
   const existingCard = data.binders[binderIndex].slots[slotNumber];
 
   const updatedCard: PokemonCard = {
@@ -407,17 +400,29 @@ export async function updateSlotCard(
     imageUrl: cardData.imageUrl || 'https://images.pokemontcg.io/sv3pt5/199_hires.png',
     notes: cardData.notes || '',
     game: cardData.game || existingCard?.game || 'pokemon',
-    updatedAt: now,
+    updatedAt: nowStr,
   };
 
   data.binders[binderIndex].slots[slotNumber] = updatedCard;
-  data.binders[binderIndex].updatedAt = now;
+  data.binders[binderIndex].updatedAt = nowStr;
 
   await persistData(data);
   return { binder: data.binders[binderIndex], card: updatedCard };
 }
 
 export async function removeCardFromSlot(binderId: string, slotNumber: number): Promise<boolean> {
+  try {
+    await prisma.slot.deleteMany({
+      where: { binderId, slotNumber },
+    });
+    await prisma.binder.update({
+      where: { id: binderId },
+      data: { updatedAt: new Date() },
+    });
+  } catch (err) {
+    console.warn('Prisma removeCardFromSlot error:', err);
+  }
+
   const data = await ensureDataFile();
   const binder = data.binders.find((b) => b.id === binderId);
   if (!binder || !binder.slots[slotNumber]) return false;
@@ -428,7 +433,20 @@ export async function removeCardFromSlot(binderId: string, slotNumber: number): 
   return true;
 }
 
-export async function quickToggleCardStatus(binderId: string, slotNumber: number, status: PokemonCard['status']): Promise<PokemonCard | null> {
+export async function quickToggleCardStatus(
+  binderId: string,
+  slotNumber: number,
+  status: PokemonCard['status']
+): Promise<PokemonCard | null> {
+  try {
+    await prisma.slot.updateMany({
+      where: { binderId, slotNumber },
+      data: { status, updatedAt: new Date() },
+    });
+  } catch (err) {
+    console.warn('Prisma quickToggleCardStatus error:', err);
+  }
+
   const data = await ensureDataFile();
   const binder = data.binders.find((b) => b.id === binderId);
   if (!binder || !binder.slots[slotNumber]) return null;
@@ -440,7 +458,29 @@ export async function quickToggleCardStatus(binderId: string, slotNumber: number
   return binder.slots[slotNumber];
 }
 
-export async function quickUpdatePrice(binderId: string, slotNumber: number, newPrice: number): Promise<PokemonCard | null> {
+export async function quickUpdatePrice(
+  binderId: string,
+  slotNumber: number,
+  newPrice: number
+): Promise<PokemonCard | null> {
+  try {
+    const slot = await prisma.slot.findUnique({
+      where: { binderId_slotNumber: { binderId, slotNumber } },
+    });
+    if (slot) {
+      await prisma.slot.update({
+        where: { id: slot.id },
+        data: {
+          originalPrice: slot.price,
+          price: newPrice,
+          updatedAt: new Date(),
+        },
+      });
+    }
+  } catch (err) {
+    console.warn('Prisma quickUpdatePrice error:', err);
+  }
+
   const data = await ensureDataFile();
   const binder = data.binders.find((b) => b.id === binderId);
   if (!binder || !binder.slots[slotNumber]) return null;
@@ -455,6 +495,27 @@ export async function quickUpdatePrice(binderId: string, slotNumber: number, new
 }
 
 export async function bulkApplyDiscount(binderId: string, discountPercentage: number): Promise<number> {
+  try {
+    const slots = await prisma.slot.findMany({
+      where: { binderId, status: 'AVAILABLE' },
+    });
+    const factor = (100 - discountPercentage) / 100;
+    for (const s of slots) {
+      const orig = s.originalPrice || s.price;
+      const discounted = Math.max(1000, Math.round((orig * factor) / 5000) * 5000);
+      await prisma.slot.update({
+        where: { id: s.id },
+        data: {
+          originalPrice: orig,
+          price: discounted,
+          updatedAt: new Date(),
+        },
+      });
+    }
+  } catch (err) {
+    console.warn('Prisma bulkApplyDiscount error:', err);
+  }
+
   const data = await ensureDataFile();
   const binder = data.binders.find((b) => b.id === binderId);
   if (!binder) return 0;
@@ -466,7 +527,6 @@ export async function bulkApplyDiscount(binderId: string, discountPercentage: nu
       const orig = card.originalPrice || card.price;
       const factor = (100 - discountPercentage) / 100;
       card.originalPrice = orig;
-      // Round to nearest 5000 if IDR, or round to 2 decimals
       const discounted = Math.max(1000, Math.round((orig * factor) / 5000) * 5000);
       card.price = discounted;
       card.updatedAt = new Date().toISOString();
