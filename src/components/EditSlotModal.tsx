@@ -1218,26 +1218,7 @@ export default function EditSlotModal({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* LEFT COLUMN: High Visibility Card Preview Showcase (lg:col-span-5) */}
               <div className="lg:col-span-5 flex flex-col items-center gap-4">
-                <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-4 sm:p-5 flex flex-col items-center shadow-inner relative">
-                  {/* Preview Header Label */}
-                  <div className="w-full flex items-center justify-between pb-3 mb-3 border-b border-slate-800/80 text-xs">
-                    <span className="font-extrabold text-slate-300 flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-blue-400" />
-                      Preview Visual Kartu
-                    </span>
-                    <span className="px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700/80 flex items-center justify-center shadow-sm">
-                      {effectiveGame === 'pokemon' && (
-                        <img src="/logos/pokemon.svg" alt="Pokémon" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
-                      )}
-                      {effectiveGame === 'riftbound' && (
-                        <img src="/logos/riftbound.png" alt="Riftbound" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
-                      )}
-                      {effectiveGame === 'onepiece' && (
-                        <img src="/logos/onepiece.png?v=2" alt="One Piece" className="h-5 sm:h-6 w-auto max-h-6 object-contain" />
-                      )}
-                    </span>
-                  </div>
-
+                <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-3 sm:p-4 flex flex-col items-center shadow-inner relative">
                   {/* Main Large Card Container */}
                   <div
                     onClick={() => imageUrl && setIsLightboxOpen(true)}
@@ -1249,7 +1230,7 @@ export default function EditSlotModal({
                         setIsLightboxOpen(true);
                       }
                     }}
-                    className={`relative w-full max-w-[270px] sm:max-w-[290px] aspect-[63/88] rounded-2xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl transition-all duration-300 group ${
+                    className={`relative w-full max-w-[320px] sm:max-w-[340px] aspect-[63/88] rounded-2xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl transition-all duration-300 group ${
                       imageUrl ? 'cursor-pointer hover:border-blue-500 hover:shadow-blue-500/20 hover:scale-[1.02]' : ''
                     }`}
                     title={imageUrl ? 'Klik kartu untuk memperbesar (zoom)' : undefined}
