@@ -1215,10 +1215,10 @@ export default function EditSlotModal({
 
           {/* Main Body - 2 Columns on Desktop */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 lg:gap-6 items-stretch lg:items-start">
               {/* LEFT COLUMN: High Visibility Card Preview Showcase (lg:col-span-5) */}
-              <div className="lg:col-span-5 flex flex-col items-center gap-4">
-                <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-3 sm:p-4 flex flex-col items-center shadow-inner relative">
+              <div className="contents lg:flex lg:flex-col lg:col-span-5 items-center gap-4">
+                <div className="order-1 lg:order-none w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-3 sm:p-4 flex flex-col items-center shadow-inner relative">
                   {/* Main Large Card Container */}
                   <div
                     onClick={() => imageUrl && setIsLightboxOpen(true)}
@@ -1293,8 +1293,8 @@ export default function EditSlotModal({
                   </div>
                 </div>
 
-                {/* 5 Transaksi Terakhir Table */}
-                <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-4 sm:p-5 flex flex-col gap-3 shadow-inner">
+                {/* 5 Transaksi Terakhir Table (Table 1: Order 3 di HP agar di bawah Pemilihan Kartu) */}
+                <div className="order-3 lg:order-none w-full bg-slate-950/80 border border-slate-800/80 rounded-3xl p-4 sm:p-5 flex flex-col gap-3 shadow-inner">
                   {/* Header */}
                   <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                     <span className="font-extrabold text-slate-300 text-xs flex items-center gap-1.5">
@@ -1715,9 +1715,9 @@ export default function EditSlotModal({
               </div>
 
               {/* RIGHT COLUMN: Search + Details & Pricing Form (lg:col-span-7) */}
-              <div className="lg:col-span-7 space-y-5">
-                {/* 1. Database Card Search Box with Progressive 3-Step Interactive Drilldown */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-4">
+              <div className="contents lg:block lg:col-span-7 lg:space-y-5">
+                {/* 1. Database Card Search Box with Progressive 3-Step Interactive Drilldown (Table 2: Order 2 di HP agar di atas Transaksi Terakhir) */}
+                <div className="order-2 lg:order-none w-full bg-slate-950/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-4">
                   {/* LEVEL 1: Primary TCG Game Selector */}
                   <div>
                     <div className="flex items-center justify-between mb-2.5">
@@ -2659,8 +2659,8 @@ export default function EditSlotModal({
                   )}
                 </div>
 
-                {/* 2. Main Edit Form */}
-                <form onSubmit={handleSave} className="space-y-4">
+                {/* 2. Main Edit Form (Order 4 di HP) */}
+                <form onSubmit={handleSave} className="order-4 lg:order-none w-full space-y-4">
                   {/* Pricing & Status Section */}
                   <div className="p-4 sm:p-5 bg-slate-950/60 border border-slate-800 rounded-3xl space-y-4">
                     <div className="flex items-center justify-between">
