@@ -93,8 +93,41 @@ export interface SaleRecord {
   soldAt: string;
 }
 
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  binderId: string;
+  slotNumber: number;
+  cardName: string;
+  setName?: string;
+  cardNumber?: string;
+  rarity?: string;
+  condition: string;
+  game: string;
+  imageUrl?: string;
+  listedPrice: number;
+  dealPrice: number;
+  status: 'IN_ORDER' | 'REMOVED';
+}
+
+export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'COMPLETED' | 'CANCELLED';
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  binderId: string;
+  buyerName: string;
+  status: OrderStatus;
+  totalAmount: number;
+  notes?: string;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
   profile: SellerProfile;
   binders: Binder[];
   sales?: SaleRecord[];
+  orders?: Order[];
 }

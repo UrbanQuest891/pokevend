@@ -7,23 +7,22 @@ import { formatCurrency } from '@/lib/qr';
 import { formatCardImageUrl } from '@/lib/imageHelper';
 import { smoothScrollToElement } from '@/lib/scrollHelper';
 import { formatCardDisplayName, translateCardSet } from '@/lib/cardTranslator';
-import WishlistDrawer, { WishlistItem } from '@/components/WishlistDrawer';
+import BuyerCartDrawer, { CartItem } from '@/components/BuyerCartDrawer';
 import CardImageLightbox from '@/components/CardImageLightbox';
 import {
   Search,
-  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
   ShoppingBag,
   Check,
-  Eye,
-  Info,
   Sparkles,
   Layers,
   Store,
   Tag,
   ArrowRight,
   ZoomIn,
+  BookOpen,
+  Filter,
 } from 'lucide-react';
 
 export default function BuyerBinderPage() {
@@ -37,7 +36,17 @@ export default function BuyerBinderPage() {
   const contentTopRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
 
-  // Smooth glide to top of content when target page content displays
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceFilter, setPriceFilter] = useState<'all' | 'under500k' | '500k-2m' | 'above2m'>('all');
+  const [hideSold, setHideSold] = useState(false);
+
+  // Cart & detail modals
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedCardDetail, setSelectedCardDetail] = useState<{ slotNumber: number; card: PokemonCard } | null>(null);
+  const [lightboxCard, setLightboxCard] = useState<{ slotNumber: number; card: PokemonCard } | null>(null);
+
+  // Smooth scroll to top of page content on page change
   const handlePageChange = (newPage: number) => {
     if (!binder || newPage < 1 || newPage > binder.totalPages || newPage === currentPage) return;
     setCurrentPage(newPage);
@@ -51,12 +60,6 @@ export default function BuyerBinderPage() {
     }
     smoothScrollToElement(contentTopRef.current, 75);
   }, [currentPage]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [priceFilter, setPriceFilter] = useState<'all' | 'under500k' | '500k-2m' | 'above2m'>('all');
-  const [hideSold, setHideSold] = useState(false);
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
-  const [selectedCardDetail, setSelectedCardDetail] = useState<{ slotNumber: number; card: PokemonCard } | null>(null);
-  const [lightboxCard, setLightboxCard] = useState<{ slotNumber: number; card: PokemonCard } | null>(null);
 
   useEffect(() => {
     async function loadBinder() {
@@ -68,7 +71,7 @@ export default function BuyerBinderPage() {
           setBinder(data.binder);
         }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load binder:', err);
       } finally {
         setLoading(false);
       }
@@ -78,10 +81,10 @@ export default function BuyerBinderPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <div className="w-12 h-12 rounded-full border-4 border-red-500 border-t-transparent animate-spin mx-auto"></div>
-          <p className="text-sm font-semibold text-slate-300">Membuka Binder Digital...</p>
+          <div className="w-12 h-12 rounded-full border-4 border-[#E05A47] border-t-transparent animate-spin mx-auto"></div>
+          <p className="font-pixelify text-sm font-bold text-[#7A6B58]">MEMBUKA BINDER DIGITAL...</p>
         </div>
       </div>
     );
@@ -89,10 +92,13 @@ export default function BuyerBinderPage() {
 
   if (!binder) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
-        <div className="text-center p-6 bg-slate-900 border border-slate-800 rounded-3xl max-w-sm">
-          <p className="text-base font-bold text-slate-200">Binder tidak ditemukan atau QR Code sudah kadaluarsa.</p>
-          <a href="/" className="mt-4 inline-block px-4 py-2 bg-red-600 rounded-xl text-xs font-bold text-white">
+      <div className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex items-center justify-center p-4">
+        <div className="text-center p-6 bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-3xl max-w-sm shadow-xl">
+          <p className="font-pixelify text-sm font-bold text-[#1E293B]">Binder tidak ditemukan atau QR Code kadaluarsa.</p>
+          <a
+            href="/"
+            className="mt-4 inline-block px-4 py-2 bg-[#E05A47] rounded-xl font-pixelify text-xs font-bold text-white shadow-md"
+          >
             Kembali ke Beranda
           </a>
         </div>
@@ -131,85 +137,94 @@ export default function BuyerBinderPage() {
     return true;
   });
 
-  const toggleWishlist = (slotNumber: number, card: PokemonCard) => {
-    const exists = wishlist.some((item) => item.slotNumber === slotNumber && item.binderId === binder.id);
+  const toggleCart = (slotNumber: number, card: PokemonCard) => {
+    if (card.status !== 'AVAILABLE') return;
+    const exists = cartItems.some((item) => item.slotNumber === slotNumber);
     if (exists) {
-      setWishlist((prev) => prev.filter((item) => !(item.slotNumber === slotNumber && item.binderId === binder.id)));
+      setCartItems((prev) => prev.filter((item) => item.slotNumber !== slotNumber));
     } else {
-      setWishlist((prev) => [
+      setCartItems((prev) => [
         ...prev,
         {
           slotNumber,
-          binderName: binder.name,
           binderId: binder.id,
+          binderName: binder.name,
           card,
         },
       ]);
     }
   };
 
-  const isCardInWishlist = (slotNumber: number) => {
-    return wishlist.some((item) => item.slotNumber === slotNumber && item.binderId === binder.id);
+  const isCardInCart = (slotNumber: number) => {
+    return cartItems.some((item) => item.slotNumber === slotNumber);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-28">
-      {/* Mobile-First Header Bar */}
-      <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 p-3 sm:p-4">
+    <div
+      className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex flex-col pb-28 font-clean selection:bg-[#E05A47] selection:text-white"
+      style={{
+        backgroundImage: 'radial-gradient(#E2D9CC 0.85px, transparent 0.85px)',
+        backgroundSize: '20px 20px',
+      }}
+    >
+      {/* Mobile-First Warm Vintage Header */}
+      <header className="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur-md border-b-2 border-[#E5DACB] p-3 sm:p-4 shadow-xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md text-white font-extrabold text-xs"
-              style={{ backgroundColor: binder.coverColor || '#DC2626' }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm text-white font-pixelify font-bold text-xs border border-black/10"
+              style={{ backgroundColor: binder.coverColor || '#E05A47' }}
             >
-              <Layers className="w-4 h-4" />
+              <BookOpen className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="font-black text-sm sm:text-base text-white truncate">{binder.name}</h1>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                <h1 className="font-pixelify text-sm sm:text-base font-bold text-[#1E293B] truncate tracking-tight">
+                  {binder.name}
+                </h1>
+                <span className="font-pixelify text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EAE3D8] text-[#7A6B58] border border-[#D5CABE] flex-shrink-0">
                   {binder.badge || 'Koleksi'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate">
-                {binder.sellerName} • <span className="text-amber-400 font-semibold">{binder.boothName}</span>
+              <p className="text-[11px] text-[#7A6B58] truncate">
+                {binder.sellerName} • <span className="font-bold text-[#E05A47]">{binder.boothName}</span>
               </p>
             </div>
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 flex-shrink-0">
+          <div className="flex items-center bg-[#EAE3D8] p-1 rounded-xl border border-[#D5CABE] flex-shrink-0">
             <button
               onClick={() => setViewMode('flip')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-lg font-pixelify text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'flip'
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-[#1E293B] shadow-xs'
+                  : 'text-[#7A6B58] hover:text-[#1E293B]'
               }`}
             >
-              Mode Binder
+              Binder
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`px-2.5 py-1 rounded-lg font-pixelify text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-[#1E293B] shadow-xs'
+                  : 'text-[#7A6B58] hover:text-[#1E293B]'
               }`}
             >
-              Semua Kartu
+              Semua
             </button>
           </div>
         </div>
       </header>
 
-      {/* Description & Card Show Tip Banner */}
+      {/* Low-Bandwidth Event Notification Banner */}
       <div className="max-w-4xl mx-auto w-full px-4 pt-3">
-        <div className="p-3 bg-gradient-to-r from-slate-900 to-slate-900/60 border border-slate-800 rounded-2xl flex items-center justify-between text-xs text-slate-300">
+        <div className="p-3 bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl flex items-center justify-between text-xs text-[#5D4E3E] shadow-xs">
           <div className="flex items-center gap-2">
-            <span className="text-base">💡</span>
+            <span className="text-base">✨</span>
             <span>
-              Tap kartu yang Anda minati lalu tekan <strong>"Tunjukkan ke Seller"</strong> di bawah untuk langsung ambil kartu di meja!
+              Tap <strong>+ Keranjang</strong> pada kartu yang Anda incar, masukkan nama, dan kirim pesanan langsung ke meja seller!
             </span>
           </div>
         </div>
@@ -221,16 +236,16 @@ export default function BuyerBinderPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Cari nama kartu (Pokémon, Riftbound, One Piece...)"
+              placeholder="Cari kartu (contoh: Moonbreon, Pikachu, Charizard...)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+              className="w-full pl-9 pr-4 py-2.5 bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl text-xs sm:text-sm text-[#1E293B] placeholder-[#9C8E7D] focus:outline-none focus:border-[#E05A47] shadow-inner"
             />
-            <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3 top-3 text-[#9C8E7D]" />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-white"
+                className="absolute right-3 top-2.5 text-xs text-[#9C8E7D] hover:text-[#1E293B]"
               >
                 &times;
               </button>
@@ -241,50 +256,50 @@ export default function BuyerBinderPage() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
             <button
               onClick={() => setPriceFilter('all')}
-              className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-full font-pixelify text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 priceFilter === 'all'
-                  ? 'bg-slate-200 text-slate-900'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  ? 'bg-[#1E293B] text-white shadow-xs'
+                  : 'bg-[#FAF6F0] text-[#7A6B58] border border-[#D5CABE] hover:bg-white'
               }`}
             >
               Semua Harga
             </button>
             <button
               onClick={() => setPriceFilter('under500k')}
-              className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-full font-pixelify text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 priceFilter === 'under500k'
-                  ? 'bg-amber-500 text-slate-950'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  ? 'bg-[#E05A47] text-white shadow-xs'
+                  : 'bg-[#FAF6F0] text-[#7A6B58] border border-[#D5CABE] hover:bg-white'
               }`}
             >
               &lt; 500rb
             </button>
             <button
               onClick={() => setPriceFilter('500k-2m')}
-              className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-full font-pixelify text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 priceFilter === '500k-2m'
-                  ? 'bg-amber-500 text-slate-950'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  ? 'bg-[#E05A47] text-white shadow-xs'
+                  : 'bg-[#FAF6F0] text-[#7A6B58] border border-[#D5CABE] hover:bg-white'
               }`}
             >
               500rb - 2jt
             </button>
             <button
               onClick={() => setPriceFilter('above2m')}
-              className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-full font-pixelify text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 priceFilter === 'above2m'
-                  ? 'bg-amber-500 text-slate-950'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  ? 'bg-[#E05A47] text-white shadow-xs'
+                  : 'bg-[#FAF6F0] text-[#7A6B58] border border-[#D5CABE] hover:bg-white'
               }`}
             >
-              2jt+ (Grail Hits)
+              2jt+ Hits
             </button>
             <button
               onClick={() => setHideSold(!hideSold)}
-              className={`px-3 py-1.5 rounded-full font-bold whitespace-nowrap border transition-colors ${
+              className={`px-3 py-1.5 rounded-full font-pixelify text-xs font-bold whitespace-nowrap border transition-colors cursor-pointer ${
                 hideSold
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  : 'bg-[#FAF6F0] text-[#7A6B58] border-[#D5CABE] hover:bg-white'
               }`}
             >
               {hideSold ? '✓ Sembunyikan Terjual' : 'Sembunyikan Terjual'}
@@ -298,22 +313,22 @@ export default function BuyerBinderPage() {
             {/* Page Navigator */}
             <div
               ref={contentTopRef}
-              className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-2 scroll-mt-20"
+              className="flex items-center justify-between bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl p-2.5 shadow-xs scroll-mt-20"
             >
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#F5EFE6] disabled:opacity-40 font-pixelify text-xs font-bold text-[#1E293B] transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Hal. Sebelumnya</span>
               </button>
 
               <div className="text-center">
-                <span className="text-xs font-black text-white">
-                  Halaman {currentPage} / {binder.totalPages}
+                <span className="font-pixelify text-xs font-bold text-[#1E293B]">
+                  HALAMAN {currentPage} / {binder.totalPages}
                 </span>
-                <span className="text-[10px] text-slate-400 block">
+                <span className="font-mono-clean text-[10px] text-[#7A6B58] block">
                   (Slot #{startSlot} - #{endSlot})
                 </span>
               </div>
@@ -321,16 +336,16 @@ export default function BuyerBinderPage() {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === binder.totalPages}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#F5EFE6] disabled:opacity-40 font-pixelify text-xs font-bold text-[#1E293B] transition-colors cursor-pointer"
               >
                 <span className="hidden sm:inline">Hal. Berikutnya</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Pocket Grid */}
+            {/* Tactile Pocket Grid */}
             <div
-              className={`grid gap-3 ${
+              className={`grid gap-3.5 ${
                 binder.layoutType === '4-pocket'
                   ? 'grid-cols-2'
                   : binder.layoutType === '12-pocket'
@@ -346,150 +361,151 @@ export default function BuyerBinderPage() {
                   return (
                     <div
                       key={slotNum}
-                      className="binder-pocket rounded-2xl p-3 flex flex-col items-center justify-center text-center min-h-[260px] opacity-40"
+                      className="bg-[#EAE3D8]/60 border-2 border-dashed border-[#D5CABE] rounded-2xl p-3 flex flex-col items-center justify-center text-center min-h-[260px] opacity-60"
                     >
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-black text-slate-400 mb-2">
+                      <span className="font-pixelify px-2 py-0.5 rounded bg-[#FAF6F0] border border-[#D5CABE] text-[10px] font-bold text-[#8C7E6D] mb-1.5">
                         SLOT #{slotNum}
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">Slot Kosong</span>
+                      <span className="font-mono-clean text-[11px] text-[#8C7E6D]">Saku Kosong</span>
                     </div>
                   );
                 }
 
-                const inWishlist = isCardInWishlist(slotNum);
+                const inCart = isCardInCart(slotNum);
 
                 return (
                   <div
                     key={slotNum}
                     onClick={() => setSelectedCardDetail({ slotNumber: slotNum, card })}
-                    className={`binder-pocket rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between cursor-pointer transition-all relative overflow-hidden group hover:border-amber-400/60 ${
-                      inWishlist ? 'ring-2 ring-amber-400 border-amber-400' : ''
+                    className={`bg-[#FAF6F0] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between cursor-pointer transition-all relative overflow-hidden group shadow-sm hover:shadow-md ${
+                      inCart
+                        ? 'border-[#E05A47] ring-2 ring-[#E05A47]/30'
+                        : 'border-[#D5CABE] hover:border-[#B5A593]'
                     }`}
                   >
                     {/* Slot Header */}
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="px-2 py-0.5 rounded bg-slate-900 text-[10px] font-black text-amber-400">
-                        SLOT #{slotNum}
+                      <span className="font-pixelify px-2 py-0.5 rounded-md bg-[#EAE3D8] text-[10px] font-bold text-[#4A3E31]">
+                        #{slotNum}
                       </span>
 
                       <span
-                        className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                        className={`font-pixelify text-[9px] font-bold px-1.5 py-0.5 rounded ${
                           card.status === 'AVAILABLE'
-                            ? 'bg-emerald-500/20 text-emerald-400'
+                            ? 'bg-emerald-100 text-emerald-800'
                             : card.status === 'SOLD'
-                            ? 'bg-rose-500/20 text-rose-400'
-                            : 'bg-amber-500/20 text-amber-400'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        {card.status}
+                        {card.status === 'AVAILABLE' ? 'READY' : card.status}
                       </span>
                     </div>
 
-                    {/* Card Image */}
-                    <div className="relative aspect-[3/4] max-h-44 sm:max-h-52 w-full rounded-xl overflow-hidden bg-slate-950 mx-auto shadow-md mb-2 holo-shine">
+                    {/* Card Pocket Sleeve with Authentic Reflection Glare */}
+                    <div className="pocket-reflection relative aspect-[3/4] max-h-44 sm:max-h-52 w-full rounded-xl overflow-hidden bg-[#E2D9CC] mx-auto shadow-inner mb-2 border border-[#D5CABE]">
                       {card.imageUrl ? (
                         <>
                           <img
                             src={formatCardImageUrl(card.imageUrl)}
                             alt={card.name}
-                            className="w-full h-full object-contain p-0.5"
+                            loading="lazy"
+                            className="w-full h-full object-contain p-1 transition-transform group-hover:scale-105 duration-200"
                           />
-                          {/* Zoom overlay – click opens lightbox */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setLightboxCard({ slotNumber: slotNum, card });
                             }}
-                            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 cursor-zoom-in"
-                            title="Lihat gambar penuh"
+                            className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Zoom Kartu"
                           >
-                            <span className="bg-black/70 rounded-full p-2.5 border border-white/20 shadow-lg">
-                              <ZoomIn className="w-5 h-5 text-white" />
-                            </span>
+                            <ZoomIn className="w-3.5 h-3.5" />
                           </button>
                         </>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-600">
-                          Pokémon
+                        <div className="w-full h-full flex items-center justify-center font-pixelify text-xs text-[#8C7E6D]">
+                          POKÉMON
                         </div>
                       )}
 
                       {card.status === 'SOLD' && (
-                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center pointer-events-none">
-                          <span className="px-2.5 py-1 bg-red-600 text-white font-black text-[11px] uppercase tracking-wider rounded rotate-[-12deg] shadow-lg">
+                        <div className="absolute inset-0 bg-black/65 flex items-center justify-center pointer-events-none">
+                          <span className="font-pixelify px-2.5 py-1 bg-red-600 text-white font-bold text-[11px] uppercase tracking-wider rounded rotate-[-12deg] shadow-lg">
                             TERJUAL
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Card Title & Condition */}
+                    {/* Card Info */}
                     <div>
-                      <h4 className="font-bold text-xs text-white line-clamp-1 group-hover:text-amber-300 transition-colors">
+                      <h4 className="font-bold text-xs text-[#1E293B] line-clamp-1 group-hover:text-[#E05A47] transition-colors">
                         {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
                       </h4>
-                      <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                        {card.game && card.game !== 'pokemon' && (
-                          <span className="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 flex-shrink-0">
-                            {card.game}
-                          </span>
-                        )}
+                      <p className="font-mono-clean text-[10px] text-[#7A6B58] truncate flex items-center gap-1 mt-0.5">
                         <span className="truncate">{card.condition} • {translateCardSet(card.setName, card.cardNumber, card.game)}</span>
                       </p>
 
                       {/* Price Badge */}
-                      <div className="mt-1 flex items-baseline justify-between">
-                        <span className="text-xs sm:text-sm font-black text-amber-400">
+                      <div className="mt-1.5 flex items-baseline justify-between">
+                        <span className="font-pixelify text-xs sm:text-sm font-bold text-[#2E7D32]">
                           {formatCurrency(card.price, binder.currency)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Wishlist Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(slotNum, card);
-                      }}
-                      className={`mt-2 w-full py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all ${
-                        inWishlist
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                          : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
-                      }`}
-                    >
-                      {inWishlist ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Ditandai</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Mau Beli</span>
-                        </>
-                      )}
-                    </button>
+                    {/* Cart Action Button */}
+                    {card.status === 'AVAILABLE' ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCart(slotNum, card);
+                        }}
+                        className={`font-pixelify mt-2.5 w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          inCart
+                            ? 'bg-[#E05A47] text-white shadow-sm'
+                            : 'bg-white hover:bg-[#FAF6F0] text-[#1E293B] border border-[#D5CABE] shadow-2xs'
+                        }`}
+                      >
+                        {inCart ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Di Keranjang</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingBag className="w-3.5 h-3.5 text-[#E05A47]" />
+                            <span>+ Keranjang</span>
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="mt-2.5 w-full py-1.5 rounded-xl text-[10px] font-bold text-center text-[#8C7E6D] bg-[#EAE3D8]">
+                        Sudah Terjual
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Bottom Page Navigator */}
-            <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-2xl p-2 mt-3 shadow-lg">
+            {/* Bottom Navigator */}
+            <div className="flex items-center justify-between bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl p-2.5 mt-3 shadow-xs">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#F5EFE6] disabled:opacity-40 font-pixelify text-xs font-bold text-[#1E293B] transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Hal. Sebelumnya</span>
               </button>
 
               <div className="text-center">
-                <span className="text-xs font-black text-white">
-                  Halaman {currentPage} / {binder.totalPages}
+                <span className="font-pixelify text-xs font-bold text-[#1E293B]">
+                  HALAMAN {currentPage} / {binder.totalPages}
                 </span>
-                <span className="text-[10px] text-slate-400 block">
+                <span className="font-mono-clean text-[10px] text-[#7A6B58] block">
                   (Slot #{startSlot} - #{endSlot})
                 </span>
               </div>
@@ -497,7 +513,7 @@ export default function BuyerBinderPage() {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === binder.totalPages}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#F5EFE6] disabled:opacity-40 font-pixelify text-xs font-bold text-[#1E293B] transition-colors cursor-pointer"
               >
                 <span className="hidden sm:inline">Hal. Berikutnya</span>
                 <ChevronRight className="w-4 h-4" />
@@ -510,91 +526,86 @@ export default function BuyerBinderPage() {
         {viewMode === 'grid' && (
           <div>
             {filteredCards.length === 0 ? (
-              <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-3xl">
-                <p className="text-xs text-slate-400">Tidak ada kartu yang cocok dengan pencarian.</p>
+              <div className="p-12 text-center bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-3xl">
+                <p className="font-pixelify text-xs text-[#7A6B58]">Tidak ada kartu yang cocok dengan pencarian.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
                 {filteredCards.map(({ slotNumber, card }) => {
-                  const inWishlist = isCardInWishlist(slotNumber);
+                  const inCart = isCardInCart(slotNumber);
 
                   return (
                     <div
                       key={slotNumber}
                       onClick={() => setSelectedCardDetail({ slotNumber, card })}
-                      className={`binder-pocket rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition-all relative overflow-hidden group hover:border-amber-400/60 ${
-                        inWishlist ? 'ring-2 ring-amber-400 border-amber-400' : ''
+                      className={`bg-[#FAF6F0] border-2 rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition-all relative overflow-hidden group shadow-sm hover:shadow-md ${
+                        inCart
+                          ? 'border-[#E05A47] ring-2 ring-[#E05A47]/30'
+                          : 'border-[#D5CABE] hover:border-[#B5A593]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-900 text-[10px] font-black text-amber-400">
-                          SLOT #{slotNumber}
+                        <span className="font-pixelify px-1.5 py-0.5 rounded bg-[#EAE3D8] text-[10px] font-bold text-[#4A3E31]">
+                          #{slotNumber}
                         </span>
                         <span
-                          className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                            card.status === 'AVAILABLE' ? 'text-emerald-400' : 'text-rose-400'
+                          className={`font-pixelify text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                            card.status === 'AVAILABLE' ? 'text-emerald-700' : 'text-rose-700'
                           }`}
                         >
                           {card.status}
                         </span>
                       </div>
 
-                      <div className="relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-slate-950 mx-auto shadow-md mb-2 holo-shine">
-                        {card.imageUrl && (
-                          <>
-                            <img
-                              src={card.imageUrl}
-                              alt={card.name}
-                              className="w-full h-full object-contain p-0.5"
-                            />
-                            {/* Zoom overlay – click opens lightbox */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLightboxCard({ slotNumber, card });
-                              }}
-                              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 cursor-zoom-in"
-                              title="Lihat gambar penuh"
-                            >
-                              <span className="bg-black/70 rounded-full p-2.5 border border-white/20 shadow-lg">
-                                <ZoomIn className="w-5 h-5 text-white" />
-                              </span>
-                            </button>
-                          </>
+                      <div className="pocket-reflection relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-[#E2D9CC] mx-auto shadow-inner mb-2 border border-[#D5CABE]">
+                        {card.imageUrl ? (
+                          <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            loading="lazy"
+                            className="w-full h-full object-contain p-1"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center font-pixelify text-xs text-[#8C7E6D]">
+                            POKÉMON
+                          </div>
                         )}
                         {card.status === 'SOLD' && (
-                          <div className="absolute inset-0 bg-black/75 flex items-center justify-center pointer-events-none">
-                            <span className="px-2.5 py-1 bg-red-600 text-white font-black text-[11px] uppercase tracking-wider rounded rotate-[-12deg]">
-                              SOLD
+                          <div className="absolute inset-0 bg-black/65 flex items-center justify-center pointer-events-none">
+                            <span className="font-pixelify px-2 py-0.5 bg-red-600 text-white font-bold text-[10px] uppercase rounded rotate-[-12deg]">
+                              TERJUAL
                             </span>
                           </div>
                         )}
                       </div>
 
                       <div>
-                        <h4 className="font-bold text-xs text-white line-clamp-1">
+                        <h4 className="font-bold text-xs text-[#1E293B] line-clamp-1">
                           {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
                         </h4>
-                        <p className="text-[10px] text-slate-400 truncate">{card.condition} • {translateCardSet(card.setName, card.cardNumber, card.game)}</p>
-                        <div className="mt-1 font-black text-amber-400 text-xs sm:text-sm">
+                        <p className="font-mono-clean text-[10px] text-[#7A6B58] truncate">
+                          {card.condition}
+                        </p>
+                        <div className="mt-1 font-pixelify text-xs font-bold text-[#2E7D32]">
                           {formatCurrency(card.price, binder.currency)}
                         </div>
                       </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist(slotNumber, card);
-                        }}
-                        className={`mt-2 w-full py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all ${
-                          inWishlist
-                            ? 'bg-amber-500 text-slate-950 font-black'
-                            : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
-                        }`}
-                      >
-                        {inWishlist ? <Check className="w-3 h-3 stroke-[3]" /> : <ShoppingBag className="w-3 h-3 text-amber-400" />}
-                        <span>{inWishlist ? 'Ditandai' : 'Mau Beli'}</span>
-                      </button>
+                      {card.status === 'AVAILABLE' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCart(slotNumber, card);
+                          }}
+                          className={`font-pixelify mt-2 w-full py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            inCart
+                              ? 'bg-[#E05A47] text-white shadow-xs'
+                              : 'bg-white text-[#1E293B] border border-[#D5CABE] hover:bg-[#FAF6F0]'
+                          }`}
+                        >
+                          {inCart ? '✓ Di Keranjang' : '+ Keranjang'}
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -606,38 +617,38 @@ export default function BuyerBinderPage() {
 
       {/* Card Detail Modal */}
       {selectedCardDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-5 shadow-2xl relative text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-3xl p-5 shadow-2xl relative text-[#1E293B] animate-fadeInUp">
             <button
               onClick={() => setSelectedCardDetail(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+              className="absolute top-4 right-4 w-8 h-8 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] flex items-center justify-center cursor-pointer"
             >
               &times;
             </button>
 
             {/* Header info */}
             <div className="text-center mb-3">
-              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-xs font-black tracking-wider">
+              <span className="font-pixelify px-3 py-1 rounded-full bg-[#EAE3D8] text-[#4A3E31] border border-[#D5CABE] text-xs font-bold tracking-wider">
                 SLOT #{selectedCardDetail.slotNumber}
               </span>
-              <h3 className="font-black text-base text-white mt-2 leading-snug">
+              <h3 className="font-pixelify font-bold text-base text-[#1E293B] mt-2 leading-snug">
                 {formatCardDisplayName(selectedCardDetail.card.name, selectedCardDetail.card.cardNumber, selectedCardDetail.card.setName, selectedCardDetail.card.game)}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="font-mono-clean text-xs text-[#7A6B58] mt-0.5">
                 {translateCardSet(selectedCardDetail.card.setName, selectedCardDetail.card.cardNumber, selectedCardDetail.card.game)} {selectedCardDetail.card.cardNumber ? `• ${selectedCardDetail.card.cardNumber}` : ''}
               </p>
             </div>
 
             {/* High-res Image */}
-            <div className="relative aspect-[3/4] max-h-64 rounded-2xl overflow-hidden bg-slate-950 mx-auto shadow-2xl border border-slate-800 holo-shine mb-4">
+            <div className="pocket-reflection relative aspect-[3/4] max-h-60 rounded-2xl overflow-hidden bg-[#E2D9CC] mx-auto shadow-inner border border-[#D5CABE] mb-4">
               <img
                 src={selectedCardDetail.card.imageUrl}
                 alt={selectedCardDetail.card.name}
                 className="w-full h-full object-contain p-2"
               />
               {selectedCardDetail.card.status === 'SOLD' && (
-                <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                  <span className="px-4 py-2 bg-red-600 text-white font-black text-sm uppercase tracking-widest rounded-xl rotate-[-12deg] shadow-2xl">
+                <div className="absolute inset-0 bg-black/65 flex items-center justify-center">
+                  <span className="font-pixelify px-4 py-2 bg-red-600 text-white font-bold text-sm uppercase tracking-widest rounded-xl rotate-[-12deg] shadow-2xl">
                     SUDAH TERJUAL
                   </span>
                 </div>
@@ -645,23 +656,23 @@ export default function BuyerBinderPage() {
             </div>
 
             {/* Details & Condition */}
-            <div className="space-y-2 bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs mb-4">
+            <div className="space-y-2 bg-white p-3 rounded-2xl border border-[#D5CABE] text-xs mb-4">
               <div className="flex justify-between">
-                <span className="text-slate-400">Kondisi:</span>
-                <span className="font-bold text-white">{selectedCardDetail.card.condition}</span>
+                <span className="text-[#7A6B58]">Kondisi:</span>
+                <span className="font-bold text-[#1E293B]">{selectedCardDetail.card.condition}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Rarity:</span>
-                <span className="font-semibold text-slate-200">{selectedCardDetail.card.rarity || '-'}</span>
+                <span className="text-[#7A6B58]">Rarity:</span>
+                <span className="font-semibold text-[#1E293B]">{selectedCardDetail.card.rarity || '-'}</span>
               </div>
               {selectedCardDetail.card.notes && (
-                <div className="pt-2 border-t border-slate-800 text-[11px] text-amber-300/90 italic">
+                <div className="pt-2 border-t border-[#EAE3D8] text-[11px] text-[#7A6B58] italic">
                   "{selectedCardDetail.card.notes}"
                 </div>
               )}
-              <div className="flex justify-between items-baseline pt-2 border-t border-slate-800">
-                <span className="text-slate-400 font-bold">Harga Jual:</span>
-                <span className="text-lg font-black text-amber-400">
+              <div className="flex justify-between items-baseline pt-2 border-t border-[#EAE3D8]">
+                <span className="text-[#7A6B58] font-bold">Harga Display:</span>
+                <span className="font-pixelify text-base font-bold text-[#2E7D32]">
                   {formatCurrency(selectedCardDetail.card.price, binder.currency)}
                 </span>
               </div>
@@ -671,28 +682,34 @@ export default function BuyerBinderPage() {
             <div className="grid grid-cols-2 gap-2">
               <a
                 href={`/b/${binder.id}/slot/${selectedCardDetail.slotNumber}`}
-                className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold text-center transition-colors flex items-center justify-center gap-1"
+                className="font-pixelify py-2.5 px-3 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] text-[#1E293B] text-xs font-bold text-center transition-colors flex items-center justify-center gap-1 cursor-pointer"
               >
-                <span>Halaman Slot QR</span>
+                <span>Halaman Slot</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </a>
 
-              <button
-                onClick={() => {
-                  toggleWishlist(selectedCardDetail.slotNumber, selectedCardDetail.card);
-                  setSelectedCardDetail(null);
-                }}
-                className={`py-2.5 px-3 rounded-xl text-xs font-black text-center shadow-lg transition-all flex items-center justify-center gap-1.5 ${
-                  isCardInWishlist(selectedCardDetail.slotNumber)
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white'
-                    : 'bg-gradient-to-r from-red-600 to-amber-500 text-white'
-                }`}
-              >
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>
-                  {isCardInWishlist(selectedCardDetail.slotNumber) ? 'Hapus dari List' : 'Mau Beli Ini'}
-                </span>
-              </button>
+              {selectedCardDetail.card.status === 'AVAILABLE' ? (
+                <button
+                  onClick={() => {
+                    toggleCart(selectedCardDetail.slotNumber, selectedCardDetail.card);
+                    setSelectedCardDetail(null);
+                  }}
+                  className={`font-pixelify py-2.5 px-3 rounded-xl text-xs font-bold text-center shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    isCardInCart(selectedCardDetail.slotNumber)
+                      ? 'bg-[#1E293B] text-white'
+                      : 'bg-[#E05A47] hover:bg-[#C94735] text-white'
+                  }`}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>
+                    {isCardInCart(selectedCardDetail.slotNumber) ? 'Hapus Keranjang' : '+ Keranjang'}
+                  </span>
+                </button>
+              ) : (
+                <div className="py-2.5 px-3 rounded-xl bg-[#EAE3D8] text-[#8C7E6D] text-xs font-bold text-center flex items-center justify-center">
+                  Terjual
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -706,24 +723,24 @@ export default function BuyerBinderPage() {
         slotNumber={lightboxCard?.slotNumber ?? 0}
         binderName={binder.name}
         currency={binder.currency}
-        isInWishlist={lightboxCard ? isCardInWishlist(lightboxCard.slotNumber) : false}
+        isInWishlist={lightboxCard ? isCardInCart(lightboxCard.slotNumber) : false}
         onToggleWishlist={
           lightboxCard
             ? () => {
-                toggleWishlist(lightboxCard.slotNumber, lightboxCard.card);
+                toggleCart(lightboxCard.slotNumber, lightboxCard.card);
               }
             : undefined
         }
       />
 
-      {/* Floating Bottom Wishlist Drawer */}
-      <WishlistDrawer
-        items={wishlist}
-        onRemove={(slotNum, bId) =>
-          setWishlist((prev) => prev.filter((item) => !(item.slotNumber === slotNum && item.binderId === bId)))
-        }
-        onClear={() => setWishlist([])}
-        sellerPhone={binder.contactNumber || '081234567890'}
+      {/* In-App Direct Buyer Cart & Order Placement Drawer */}
+      <BuyerCartDrawer
+        items={cartItems}
+        onRemove={(slotNum) => setCartItems((prev) => prev.filter((item) => item.slotNumber !== slotNum))}
+        onClear={() => setCartItems([])}
+        binderId={binder.id}
+        boothName={binder.boothName || 'Booth Seller'}
+        sellerName={binder.sellerName || 'Seller'}
         currency={binder.currency}
       />
     </div>

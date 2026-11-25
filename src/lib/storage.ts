@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { AppData, Binder, CardCondition, CardStatus, BinderLayout, PokemonCard, SellerProfile, SaleRecord } from '@/types';
+import { AppData, Binder, CardCondition, CardStatus, BinderLayout, PokemonCard, SellerProfile, SaleRecord, Order, OrderItem, OrderStatus } from '@/types';
 import prisma from './prisma';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -709,4 +709,256 @@ export async function deleteSaleRecord(id: string): Promise<boolean> {
     return true;
   }
   return false;
+}
+
+// ==========================================
+// ORDER SYSTEM & NEGOTIATION WORKFLOW
+// ==========================================
+
+export async function createOrder(input: {
+  binderId: string;
+  buyerName: string;
+  notes?: string;
+  items: Array<{
+    slotNumber: number;
+    cardName: string;
+    setName?: string;
+    cardNumber?: string;
+    rarity?: string;
+    condition: string;
+    game: string;
+    imageUrl?: string;
+    listedPrice: number;
+    dealPrice?: number;
+  }>;
+}): Promise<Order> {
+  const data = await ensureDataFile();
+  if (!data.orders) data.orders = [];
+
+  const now = new Date().toISOString();
+  const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const orderNumber = `ORD-${Math.floor(100 + Math.random() * 900)}`;
+
+  const items: OrderItem[] = input.items.map((it, idx) => ({
+    id: `item_${Date.now()}_${idx}`,
+    orderId,
+    binderId: input.binderId,
+    slotNumber: it.slotNumber,
+    cardName: it.cardName,
+    setName: it.setName || '',
+    cardNumber: it.cardNumber || '',
+    rarity: it.rarity || '',
+    condition: it.condition || 'Raw - NM',
+    game: it.game || 'pokemon',
+    imageUrl: it.imageUrl || '',
+    listedPrice: Number(it.listedPrice) || 0,
+    dealPrice: it.dealPrice != null ? Number(it.dealPrice) : Number(it.listedPrice) || 0,
+    status: 'IN_ORDER',
+  }));
+
+  const totalAmount = items.reduce((sum, it) => sum + it.dealPrice, 0);
+
+  const newOrder: Order = {
+    id: orderId,
+    orderNumber,
+    binderId: input.binderId,
+    buyerName: input.buyerName.trim() || 'Pembeli Walk-in',
+    status: 'PENDING',
+    totalAmount,
+    notes: input.notes || '',
+    items,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  data.orders.unshift(newOrder);
+  await persistData(data);
+  return newOrder;
+}
+
+export async function getOrders(filter?: { binderId?: string; status?: OrderStatus }): Promise<Order[]> {
+  const data = await ensureDataFile();
+  let orders = data.orders || [];
+
+  if (filter?.binderId) {
+    orders = orders.filter((o) => o.binderId === filter.binderId);
+  }
+  if (filter?.status) {
+    orders = orders.filter((o) => o.status === filter.status);
+  }
+  return orders;
+}
+
+export async function getOrderById(orderId: string): Promise<Order | null> {
+  const data = await ensureDataFile();
+  return (data.orders || []).find((o) => o.id === orderId || o.orderNumber === orderId) || null;
+}
+
+export async function updateOrder(
+  orderId: string,
+  updates: Partial<Pick<Order, 'buyerName' | 'status' | 'notes'>>
+): Promise<Order | null> {
+  const data = await ensureDataFile();
+  if (!data.orders) return null;
+  const idx = data.orders.findIndex((o) => o.id === orderId || o.orderNumber === orderId);
+  if (idx === -1) return null;
+
+  data.orders[idx] = {
+    ...data.orders[idx],
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await persistData(data);
+  return data.orders[idx];
+}
+
+export async function updateOrderItemDealPrice(
+  orderId: string,
+  itemId: string,
+  newDealPrice: number
+): Promise<Order | null> {
+  const data = await ensureDataFile();
+  if (!data.orders) return null;
+  const idx = data.orders.findIndex((o) => o.id === orderId || o.orderNumber === orderId);
+  if (idx === -1) return null;
+
+  const order = data.orders[idx];
+  const item = order.items.find((it) => it.id === itemId);
+  if (item) {
+    item.dealPrice = Math.max(0, Number(newDealPrice) || 0);
+  }
+
+  // Recalculate total amount from active items
+  order.totalAmount = order.items
+    .filter((it) => it.status === 'IN_ORDER')
+    .reduce((sum, it) => sum + it.dealPrice, 0);
+  order.updatedAt = new Date().toISOString();
+
+  await persistData(data);
+  return order;
+}
+
+export async function removeOrderItemFromOrder(orderId: string, itemId: string): Promise<Order | null> {
+  const data = await ensureDataFile();
+  if (!data.orders) return null;
+  const idx = data.orders.findIndex((o) => o.id === orderId || o.orderNumber === orderId);
+  if (idx === -1) return null;
+
+  const order = data.orders[idx];
+  order.items = order.items.filter((it) => it.id !== itemId);
+  order.totalAmount = order.items
+    .filter((it) => it.status === 'IN_ORDER')
+    .reduce((sum, it) => sum + it.dealPrice, 0);
+  order.updatedAt = new Date().toISOString();
+
+  await persistData(data);
+  return order;
+}
+
+export async function addCardToOrder(
+  orderId: string,
+  cardData: {
+    binderId: string;
+    slotNumber: number;
+    cardName: string;
+    setName?: string;
+    cardNumber?: string;
+    rarity?: string;
+    condition: string;
+    game: string;
+    imageUrl?: string;
+    listedPrice: number;
+    dealPrice?: number;
+  }
+): Promise<Order | null> {
+  const data = await ensureDataFile();
+  if (!data.orders) return null;
+  const idx = data.orders.findIndex((o) => o.id === orderId || o.orderNumber === orderId);
+  if (idx === -1) return null;
+
+  const order = data.orders[idx];
+  const newItem: OrderItem = {
+    id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    orderId: order.id,
+    binderId: cardData.binderId,
+    slotNumber: cardData.slotNumber,
+    cardName: cardData.cardName,
+    setName: cardData.setName || '',
+    cardNumber: cardData.cardNumber || '',
+    rarity: cardData.rarity || '',
+    condition: cardData.condition,
+    game: cardData.game || 'pokemon',
+    imageUrl: cardData.imageUrl || '',
+    listedPrice: Number(cardData.listedPrice) || 0,
+    dealPrice: cardData.dealPrice != null ? Number(cardData.dealPrice) : Number(cardData.listedPrice) || 0,
+    status: 'IN_ORDER',
+  };
+
+  order.items.push(newItem);
+  order.totalAmount = order.items
+    .filter((it) => it.status === 'IN_ORDER')
+    .reduce((sum, it) => sum + it.dealPrice, 0);
+  order.updatedAt = new Date().toISOString();
+
+  await persistData(data);
+  return order;
+}
+
+export async function finalizeAndArchiveOrder(orderId: string): Promise<{
+  success: boolean;
+  order: Order | null;
+  soldSlots: Array<{ binderId: string; slotNumber: number; cardName: string; soldPrice: number }>;
+}> {
+  const data = await ensureDataFile();
+  if (!data.orders) return { success: false, order: null, soldSlots: [] };
+  const idx = data.orders.findIndex((o) => o.id === orderId || o.orderNumber === orderId);
+  if (idx === -1) return { success: false, order: null, soldSlots: [] };
+
+  const order = data.orders[idx];
+  const soldSlots: Array<{ binderId: string; slotNumber: number; cardName: string; soldPrice: number }> = [];
+
+  const activeItems = order.items.filter((it) => it.status === 'IN_ORDER');
+
+  for (const item of activeItems) {
+    // 1. Record to SaleRecord with negotiated dealPrice
+    const binder = data.binders.find((b) => b.id === item.binderId);
+    await recordSale({
+      binderId: item.binderId,
+      binderName: binder?.name || 'Binder',
+      slotNumber: item.slotNumber,
+      cardName: item.cardName,
+      setName: item.setName || '',
+      cardNumber: item.cardNumber || '',
+      rarity: item.rarity || '',
+      condition: item.condition,
+      game: item.game,
+      imageUrl: item.imageUrl || '',
+      soldPrice: item.dealPrice,
+      costPrice: item.listedPrice,
+      currency: binder?.currency || 'IDR',
+      notes: `Order #${order.orderNumber} - Buyer: ${order.buyerName}`,
+    });
+
+    // 2. Remove card from physical binder slot (slot is emptied for restock!)
+    await removeCardFromSlot(item.binderId, item.slotNumber);
+
+    soldSlots.push({
+      binderId: item.binderId,
+      slotNumber: item.slotNumber,
+      cardName: item.cardName,
+      soldPrice: item.dealPrice,
+    });
+  }
+
+  // 3. Mark order as COMPLETED
+  order.status = 'COMPLETED';
+  order.updatedAt = new Date().toISOString();
+  await persistData(data);
+
+  return {
+    success: true,
+    order,
+    soldSlots,
+  };
 }

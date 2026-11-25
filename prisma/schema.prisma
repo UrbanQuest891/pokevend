@@ -122,3 +122,39 @@ model SaleRecord {
   @@index([soldAt])
   @@index([game])
 }
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  binderId    String
+  buyerName   String
+  status      String      @default("PENDING") // PENDING | COMPLETED | CANCELLED
+  totalAmount Float       @default(0)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       OrderItem[]
+
+  @@index([binderId])
+  @@index([status])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  binderId    String
+  slotNumber  Int
+  cardName    String
+  setName     String?  @default("")
+  cardNumber  String?  @default("")
+  rarity      String?  @default("")
+  condition   String   @default("Raw - NM")
+  game        String   @default("pokemon")
+  imageUrl    String?  @default("")
+  listedPrice Float    @default(0)
+  dealPrice   Float    @default(0)
+  status      String   @default("IN_ORDER") // IN_ORDER | REMOVED
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}

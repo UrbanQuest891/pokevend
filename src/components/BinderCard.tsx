@@ -58,7 +58,7 @@ export default function BinderCard({ binder, onRefresh }: BinderCardProps) {
           </div>
 
           {/* Title & Description */}
-          <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">
+          <h3 className="font-pixelify text-lg font-bold text-white group-hover:text-amber-400 transition-colors">
             {binder.name}
           </h3>
           <p className="text-xs text-slate-400 line-clamp-2 mt-1 mb-4 leading-relaxed">
@@ -68,16 +68,16 @@ export default function BinderCard({ binder, onRefresh }: BinderCardProps) {
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-2 p-3 bg-slate-950/80 rounded-2xl border border-slate-800/80 mb-4">
             <div>
-              <div className="text-[10px] font-semibold uppercase text-slate-400">Total Kartu</div>
-              <div className="text-base font-extrabold text-white flex items-center gap-1.5 mt-0.5">
+              <div className="font-pixelify text-[10px] font-bold uppercase text-slate-400">Total Kartu</div>
+              <div className="text-base font-pixelify font-bold text-white flex items-center gap-1.5 mt-0.5">
                 <span>{filledCount}</span>
-                <span className="text-xs text-slate-400 font-normal">/ {totalCapacity} slot</span>
+                <span className="text-xs font-clean text-slate-400 font-normal">/ {totalCapacity} slot</span>
               </div>
             </div>
 
             <div>
-              <div className="text-[10px] font-semibold uppercase text-slate-400">Total Nilai Binder</div>
-              <div className="text-base font-extrabold text-amber-400 mt-0.5 truncate">
+              <div className="font-pixelify text-[10px] font-bold uppercase text-slate-400">Total Nilai Binder</div>
+              <div className="text-base font-pixelify font-bold text-amber-400 mt-0.5 truncate">
                 {formatCurrency(totalValue, binder.currency)}
               </div>
             </div>
