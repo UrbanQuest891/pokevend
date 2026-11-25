@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { AppData, Binder, CardCondition, CardStatus, BinderLayout, PokemonCard, SellerProfile } from '@/types';
+import { AppData, Binder, CardCondition, CardStatus, BinderLayout, PokemonCard, SellerProfile, SaleRecord } from '@/types';
 import prisma from './prisma';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -407,6 +407,30 @@ export async function updateSlotCard(
   data.binders[binderIndex].updatedAt = nowStr;
 
   await persistData(data);
+
+  if (cardData.status === 'SOLD') {
+    try {
+      await recordSale({
+        binderId,
+        binderName: data.binders[binderIndex]?.name || 'Binder',
+        slotNumber,
+        cardName: updatedCard.name,
+        setName: updatedCard.setName,
+        cardNumber: updatedCard.cardNumber,
+        rarity: updatedCard.rarity,
+        condition: updatedCard.condition,
+        game: updatedCard.game || 'pokemon',
+        imageUrl: updatedCard.imageUrl,
+        soldPrice: updatedCard.price,
+        costPrice: updatedCard.originalPrice,
+        currency: data.binders[binderIndex]?.currency || 'IDR',
+        notes: updatedCard.notes,
+      });
+    } catch (e) {
+      console.warn('Failed auto-recording sale in updateSlotCard:', e);
+    }
+  }
+
   return { binder: data.binders[binderIndex], card: updatedCard };
 }
 
@@ -451,11 +475,36 @@ export async function quickToggleCardStatus(
   const binder = data.binders.find((b) => b.id === binderId);
   if (!binder || !binder.slots[slotNumber]) return null;
 
-  binder.slots[slotNumber].status = status;
-  binder.slots[slotNumber].updatedAt = new Date().toISOString();
+  const card = binder.slots[slotNumber];
+  card.status = status;
+  card.updatedAt = new Date().toISOString();
   binder.updatedAt = new Date().toISOString();
   await persistData(data);
-  return binder.slots[slotNumber];
+
+  if (status === 'SOLD') {
+    try {
+      await recordSale({
+        binderId,
+        binderName: binder.name,
+        slotNumber,
+        cardName: card.name,
+        setName: card.setName,
+        cardNumber: card.cardNumber,
+        rarity: card.rarity,
+        condition: card.condition,
+        game: card.game || 'pokemon',
+        imageUrl: card.imageUrl,
+        soldPrice: card.price,
+        costPrice: card.originalPrice,
+        currency: binder.currency || 'IDR',
+        notes: card.notes,
+      });
+    } catch (e) {
+      console.warn('Failed auto-recording sale in quickToggleCardStatus:', e);
+    }
+  }
+
+  return card;
 }
 
 export async function quickUpdatePrice(
@@ -546,4 +595,118 @@ export async function resetToDefault(): Promise<AppData> {
   };
   await persistData(defaultData);
   return defaultData;
+}
+
+export async function recordSale(saleData: Omit<SaleRecord, 'id' | 'soldAt'> & { soldAt?: string }): Promise<SaleRecord> {
+  const newRecord: SaleRecord = {
+    id: `sale-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    userId: saleData.userId || 'default-seller',
+    binderId: saleData.binderId,
+    binderName: saleData.binderName,
+    slotNumber: saleData.slotNumber,
+    cardName: saleData.cardName,
+    setName: saleData.setName || '',
+    cardNumber: saleData.cardNumber || '',
+    rarity: saleData.rarity || '',
+    condition: saleData.condition || 'Raw - NM',
+    game: saleData.game || 'pokemon',
+    imageUrl: saleData.imageUrl || '',
+    soldPrice: Number(saleData.soldPrice) || 0,
+    costPrice: saleData.costPrice != null ? Number(saleData.costPrice) : undefined,
+    currency: saleData.currency || 'IDR',
+    notes: saleData.notes || '',
+    soldAt: saleData.soldAt || new Date().toISOString(),
+  };
+
+  try {
+    const created = await (prisma as any).saleRecord.create({
+      data: {
+        userId: newRecord.userId,
+        binderId: newRecord.binderId,
+        binderName: newRecord.binderName,
+        slotNumber: newRecord.slotNumber,
+        cardName: newRecord.cardName,
+        setName: newRecord.setName,
+        cardNumber: newRecord.cardNumber,
+        rarity: newRecord.rarity,
+        condition: newRecord.condition,
+        game: newRecord.game,
+        imageUrl: newRecord.imageUrl,
+        soldPrice: newRecord.soldPrice,
+        costPrice: newRecord.costPrice,
+        currency: newRecord.currency,
+        notes: newRecord.notes,
+        soldAt: new Date(newRecord.soldAt),
+      },
+    });
+    if (created) {
+      newRecord.id = created.id;
+    }
+  } catch (err) {
+    console.warn('Prisma recordSale fallback to file:', err);
+  }
+
+  // Also sync to store.json
+  const data = await ensureDataFile();
+  if (!data.sales) {
+    data.sales = [];
+  }
+  data.sales.unshift(newRecord);
+  await persistData(data);
+  return newRecord;
+}
+
+export async function getSalesRecords(): Promise<SaleRecord[]> {
+  try {
+    const records = await (prisma as any).saleRecord.findMany({
+      orderBy: { soldAt: 'desc' },
+      take: 200,
+    });
+    if (records && records.length > 0) {
+      return records.map((r: any) => ({
+        id: r.id,
+        userId: r.userId,
+        binderId: r.binderId,
+        binderName: r.binderName,
+        slotNumber: r.slotNumber,
+        cardName: r.cardName,
+        setName: r.setName || '',
+        cardNumber: r.cardNumber || '',
+        rarity: r.rarity || '',
+        condition: r.condition,
+        game: r.game,
+        imageUrl: r.imageUrl || '',
+        soldPrice: Number(r.soldPrice) || 0,
+        costPrice: r.costPrice != null ? Number(r.costPrice) : undefined,
+        currency: r.currency || 'IDR',
+        notes: r.notes || '',
+        soldAt: r.soldAt ? new Date(r.soldAt).toISOString() : new Date().toISOString(),
+      }));
+    }
+  } catch (err) {
+    console.warn('Prisma getSalesRecords fallback to file:', err);
+  }
+
+  const data = await ensureDataFile();
+  return data.sales || [];
+}
+
+export async function deleteSaleRecord(id: string): Promise<boolean> {
+  try {
+    await (prisma as any).saleRecord.deleteMany({
+      where: { id },
+    });
+  } catch (err) {
+    console.warn('Prisma deleteSaleRecord fallback:', err);
+  }
+
+  const data = await ensureDataFile();
+  if (!data.sales) return false;
+  const initialLen = data.sales.length;
+  data.sales = data.sales.filter((s) => s.id !== id);
+  if (data.sales.length !== initialLen) {
+    await persistData(data);
+    return true;
+  }
+  return false;
 }

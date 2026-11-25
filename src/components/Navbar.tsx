@@ -1,9 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Layers, RefreshCw, Zap, Store, ExternalLink } from 'lucide-react';
+import { useAuth } from '@/lib/authContext';
+import {
+  Sparkles,
+  Layers,
+  RefreshCw,
+  Zap,
+  Store,
+  ExternalLink,
+  TrendingUp,
+  LogIn,
+  LogOut,
+  User,
+} from 'lucide-react';
 
 interface NavbarProps {
   sellerName?: string;
@@ -13,6 +24,7 @@ interface NavbarProps {
 
 export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table #A-14' }: NavbarProps) {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [resetting, setResetting] = useState(false);
 
   const handleResetData = async () => {
@@ -61,37 +73,71 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                  {sellerName} • <span className="text-amber-400">{boothName}</span>
+                  {user?.name || sellerName} • <span className="text-amber-400">{boothName}</span>
                 </p>
               </div>
             </a>
           </div>
 
-          {/* Quick Actions & Status */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live Event Mode Active
-            </div>
-
+          {/* Quick Actions & Navigation */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {/* Dashboard Link */}
             <a
               href="/"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
             >
               <Store className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Dashboard Seller</span>
-              <span className="sm:hidden">Home</span>
+              <span className="hidden md:inline">Dashboard</span>
             </a>
 
+            {/* Riwayat Penjualan (Sales History) Link */}
+            <a
+              href="/admin/sales"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Lihat riwayat transaksi kartu terjual & omset"
+            >
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Riwayat Penjualan</span>
+              <span className="sm:hidden">Sales</span>
+            </a>
+
+            {/* Reset Demo Data Button */}
             <button
               onClick={handleResetData}
               disabled={resetting}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
               title="Reset data ke contoh Pokémon cards"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${resetting ? 'animate-spin' : ''}`} />
-              <span className="hidden md:inline">Reset Demo</span>
+              <span>Reset</span>
             </button>
+
+            {/* User Auth Section */}
+            {user ? (
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-800">
+                <div className="hidden xl:flex flex-col text-right leading-tight pr-1">
+                  <span className="text-xs font-bold text-white truncate max-w-[130px]">{user.name}</span>
+                  <span className="text-[10px] text-emerald-400 font-semibold">Seller Aktif</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={signOut}
+                  className="flex items-center gap-1 p-2 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer"
+                  title="Keluar dari akun seller"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Keluar</span>
+                </button>
+              </div>
+            ) : (
+              <a
+                href="/login"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-extrabold bg-gradient-to-r from-red-600 to-amber-500 hover:brightness-110 text-slate-950 shadow-md shadow-red-500/20 active:scale-95 transition-all"
+              >
+                <LogIn className="w-4 h-4 text-slate-950" />
+                <span>Login</span>
+              </a>
+            )}
           </div>
         </div>
       </div>

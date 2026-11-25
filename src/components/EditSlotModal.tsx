@@ -1241,6 +1241,7 @@ export default function EditSlotModal({
                           src={formatCardImageUrl(imageUrl)}
                           alt={cardName || 'Preview Kartu'}
                           className="w-full h-full object-contain bg-slate-950 select-none transition-transform duration-300 group-hover:scale-105"
+                          style={{ imageRendering: '-webkit-optimize-contrast' }}
                         />
 
                         {/* Hover Overlay Hint for Zoom */}
@@ -1840,7 +1841,7 @@ export default function EditSlotModal({
                             }`}
                           >
                             <Globe className="w-3.5 h-3.5" />
-                            <span>Inggris (20.600+)</span>
+                            <span>Inggris (43.000+)</span>
                           </button>
 
                           <button
@@ -1853,7 +1854,7 @@ export default function EditSlotModal({
                             }`}
                           >
                             <span className="text-sm leading-none">🇮🇩</span>
-                            <span>Indonesia (4.100+)</span>
+                            <span>Indonesia (18.000+ HD)</span>
                           </button>
 
                           <button
@@ -1866,7 +1867,7 @@ export default function EditSlotModal({
                             }`}
                           >
                             <span className="text-sm leading-none">🇯🇵</span>
-                            <span>Jepang (23.000+)</span>
+                            <span>Jepang (51.000+)</span>
                           </button>
 
                           <button
@@ -1879,7 +1880,7 @@ export default function EditSlotModal({
                             }`}
                           >
                             <span className="text-sm leading-none">🇨🇳</span>
-                            <span>China (13.600+)</span>
+                            <span>China (13.600+ HD)</span>
                           </button>
                         </div>
                       )}
@@ -2359,6 +2360,7 @@ export default function EditSlotModal({
                                           src={formatCardImageUrl(card.imageUrl)}
                                           alt=""
                                           className="w-10 h-14 object-contain rounded-lg bg-slate-950 shadow flex-shrink-0 group-hover:scale-105 transition-transform"
+                                          style={{ imageRendering: '-webkit-optimize-contrast' }}
                                         />
                                       ) : (
                                         <div className="w-10 h-14 bg-slate-800 rounded-lg flex items-center justify-center text-[9px] font-bold text-rose-400 flex-shrink-0">
@@ -2367,7 +2369,7 @@ export default function EditSlotModal({
                                       )}
                                       <div className="min-w-0 flex-1">
                                         <div className="text-xs font-black text-white group-hover:text-rose-300 truncate">
-                                          {card.name}
+                                          {card.chineseName ? `${card.chineseName} (${card.name})` : card.name}
                                         </div>
                                         <div className="text-[11px] text-slate-400 truncate mt-0.5">
                                           {card.number ? `#${card.number}` : ''} {card.rarity ? `• ${card.rarity}` : ''}

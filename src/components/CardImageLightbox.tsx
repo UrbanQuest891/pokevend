@@ -175,6 +175,7 @@ export default function CardImageLightbox({
                 src={highResUrl}
                 alt={card.name}
                 className="max-h-[68vh] sm:max-h-[72vh] w-auto object-contain rounded-3xl pointer-events-none"
+                style={{ imageRendering: '-webkit-optimize-contrast' }}
               />
 
               {card.status === 'SOLD' && (

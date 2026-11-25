@@ -98,3 +98,27 @@ model SellerProfile {
   bannerNotice  String?
   updatedAt     DateTime @updatedAt
 }
+
+model SaleRecord {
+  id            String   @id @default(cuid())
+  userId        String?  @default("default-seller")
+  binderId      String
+  binderName    String
+  slotNumber    Int
+  cardName      String
+  setName       String?  @default("")
+  cardNumber    String?  @default("")
+  rarity        String?  @default("")
+  condition     String   @default("Raw - NM")
+  game          String   @default("pokemon")
+  imageUrl      String?  @default("")
+  soldPrice     Float    @default(0)
+  costPrice     Float?
+  currency      String   @default("IDR")
+  notes         String?
+  soldAt        DateTime @default(now())
+
+  @@index([binderId])
+  @@index([soldAt])
+  @@index([game])
+}

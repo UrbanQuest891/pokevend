@@ -73,7 +73,28 @@ export interface SellerProfile {
   bannerNotice?: string;
 }
 
+export interface SaleRecord {
+  id: string;
+  userId?: string;
+  binderId: string;
+  binderName: string;
+  slotNumber: number;
+  cardName: string;
+  setName?: string;
+  cardNumber?: string;
+  rarity?: string;
+  condition: string;
+  game: string;
+  imageUrl?: string;
+  soldPrice: number;
+  costPrice?: number;
+  currency: string;
+  notes?: string;
+  soldAt: string;
+}
+
 export interface AppData {
   profile: SellerProfile;
   binders: Binder[];
+  sales?: SaleRecord[];
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchLocalCnCards } from '@/lib/localCnCards';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get('q') ?? '';
@@ -11,13 +13,20 @@ export async function GET(req: NextRequest) {
   try {
     const result = searchLocalCnCards(q, set, page, limit);
 
-    return NextResponse.json({
-      success: true,
-      cards: result.cards,
-      total: result.total,
-      page,
-      totalPages: result.totalPages,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        cards: result.cards,
+        total: result.total,
+        page,
+        totalPages: result.totalPages,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
   } catch (err) {
     console.error('[localcn/search] Error:', err);
     return NextResponse.json(

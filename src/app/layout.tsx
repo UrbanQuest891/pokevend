@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/lib/authContext";
 
 export const metadata: Metadata = {
   title: "PokéVend • Pokémon Card Show Vending Companion",
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="id" className="h-full antialiased dark scroll-smooth" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 font-sans" suppressHydrationWarning>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

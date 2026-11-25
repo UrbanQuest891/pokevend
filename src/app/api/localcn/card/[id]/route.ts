@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLocalCnCardById } from '@/lib/localCnCards';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,10 +18,17 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      card,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        card,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
   } catch (err) {
     console.error('[localcn/card/[id]] Error:', err);
     return NextResponse.json(
