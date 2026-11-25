@@ -24,14 +24,14 @@ export default function LoginPage() {
   const [customSellerName, setCustomSellerName] = useState('PokeVault Indonesia');
 
   const handleProceedToDashboard = () => {
-    router.push('/');
+    router.push('/admin');
   };
 
   const handleGoogleLogin = async () => {
     try {
       setSubmitting(true);
       await signInWithGoogle();
-      router.push('/');
+      router.push('/admin');
     } catch (err) {
       console.error('Login error:', err);
       alert('Gagal melakukan proses login Google.');
@@ -42,7 +42,7 @@ export default function LoginPage() {
 
   const handleDemoLogin = () => {
     signInAsDemoSeller(customSellerName || 'PokeVault Indonesia');
-    router.push('/');
+    router.push('/admin');
   };
 
   return (

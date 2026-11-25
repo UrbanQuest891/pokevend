@@ -51,7 +51,7 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
         <div className="flex items-center justify-between h-16">
           {/* Logo & Branding */}
           <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-2.5 group">
+            <a href="/admin" className="flex items-center gap-2.5 group">
               <div className="w-10 h-10 rounded-2xl bg-[#E05A47] p-0.5 shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center border border-black/10">
                 <div className="w-full h-full bg-[#FAF6F0] rounded-[14px] flex items-center justify-center relative overflow-hidden">
                   {/* Stylized Pokeball icon */}
@@ -81,9 +81,18 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
 
           {/* Quick Actions & Navigation */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {/* Dashboard Link */}
+            {/* Landing Page Link */}
             <a
               href="/"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-[#FAF6F0] border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] hover:bg-white transition-colors shadow-2xs"
+              title="Lihat Halaman Utama / Landing Page"
+            >
+              <span>Beranda</span>
+            </a>
+
+            {/* Dashboard Link */}
+            <a
+              href="/admin"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-white border border-[#D5CABE] text-[#1E293B] hover:bg-[#FAF6F0] transition-colors shadow-2xs"
             >
               <Store className="w-4 h-4 text-[#E05A47]" />
