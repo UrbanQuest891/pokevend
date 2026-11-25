@@ -1191,13 +1191,13 @@ export default function EditSlotModal({
           {/* Header */}
           <div className="flex-shrink-0 px-5 sm:px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
             <div className="flex items-center gap-3">
-              <span className="text-xs uppercase font-black tracking-wider px-3 py-1 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 shadow-sm flex items-center gap-1.5">
+              <span className="font-pixelify text-xs uppercase font-bold tracking-wider px-3 py-1 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 shadow-sm flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                 SLOT #{slotNumber}
               </span>
               <div>
-                <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                  {existingCard ? 'Edit Kartu di Slot' : 'Pasang Kartu ke Slot'}
+                <h2 className="font-pixelify text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  {existingCard ? 'EDIT KARTU DI SLOT' : 'PASANG KARTU KE SLOT'}
                 </h2>
                 <p className="text-xs text-slate-400 hidden sm:block">
                   Pilih jenis kartu TCG (Pokémon, Riftbound, One Piece), cari kartu resmi, sesuaikan harga jual & tinjau visual kartu.

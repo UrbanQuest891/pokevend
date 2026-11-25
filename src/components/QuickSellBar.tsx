@@ -99,21 +99,21 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
   };
 
   return (
-    <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-amber-500/30 rounded-2xl p-4 shadow-xl no-print">
+    <div className="bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl p-4 shadow-xs no-print text-[#1E293B]">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-            <Zap className="w-4 h-4 fill-amber-400" />
+          <div className="w-8 h-8 rounded-xl bg-[#EAE3D8] border border-[#D5CABE] flex items-center justify-center text-[#E05A47]">
+            <Zap className="w-4 h-4 fill-[#E05A47]" />
           </div>
           <div>
-            <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
-              <span>Aksi Cepat Meja Event</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
+            <h3 className="font-pixelify font-bold text-sm text-[#1E293B] flex items-center gap-1.5">
+              <span>AKSI CEPAT MEJA EVENT</span>
+              <span className="font-pixelify text-[10px] px-2 py-0.5 rounded-full bg-[#EAE3D8] text-[#7A6B58] font-bold border border-[#D5CABE]">
                 Live Counter
               </span>
             </h3>
-            <p className="text-[11px] text-slate-400">
-              Ubah harga atau tandai terjual dalam 2 detik saat transaksi di tempat
+            <p className="text-[11px] text-[#7A6B58]">
+              Ubah harga atau tandai status kartu dalam sekejap saat transaksi di booth
             </p>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
           <select
             value={selectedBinderId}
             onChange={(e) => setSelectedBinderId(e.target.value)}
-            className="px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-semibold text-white focus:outline-none focus:border-amber-500 max-w-[180px]"
+            className="px-2.5 py-1.5 bg-white border border-[#D5CABE] rounded-xl text-xs font-bold text-[#1E293B] focus:outline-none focus:border-[#E05A47] max-w-[180px] shadow-2xs"
           >
             {binders.map((b) => (
               <option key={b.id} value={b.id}>
@@ -141,7 +141,7 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
               placeholder="No. Slot"
               value={slotNumberInput}
               onChange={(e) => setSlotNumberInput(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-center text-white focus:outline-none focus:border-amber-500"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#D5CABE] rounded-xl text-xs font-bold text-center text-[#1E293B] focus:outline-none focus:border-[#E05A47] shadow-inner font-pixelify"
             />
           </div>
 
@@ -152,7 +152,7 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
               placeholder="Harga Baru"
               value={quickPrice}
               onChange={(e) => setQuickPrice(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#D5CABE] rounded-xl text-xs font-bold text-[#1E293B] focus:outline-none focus:border-[#E05A47] shadow-inner font-pixelify"
             />
           </div>
 
@@ -160,25 +160,25 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
           <button
             onClick={handleUpdatePrice}
             disabled={loading || !quickPrice || !slotNumberInput}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 flex items-center gap-1 transition-colors"
+            className="px-3 py-1.5 rounded-xl font-pixelify text-xs font-bold bg-white hover:bg-[#FAF6F0] border border-[#D5CABE] text-[#1E293B] disabled:opacity-40 flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
           >
-            <Tag className="w-3.5 h-3.5" />
+            <Tag className="w-3.5 h-3.5 text-[#E05A47]" />
             Set Harga
           </button>
 
           <button
             onClick={() => handleToggleSold('SOLD')}
             disabled={loading || !slotNumberInput}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white flex items-center gap-1 transition-colors"
+            className="px-3 py-1.5 rounded-xl font-pixelify text-xs font-bold bg-[#E05A47] hover:bg-[#C94735] disabled:opacity-40 text-white flex items-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95"
           >
             <XCircle className="w-3.5 h-3.5" />
-            Set Terjual (Sold)
+            Set Terjual
           </button>
 
           <button
             onClick={() => handleToggleSold('AVAILABLE')}
             disabled={loading || !slotNumberInput}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1.5 rounded-xl font-pixelify text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white flex items-center gap-1 transition-all shadow-xs cursor-pointer active:scale-95"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             Available
@@ -187,7 +187,7 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
           <button
             onClick={handleInspectOrEdit}
             disabled={!slotNumberInput}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 transition-colors"
+            className="px-2.5 py-1.5 rounded-xl font-pixelify text-xs font-bold bg-white hover:bg-[#FAF6F0] border border-[#D5CABE] disabled:opacity-40 text-[#7A6B58] hover:text-[#1E293B] transition-colors shadow-2xs cursor-pointer"
           >
             Detail Slot
           </button>
@@ -196,14 +196,14 @@ export default function QuickSellBar({ binders, onActionComplete, onOpenEditModa
 
       {message && (
         <div
-          className={`mt-2 text-xs font-semibold p-2 rounded-lg flex items-center justify-between ${
+          className={`mt-2.5 text-xs font-bold p-2.5 rounded-xl flex items-center justify-between ${
             message.type === 'success'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+              ? 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+              : 'bg-rose-50 text-rose-800 border border-rose-300'
           }`}
         >
           <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setMessage(null)} className="text-[#7A6B58] hover:text-[#1E293B]">
             &times;
           </button>
         </div>

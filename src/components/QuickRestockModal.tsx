@@ -31,42 +31,42 @@ export default function QuickRestockModal({
   const totalSold = soldSlots.reduce((acc, s) => acc + s.soldPrice, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-      <div className="w-full max-w-md bg-slate-900 border-2 border-emerald-500/50 rounded-3xl p-6 shadow-2xl animate-fadeInUp text-slate-100 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-clean">
+      <div className="w-full max-w-md bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-3xl p-6 shadow-2xl animate-fadeInUp text-[#1E293B] space-y-4">
         {/* Celebration Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center mx-auto shadow-lg">
+          <div className="w-14 h-14 rounded-full bg-emerald-100 border-2 border-emerald-400 text-emerald-700 flex items-center justify-center mx-auto shadow-sm">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
-          <h3 className="font-pixelify text-lg font-bold text-white tracking-tight">
+          <h3 className="font-pixelify text-lg font-bold text-[#1E293B] tracking-tight">
             TRANSAKSI #{orderNumber} BERHASIL!
           </h3>
 
-          <p className="text-xs text-slate-300">
-            Total penerimaan <span className="font-pixelify font-bold text-emerald-400">{formatCurrency(totalSold, currency)}</span> telah resmi dicatat ke{' '}
-            <span className="font-bold text-white underline">Riwayat Penjualan</span>.
+          <p className="text-xs text-[#5D4E3E]">
+            Total penerimaan <span className="font-pixelify font-bold text-[#2E7D32]">{formatCurrency(totalSold, currency)}</span> telah resmi dicatat ke{' '}
+            <span className="font-bold text-[#1E293B] underline">Riwayat Penjualan</span>.
           </p>
         </div>
 
         {/* List of emptied binder slots */}
-        <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-2xl space-y-2.5">
-          <div className="font-pixelify text-xs font-bold text-amber-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
+        <div className="p-3.5 bg-white border border-[#D5CABE] rounded-2xl space-y-2.5 shadow-2xs">
+          <div className="font-pixelify text-xs font-bold text-[#4A3E31] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#E05A47]" />
             <span>SLOT BINDER KINI KOSONG (READY RESTOCK):</span>
           </div>
 
-          <div className="divide-y divide-slate-800/80 text-xs">
+          <div className="divide-y divide-[#EAE3D8] text-xs">
             {soldSlots.map((slot) => (
               <div key={`${slot.binderId}-${slot.slotNumber}`} className="py-2.5 flex items-center justify-between">
                 <div className="min-w-0 pr-2">
-                  <div className="font-bold text-white flex items-center gap-1.5">
-                    <span className="font-pixelify px-1.5 py-0.5 rounded bg-slate-800 text-amber-400 text-[10px]">
+                  <div className="font-bold text-[#1E293B] flex items-center gap-1.5">
+                    <span className="font-pixelify px-1.5 py-0.5 rounded bg-[#EAE3D8] text-[#4A3E31] text-[10px]">
                       Slot #{slot.slotNumber}
                     </span>
                     <span className="truncate">{slot.cardName}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
+                  <div className="text-[10px] text-[#7A6B58] mt-0.5 font-mono-clean">
                     Terjual seharga {formatCurrency(slot.soldPrice, currency)}
                   </div>
                 </div>
@@ -75,7 +75,7 @@ export default function QuickRestockModal({
                 <button
                   type="button"
                   onClick={() => onRestockSlot(slot.binderId, slot.slotNumber)}
-                  className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/40 font-pixelify text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
+                  className="px-2.5 py-1.5 rounded-xl bg-[#EAE3D8] hover:bg-[#E05A47] text-[#4A3E31] hover:text-white border border-[#D5CABE] font-pixelify text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer flex-shrink-0 shadow-2xs"
                   title="Langsung masukkan kartu baru ke slot kosong ini"
                 >
                   <Plus className="w-3 h-3" />
@@ -92,12 +92,12 @@ export default function QuickRestockModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-pixelify text-xs font-bold shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+            className="w-full py-3.5 bg-[#2E7D32] hover:bg-[#25632A] text-white rounded-2xl font-pixelify text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
           >
             <span>SELESAI • LAYANI PEMBELI BERIKUTNYA ▶</span>
           </button>
 
-          <p className="text-[11px] text-center text-slate-400">
+          <p className="text-[11px] text-center text-[#7A6B58]">
             Anda bisa mengisi slot kosong kapan saja nanti lewat dashboard.
           </p>
         </div>

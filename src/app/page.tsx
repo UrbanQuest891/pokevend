@@ -179,27 +179,33 @@ export default function SellerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-clean selection:bg-amber-500 selection:text-slate-950">
+    <div
+      className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex flex-col font-clean selection:bg-[#E05A47] selection:text-white"
+      style={{
+        backgroundImage: 'radial-gradient(#E2D9CC 0.85px, transparent 0.85px)',
+        backgroundSize: '20px 20px',
+      }}
+    >
       <Navbar sellerName={profile?.sellerName} boothName={profile?.boothName} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Incoming Live Orders Alert Ribbon */}
         {pendingOrders.length > 0 && (
-          <div className="p-4 bg-gradient-to-r from-amber-950/80 via-red-950/60 to-slate-900 border-2 border-amber-500/60 rounded-3xl shadow-[0_4px_25px_rgba(245,158,11,0.25)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeInUp">
+          <div className="p-4 bg-[#FAF6F0] border-2 border-[#E05A47] rounded-3xl shadow-[0_4px_25px_rgba(224,90,71,0.22)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeInUp">
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-pixelify font-bold text-lg shadow-md animate-pulse">
+              <div className="w-11 h-11 rounded-2xl bg-[#E05A47] text-white flex items-center justify-center font-pixelify font-bold text-lg shadow-sm animate-pulse">
                 <Bell className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-pixelify text-sm sm:text-base font-bold text-amber-300">
+                  <span className="font-pixelify text-sm sm:text-base font-bold text-[#E05A47]">
                     {pendingOrders.length} PESANAN MASUK DARI PEMBELI!
                   </span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Terbaru: <span className="font-bold text-white underline">#{pendingOrders[0].orderNumber}</span> oleh{' '}
-                  <span className="font-bold text-amber-200">{pendingOrders[0].buyerName}</span> •{' '}
+                <p className="text-xs text-[#5D4E3E] mt-0.5">
+                  Terbaru: <span className="font-bold text-[#1E293B] underline">#{pendingOrders[0].orderNumber}</span> oleh{' '}
+                  <span className="font-bold text-[#E05A47]">{pendingOrders[0].buyerName}</span> •{' '}
                   <span className="font-mono-clean">{pendingOrders[0].items.length} kartu</span> (
                   {formatCurrency(pendingOrders[0].totalAmount, profile?.currency || 'IDR')})
                 </p>
@@ -210,7 +216,7 @@ export default function SellerDashboard() {
               <button
                 type="button"
                 onClick={() => setActiveNegotiationOrder(pendingOrders[0])}
-                className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-2xl font-pixelify text-xs font-bold shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full sm:w-auto px-4 py-2.5 bg-[#E05A47] hover:bg-[#C94735] text-white rounded-2xl font-pixelify text-xs font-bold shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
               >
                 <span>BUKA TIKET & NEGO HARGA</span>
                 <ArrowRight className="w-4 h-4" />
@@ -221,74 +227,74 @@ export default function SellerDashboard() {
 
         {/* Event Notice Header */}
         {profile?.bannerNotice && (
-          <div className="p-3 bg-gradient-to-r from-red-950/60 via-amber-950/40 to-slate-900 border border-amber-500/30 rounded-2xl flex items-center justify-between text-xs text-amber-200">
+          <div className="p-3.5 bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl flex items-center justify-between text-xs text-[#5D4E3E] shadow-2xs">
             <div className="flex items-center gap-2">
               <span className="text-base">📢</span>
               <span className="font-semibold">{profile.bannerNotice}</span>
             </div>
-            <span className="font-pixelify text-[11px] font-bold text-amber-400/80 hidden sm:inline">
+            <span className="font-pixelify text-[11px] font-bold text-[#E05A47] hidden sm:inline">
               {profile.boothName}
             </span>
           </div>
         )}
 
-        {/* Live Event Stats Ribbon with 8-Bit Accents */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Live Event Stats Ribbon with Warm Vintage 8-Bit Accents */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
           {/* Total Cards */}
-          <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg relative overflow-hidden">
-            <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="p-4 bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl shadow-xs relative overflow-hidden">
+            <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-[#7A6B58]">
               KARTU DI BINDER
             </div>
-            <div className="text-2xl font-pixelify font-bold text-white mt-1 flex items-baseline gap-1.5">
+            <div className="text-2xl font-pixelify font-bold text-[#1E293B] mt-1 flex items-baseline gap-1.5">
               <span>{totalCardsCount}</span>
-              <span className="text-xs font-pixelify text-emerald-400">({availableCardsCount} Ready)</span>
+              <span className="text-xs font-pixelify text-[#2E7D32]">({availableCardsCount} Ready)</span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-              <Layers className="w-3 h-3 text-red-400" />
+            <div className="text-[11px] text-[#7A6B58] mt-1 flex items-center gap-1 font-mono-clean">
+              <Layers className="w-3.5 h-3.5 text-[#E05A47]" />
               <span>{binders.length} Binder Terpasang</span>
             </div>
           </div>
 
           {/* Total Value */}
-          <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg relative overflow-hidden">
-            <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="p-4 bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl shadow-xs relative overflow-hidden">
+            <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-[#7A6B58]">
               TOTAL NILAI DISPLAY
             </div>
-            <div className="text-xl sm:text-2xl font-pixelify font-bold text-amber-400 mt-1 truncate">
+            <div className="text-xl sm:text-2xl font-pixelify font-bold text-[#1E293B] mt-1 truncate">
               {formatCurrency(totalInventoryValue, profile?.currency || 'IDR')}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-amber-400" />
+            <div className="text-[11px] text-[#7A6B58] mt-1 flex items-center gap-1 font-mono-clean">
+              <TrendingUp className="w-3.5 h-3.5 text-[#2E7D32]" />
               <span>Harga live di event</span>
             </div>
           </div>
 
           {/* Cards Sold */}
-          <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg relative overflow-hidden">
-            <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <div className="p-4 bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl shadow-xs relative overflow-hidden">
+            <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-[#7A6B58]">
               TERJUAL DI EVENT
             </div>
-            <div className="text-2xl font-pixelify font-bold text-rose-400 mt-1 flex items-baseline gap-1.5">
+            <div className="text-2xl font-pixelify font-bold text-[#2E7D32] mt-1 flex items-baseline gap-1.5">
               <span>{soldCardsCount}</span>
-              <span className="text-xs font-clean text-slate-400">kartu</span>
+              <span className="text-xs font-clean text-[#7A6B58]">kartu</span>
             </div>
-            <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-              <Tag className="w-3 h-3 text-rose-400" />
+            <div className="text-[11px] text-[#7A6B58] mt-1 flex items-center gap-1 font-mono-clean">
+              <Tag className="w-3.5 h-3.5 text-[#E05A47]" />
               <span className="truncate">Omset: {formatCurrency(soldValue, profile?.currency || 'IDR')}</span>
             </div>
           </div>
 
           {/* Booth Info */}
-          <div className="p-4 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl shadow-xs relative overflow-hidden flex flex-col justify-between">
             <div>
-              <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="font-pixelify text-[11px] font-bold uppercase tracking-wider text-[#7A6B58]">
                 LOKASI BOOTH
               </div>
-              <div className="font-pixelify text-base font-bold text-white mt-1 truncate">
+              <div className="font-pixelify text-base font-bold text-[#1E293B] mt-1 truncate">
                 {profile?.boothName || 'Table #A-14'}
               </div>
             </div>
-            <div className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5 mt-1">
+            <div className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5 mt-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>QR Database Online</span>
             </div>
@@ -305,14 +311,14 @@ export default function SellerDashboard() {
         )}
 
         {/* Global Card Search across all binders */}
-        <div className="bg-slate-900/70 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+        <div className="bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl p-4 space-y-3 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="font-pixelify text-sm font-bold text-white flex items-center gap-2">
-                <Search className="w-4 h-4 text-amber-400" />
+              <h2 className="font-pixelify text-sm font-bold text-[#1E293B] flex items-center gap-2">
+                <Search className="w-4 h-4 text-[#E05A47]" />
                 <span>Pencari Kartu Cepat (Tanya Pembeli Langsung Ketik)</span>
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[#7A6B58]">
                 Ketik nama kartu (misal: "Moonbreon", "Pikachu", "Charizard") untuk cek lokasi binder dan harganya dalam sekejap
               </p>
             </div>
@@ -323,13 +329,13 @@ export default function SellerDashboard() {
                 placeholder="Cari kartu di semua binder..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                className="w-full pl-9 pr-4 py-2 bg-white border border-[#D5CABE] rounded-xl text-xs text-[#1E293B] placeholder-[#9C8E7D] focus:outline-none focus:border-[#E05A47] shadow-inner"
               />
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#9C8E7D]" />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-2 text-xs text-slate-400 hover:text-white"
+                  className="absolute right-3 top-2 text-xs text-[#9C8E7D] hover:text-[#1E293B]"
                 >
                   &times;
                 </button>
@@ -339,9 +345,9 @@ export default function SellerDashboard() {
 
           {/* Search Results Display */}
           {searchQuery.trim().length >= 2 && (
-            <div className="pt-2 border-t border-slate-800">
+            <div className="pt-2 border-t border-[#EAE3D8]">
               {searchResults.length === 0 ? (
-                <div className="text-xs text-slate-400 py-3 text-center">
+                <div className="text-xs text-[#7A6B58] py-3 text-center font-pixelify">
                   Tidak ditemukan kartu dengan kata kunci "{searchQuery}".
                 </div>
               ) : (
@@ -349,22 +355,22 @@ export default function SellerDashboard() {
                   {searchResults.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-3 hover:border-slate-700 transition-colors"
+                      className="p-3 bg-white border border-[#D5CABE] rounded-xl flex items-center justify-between gap-3 hover:border-[#B5A593] transition-colors shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {item.card.imageUrl && (
                           <img
                             src={item.card.imageUrl}
                             alt=""
-                            className="w-10 h-14 object-cover rounded shadow-sm flex-shrink-0"
+                            className="w-10 h-14 object-contain rounded bg-[#EAE3D8] border border-[#D5CABE] flex-shrink-0 p-0.5"
                           />
                         )}
                         <div className="min-w-0">
-                          <div className="text-xs font-bold text-white truncate">{item.card.name}</div>
-                          <div className="text-[10px] text-slate-400 truncate">
-                            {item.binder.name} • <span className="font-pixelify font-bold text-amber-400">SLOT #{item.slotNumber}</span>
+                          <div className="text-xs font-bold text-[#1E293B] truncate">{item.card.name}</div>
+                          <div className="font-mono-clean text-[10px] text-[#7A6B58] truncate">
+                            {item.binder.name} • <span className="font-pixelify font-bold text-[#E05A47]">SLOT #{item.slotNumber}</span>
                           </div>
-                          <div className="text-xs font-pixelify font-bold text-emerald-400 mt-0.5">
+                          <div className="text-xs font-pixelify font-bold text-[#2E7D32] mt-0.5">
                             {formatCurrency(item.card.price, item.binder.currency)}
                           </div>
                         </div>
@@ -374,15 +380,15 @@ export default function SellerDashboard() {
                         <span
                           className={`font-pixelify text-[9px] font-bold px-1.5 py-0.5 rounded ${
                             item.card.status === 'AVAILABLE'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-rose-500/20 text-rose-400'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-rose-100 text-rose-800'
                           }`}
                         >
                           {item.card.status}
                         </span>
                         <button
                           onClick={() => handleOpenEdit(item.binder.id, item.slotNumber, item.card)}
-                          className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
+                          className="font-pixelify text-[10px] text-[#7A6B58] hover:text-[#E05A47] underline cursor-pointer"
                         >
                           Edit Slot
                         </button>
@@ -398,18 +404,18 @@ export default function SellerDashboard() {
         {/* Binder Section Header & Action */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
           <div>
-            <h2 className="font-pixelify text-xl font-bold text-white flex items-center gap-2">
-              <Layers className="w-5 h-5 text-red-500" />
+            <h2 className="font-pixelify text-xl font-bold text-[#1E293B] flex items-center gap-2">
+              <Layers className="w-5 h-5 text-[#E05A47]" />
               <span>DAFTAR BINDER KOLEKSI</span>
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#7A6B58]">
               Setiap binder memiliki QR Code cover digital dan QR Code unik untuk masing-masing slot kartu
             </p>
           </div>
 
           <button
             onClick={() => setShowCreateBinder(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-amber-500 hover:brightness-110 active:scale-95 text-white font-pixelify font-bold text-xs shadow-lg shadow-red-600/20 transition-all cursor-pointer"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#E05A47] hover:bg-[#C94735] text-white font-pixelify font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
             <span>TAMBAH BINDER BARU</span>
@@ -418,15 +424,15 @@ export default function SellerDashboard() {
 
         {/* Binder Cards Grid */}
         {loading ? (
-          <div className="p-12 text-center text-slate-400 text-sm font-pixelify">
+          <div className="p-12 text-center text-[#7A6B58] text-sm font-pixelify">
             MEMUAT DATA BINDER...
           </div>
         ) : binders.length === 0 ? (
-          <div className="p-12 text-center bg-slate-900/50 border border-dashed border-slate-800 rounded-3xl">
-            <p className="text-sm text-slate-400 mb-3 font-pixelify">Belum ada binder yang dibuat.</p>
+          <div className="p-12 text-center bg-[#FAF6F0] border-2 border-dashed border-[#D5CABE] rounded-3xl">
+            <p className="text-sm text-[#7A6B58] mb-3 font-pixelify">Belum ada binder yang dibuat.</p>
             <button
               onClick={() => setShowCreateBinder(true)}
-              className="px-4 py-2 rounded-xl bg-red-600 text-white font-pixelify font-bold text-xs cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-[#E05A47] text-white font-pixelify font-bold text-xs cursor-pointer shadow-md"
             >
               Buat Binder Pertama
             </button>

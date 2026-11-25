@@ -23,7 +23,6 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [customSellerName, setCustomSellerName] = useState('PokeVault Indonesia');
 
-  // If already logged in, show status with option to proceed or switch account
   const handleProceedToDashboard = () => {
     router.push('/');
   };
@@ -47,24 +46,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden select-none">
-      {/* Background Ambient Glow Accents */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-red-600/15 rounded-full blur-[128px] pointer-events-none"></div>
-      <div className="absolute top-1/3 -right-40 w-96 h-96 bg-amber-500/15 rounded-full blur-[128px] pointer-events-none"></div>
-      <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-blue-600/15 rounded-full blur-[128px] pointer-events-none"></div>
-
+    <div
+      className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex flex-col justify-between relative overflow-hidden select-none font-clean"
+      style={{
+        backgroundImage: 'radial-gradient(#E2D9CC 0.85px, transparent 0.85px)',
+        backgroundSize: '20px 20px',
+      }}
+    >
       {/* Top Bar Navigation */}
       <header className="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
         <a
           href="/"
-          className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md"
+          className="flex items-center gap-2 font-pixelify text-xs sm:text-sm font-bold text-[#7A6B58] hover:text-[#1E293B] transition-colors px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4 text-amber-400" />
+          <ArrowLeft className="w-4 h-4 text-[#E05A47]" />
           <span>Kembali ke Beranda</span>
         </a>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <div className="flex items-center gap-2 text-xs font-pixelify font-bold text-[#7A6B58]">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>Sistem Online</span>
         </div>
       </header>
@@ -74,37 +74,37 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* PokéVend Logo & Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 via-rose-500 to-amber-500 p-0.5 shadow-2xl shadow-red-500/30 mb-4 transform hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center relative overflow-hidden">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#E05A47] p-0.5 shadow-md mb-4 transform hover:scale-105 transition-transform border border-black/10">
+              <div className="w-full h-full bg-[#FAF6F0] rounded-[14px] flex items-center justify-center relative overflow-hidden">
                 {/* Stylized PokéBall Icon */}
-                <div className="absolute top-0 inset-x-0 h-1/2 bg-red-600"></div>
+                <div className="absolute top-0 inset-x-0 h-1/2 bg-[#E05A47]"></div>
                 <div className="absolute bottom-0 inset-x-0 h-1/2 bg-white"></div>
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-slate-950"></div>
-                <div className="w-5 h-5 rounded-full bg-white border-2 border-slate-950 z-10 shadow-sm flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-600"></div>
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-[#1E293B]"></div>
+                <div className="w-4 h-4 rounded-full bg-white border-2 border-[#1E293B] z-10 shadow-xs flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#E05A47]"></div>
                 </div>
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mb-2">
-              Poké<span className="bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">Vend</span>
+            <h1 className="font-pixelify text-2xl sm:text-3xl font-bold tracking-tight text-[#1E293B] mb-1">
+              POKÉVEND
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#7A6B58] max-w-sm mx-auto leading-relaxed">
               Login Seller untuk mengelola binder kartu, referensi harga pasar, dan mencatat riwayat penjualan otomatis.
             </p>
           </div>
 
           {/* Card Box */}
-          <div className="bg-slate-900/80 border border-slate-800/90 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 text-[#1E293B]">
             {user ? (
               /* Already Logged In Card */
               <div className="text-center space-y-5">
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
-                  <div className="font-bold text-sm text-white">Anda Sedang Login!</div>
-                  <div className="text-xs text-slate-300 font-semibold">{user.name}</div>
-                  <div className="text-[11px] text-slate-400 font-mono">{user.email}</div>
-                  <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 space-y-2">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                  <div className="font-pixelify font-bold text-sm text-emerald-900">ANDA SEDANG LOGIN!</div>
+                  <div className="text-xs text-[#1E293B] font-bold">{user.name}</div>
+                  <div className="text-[11px] text-[#7A6B58] font-mono-clean">{user.email}</div>
+                  <span className="inline-block mt-1 font-pixelify text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-300">
                     {user.provider === 'google' ? 'Akun Google Terverifikasi' : 'Mode Demo Seller'}
                   </span>
                 </div>
@@ -113,16 +113,16 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={handleProceedToDashboard}
-                    className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-red-600 via-amber-500 to-amber-400 text-slate-950 font-black text-sm shadow-lg shadow-red-500/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 px-4 rounded-2xl bg-[#E05A47] hover:bg-[#C94735] text-white font-pixelify font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     <Store className="w-4 h-4" />
-                    <span>Buka Dashboard Seller</span>
+                    <span>BUKA DASHBOARD SELLER</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => signOut()}
-                    className="w-full py-2.5 px-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs border border-slate-700/80 transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-2xl bg-white hover:bg-[#FAF6F0] text-[#7A6B58] hover:text-[#1E293B] font-pixelify font-bold text-xs border border-[#D5CABE] transition-colors cursor-pointer"
                   >
                     Keluar / Ganti Akun
                   </button>
@@ -132,9 +132,9 @@ export default function LoginPage() {
               /* Not Logged In - Login Actions */
               <div className="space-y-5">
                 <div className="text-center">
-                  <span className="text-[11px] uppercase tracking-wider font-extrabold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
-                    <Lock className="w-3 h-3" />
-                    <span>Akses Portal Seller</span>
+                  <span className="font-pixelify text-[10px] uppercase tracking-wider font-bold text-[#4A3E31] bg-[#EAE3D8] border border-[#D5CABE] px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-[#E05A47]" />
+                    <span>AKSES PORTAL SELLER</span>
                   </span>
                 </div>
 
@@ -143,7 +143,7 @@ export default function LoginPage() {
                   type="button"
                   disabled={submitting || loading}
                   onClick={handleGoogleLogin}
-                  className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-black text-sm shadow-xl hover:shadow-white/10 active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer border border-slate-200"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-xs shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer border border-[#D5CABE]"
                 >
                   {/* Google Vector Icon */}
                   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -169,20 +169,20 @@ export default function LoginPage() {
 
                 {/* Divider */}
                 <div className="relative flex items-center justify-center">
-                  <div className="border-t border-slate-800 w-full"></div>
-                  <span className="bg-slate-900 px-3 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                  <div className="border-t border-[#D5CABE] w-full"></div>
+                  <span className="bg-[#FAF6F0] px-3 font-pixelify text-[10px] text-[#7A6B58] uppercase tracking-widest font-bold">
                     atau uji coba cepat
                   </span>
                 </div>
 
                 {/* Demo Seller Fast Login */}
-                <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2.5">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-                    <span className="flex items-center gap-1.5 text-amber-400">
-                      <Zap className="w-3.5 h-3.5 fill-amber-400" />
+                <div className="p-3.5 rounded-2xl bg-white border border-[#D5CABE] space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between font-pixelify text-[11px] font-bold text-[#4A3E31]">
+                    <span className="flex items-center gap-1.5 text-[#E05A47]">
+                      <Zap className="w-3.5 h-3.5 fill-[#E05A47]" />
                       Mode Demo Seller
                     </span>
-                    <span className="text-[10px] text-slate-500">Tanpa Setup OAuth</span>
+                    <span className="text-[10px] text-[#7A6B58]">Tanpa Setup OAuth</span>
                   </div>
 
                   <input
@@ -190,13 +190,13 @@ export default function LoginPage() {
                     value={customSellerName}
                     onChange={(e) => setCustomSellerName(e.target.value)}
                     placeholder="Nama Seller / Booth"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-amber-400 shadow-inner"
+                    className="w-full px-3 py-2 bg-[#FAF6F0] border border-[#D5CABE] rounded-xl text-xs font-bold text-[#1E293B] focus:outline-none focus:border-[#E05A47] shadow-inner font-pixelify"
                   />
 
                   <button
                     type="button"
                     onClick={handleDemoLogin}
-                    className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700/90 text-amber-300 font-extrabold text-xs transition-colors border border-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    className="w-full py-2.5 px-3 rounded-xl bg-[#FAF6F0] hover:bg-[#EAE3D8] text-[#1E293B] font-pixelify font-bold text-xs transition-colors border border-[#D5CABE] flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <span>Masuk Instan sebagai {customSellerName || 'Seller'}</span>
                   </button>
@@ -205,29 +205,29 @@ export default function LoginPage() {
             )}
 
             {/* Feature Highlights List */}
-            <div className="pt-4 border-t border-slate-800/80 space-y-2.5 text-xs text-slate-400">
+            <div className="pt-4 border-t-2 border-[#EAE3D8] space-y-2.5 text-xs text-[#7A6B58]">
               <div className="flex items-start gap-2.5">
-                <TrendingUp className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <TrendingUp className="w-4 h-4 text-[#2E7D32] flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-slate-200">Riwayat Penjualan Permanen:</strong> Setiap kartu yang laku terjual otomatis tercatat di data penjualan.
+                  <strong className="text-[#1E293B]">Riwayat Penjualan Permanen:</strong> Setiap kartu yang laku terjual otomatis tercatat di data penjualan.
                 </span>
               </div>
               <div className="flex items-start gap-2.5">
-                <Layers className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                <Layers className="w-4 h-4 text-[#E05A47] flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-slate-200">Multi-Game TCG:</strong> Dukungan penuh katalog Pokémon, One Piece Card Game, & Riftbound.
+                  <strong className="text-[#1E293B]">Multi-Game TCG:</strong> Dukungan penuh katalog Pokémon, One Piece Card Game, & Riftbound.
                 </span>
               </div>
             </div>
           </div>
 
           {/* Notice for Event Buyers */}
-          <div className="mt-6 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md text-center space-y-1">
-            <div className="text-xs font-bold text-amber-400 flex items-center justify-center gap-1.5">
-              <QrCode className="w-3.5 h-3.5" />
+          <div className="mt-6 p-4 rounded-2xl bg-[#FAF6F0] border-2 border-[#D5CABE] text-center space-y-1 shadow-xs">
+            <div className="font-pixelify text-xs font-bold text-[#4A3E31] flex items-center justify-center gap-1.5">
+              <QrCode className="w-3.5 h-3.5 text-[#E05A47]" />
               <span>Pengunjung / Pembeli di Meja Event?</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-[#7A6B58] leading-relaxed">
               Anda tidak perlu login. Cukup scan QR code di binder fisik untuk melihat stok kartu & harga secara langsung.
             </p>
           </div>
@@ -235,7 +235,7 @@ export default function LoginPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 py-5 text-center text-[11px] text-slate-500 border-t border-slate-900">
+      <footer className="relative z-10 py-5 text-center font-pixelify text-[10px] text-[#7A6B58] border-t-2 border-[#E5DACB]">
         PokéVend Card Show Companion • Multi-Game TCG Vending System
       </footer>
     </div>

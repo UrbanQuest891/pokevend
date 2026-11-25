@@ -377,10 +377,10 @@ export default function BinderEditorPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex items-center justify-center font-clean">
         <div className="text-center space-y-2">
-          <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs text-slate-400">Memuat data binder...</p>
+          <div className="w-10 h-10 border-4 border-[#E05A47] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="font-pixelify text-xs text-[#7A6B58]">MEMUAT DATA BINDER...</p>
         </div>
       </div>
     );
@@ -446,16 +446,22 @@ export default function BinderEditorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div
+      className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex flex-col font-clean selection:bg-[#E05A47] selection:text-white"
+      style={{
+        backgroundImage: 'radial-gradient(#E2D9CC 0.85px, transparent 0.85px)',
+        backgroundSize: '20px 20px',
+      }}
+    >
       <Navbar sellerName={binder.sellerName} boothName={binder.boothName} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Top Header & Breadcrumb */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b-2 border-[#E5DACB]">
           <div className="flex items-center gap-3">
             <a
               href="/"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] text-[#7A6B58] hover:text-[#1E293B] transition-colors shadow-2xs"
             >
               <ArrowLeft className="w-5 h-5" />
             </a>
@@ -463,14 +469,14 @@ export default function BinderEditorPage() {
               <div className="flex items-center gap-2">
                 <span
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: binder.coverColor || '#DC2626' }}
+                  style={{ backgroundColor: binder.coverColor || '#E05A47' }}
                 />
-                <h1 className="text-xl sm:text-2xl font-black text-white">{binder.name}</h1>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold">
+                <h1 className="font-pixelify text-xl sm:text-2xl font-bold text-[#1E293B]">{binder.name}</h1>
+                <span className="font-pixelify text-xs px-2.5 py-0.5 rounded-full bg-[#EAE3D8] text-[#4A3E31] font-bold border border-[#D5CABE]">
                   {binder.layoutType}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#7A6B58] mt-0.5">
                 {totalCards} Kartu terisi • Total Nilai: {formatCurrency(totalValue, binder.currency)} •{' '}
                 {binder.totalPages} Halaman
               </p>
@@ -483,17 +489,17 @@ export default function BinderEditorPage() {
               href={`/b/${binder.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E05A47] hover:bg-[#C94735] text-white font-pixelify text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+              <ExternalLink className="w-3.5 h-3.5" />
               <span>Preview Pembeli</span>
             </a>
 
             <button
               onClick={() => setShowQrModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 text-xs font-bold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#FAF6F0] border border-[#D5CABE] text-[#1E293B] font-pixelify text-xs font-bold transition-colors shadow-2xs cursor-pointer"
             >
-              <QrCode className="w-3.5 h-3.5" />
+              <QrCode className="w-3.5 h-3.5 text-[#E05A47]" />
               <span>QR Meja Stand</span>
             </button>
 
@@ -501,9 +507,9 @@ export default function BinderEditorPage() {
               href={`/print/slots/${binder.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#FAF6F0] border border-[#D5CABE] text-[#1E293B] font-pixelify text-xs font-bold transition-colors shadow-2xs cursor-pointer"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5 text-[#2E7D32]" />
               <span>Cetak Stiker QR</span>
             </a>
           </div>
@@ -610,12 +616,12 @@ export default function BinderEditorPage() {
         )}
 
         {/* Event Flash Sale / Bulk Discount Ribbon */}
-        <div className="bg-gradient-to-r from-red-950/60 to-slate-900 border border-red-900/60 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+        <div className="bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-2xs">
           <div className="flex items-center gap-2">
-            <Percent className="w-4 h-4 text-red-400" />
+            <Percent className="w-4 h-4 text-[#E05A47]" />
             <div>
-              <span className="font-extrabold text-white">Flash Sale Binder: </span>
-              <span className="text-slate-400">
+              <span className="font-pixelify font-bold text-[#1E293B]">Flash Sale Binder: </span>
+              <span className="text-[#7A6B58]">
                 Potong harga otomatis untuk semua kartu yang masih tersedia di binder ini
               </span>
             </div>
@@ -629,12 +635,12 @@ export default function BinderEditorPage() {
               placeholder="% Diskon"
               value={discountPercent}
               onChange={(e) => setDiscountPercent(e.target.value)}
-              className="w-24 px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-bold text-center text-white focus:outline-none focus:border-red-500"
+              className="w-24 px-2.5 py-1.5 bg-white border border-[#D5CABE] rounded-xl text-xs font-bold text-center text-[#1E293B] focus:outline-none focus:border-[#E05A47] font-pixelify"
             />
             <button
               onClick={handleApplyDiscount}
               disabled={applyingDiscount || !discountPercent}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white transition-colors"
+              className="px-3 py-1.5 rounded-xl font-pixelify text-xs font-bold bg-[#E05A47] hover:bg-[#C94735] disabled:opacity-40 text-white transition-all shadow-xs cursor-pointer"
             >
               {applyingDiscount ? 'Memproses...' : 'Terapkan Diskon'}
             </button>
@@ -644,7 +650,7 @@ export default function BinderEditorPage() {
         {/* Page Switcher Navigation */}
         <div
           ref={contentTopRef}
-          className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 border border-slate-800 rounded-2xl p-2 scroll-mt-20"
+          className="flex flex-wrap items-center justify-between gap-2 bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl p-2.5 shadow-2xs scroll-mt-20"
         >
           <button
             onClick={() => handlePageChange(currentPage - 1)}
@@ -657,7 +663,7 @@ export default function BinderEditorPage() {
               e.preventDefault();
               if (currentPage > 1) handlePageChange(currentPage - 1);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] disabled:opacity-30 font-pixelify text-xs font-bold text-[#1E293B] transition-colors shadow-2xs cursor-pointer"
             title={currentPage > 1 ? 'Buka halaman sebelumnya (bisa drop kartu di sini)' : undefined}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -666,10 +672,10 @@ export default function BinderEditorPage() {
 
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-1.5 text-center">
-              <span className="text-xs font-extrabold text-white">
+              <span className="font-pixelify text-xs font-bold text-[#1E293B]">
                 Halaman {currentPage} dari {binder.totalPages}
               </span>
-              <span className="text-[11px] text-slate-400 hidden sm:inline">
+              <span className="font-mono-clean text-[11px] text-[#7A6B58] hidden sm:inline">
                 (Slot #{startSlot} - #{endSlot})
               </span>
             </div>
@@ -677,17 +683,17 @@ export default function BinderEditorPage() {
             <button
               type="button"
               onClick={handleToggleReorderMode}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-pixelify text-xs font-bold transition-all shadow-xs cursor-pointer ${
                 isReorderMode
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-400 shadow-amber-500/20'
-                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                  ? 'bg-[#E05A47] text-white shadow-md ring-2 ring-[#E05A47]/40'
+                  : 'bg-white hover:bg-[#FAF6F0] text-[#1E293B] border border-[#D5CABE]'
               }`}
               title="Atur posisi kartu dengan drag & drop (khusus PC)"
             >
-              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-slate-950 stroke-[3]' : 'text-amber-400'}`} />
+              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-white stroke-[3]' : 'text-[#E05A47]'}`} />
               <span>{isReorderMode ? 'Mode Edit Aktif' : 'Edit Slot (Drag & Drop)'}</span>
               {isReorderMode && changedCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black">
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-bold">
                   {changedCount}
                 </span>
               )}
@@ -705,7 +711,7 @@ export default function BinderEditorPage() {
               e.preventDefault();
               if (currentPage < binder.totalPages) handlePageChange(currentPage + 1);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] disabled:opacity-30 font-pixelify text-xs font-bold text-[#1E293B] transition-colors shadow-2xs cursor-pointer"
             title={currentPage < binder.totalPages ? 'Buka halaman berikutnya (bisa drop kartu di sini)' : undefined}
           >
             <span>Halaman Berikutnya</span>
@@ -762,25 +768,25 @@ export default function BinderEditorPage() {
                     existingCard: card || null,
                   });
                 }}
-                className={`binder-pocket rounded-2xl p-3 flex flex-col justify-between transition-all group min-h-[290px] relative overflow-hidden select-none ${
+                className={`bg-[#FAF6F0] border-2 rounded-2xl p-3 flex flex-col justify-between transition-all group min-h-[290px] relative overflow-hidden select-none shadow-xs text-[#1E293B] ${
                   isOver
-                    ? 'ring-4 ring-amber-400 border-amber-400 bg-amber-500/20 scale-[1.03] z-30 shadow-2xl shadow-amber-500/30'
+                    ? 'ring-4 ring-[#E05A47] border-[#E05A47] bg-rose-50 scale-[1.03] z-30 shadow-2xl'
                     : isDragged
-                    ? 'opacity-30 border-2 border-dashed border-amber-400 scale-95'
+                    ? 'opacity-30 border-2 border-dashed border-[#E05A47] scale-95'
                     : isReorderMode
                     ? card
-                      ? 'border-2 border-dashed border-amber-500/50 hover:border-amber-400 cursor-grab active:cursor-grabbing hover:shadow-lg'
-                      : 'border-2 border-dashed border-slate-800 hover:border-amber-400/50'
+                      ? 'border-2 border-dashed border-amber-500/60 hover:border-amber-500 cursor-grab active:cursor-grabbing hover:shadow-sm'
+                      : 'border-2 border-dashed border-[#D5CABE] hover:border-amber-400/60'
                     : card && isDesktop
-                    ? 'cursor-pointer hover:border-amber-500/50 hover:shadow-amber-500/10 cursor-grab'
-                    : 'cursor-pointer hover:border-amber-500/50 hover:shadow-amber-500/10'
+                    ? 'border-[#D5CABE] hover:border-[#B5A593] cursor-pointer hover:shadow-sm cursor-grab'
+                    : 'border-[#D5CABE] hover:border-[#B5A593] cursor-pointer hover:shadow-sm'
                 }`}
               >
                 {/* Drag-over indicator overlay */}
                 {isOver && (
-                  <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center p-3 z-30 pointer-events-none">
-                    <ArrowRightLeft className="w-8 h-8 text-amber-300 animate-bounce mb-1" />
-                    <span className="text-xs font-black text-white bg-slate-950/95 px-2.5 py-1 rounded-lg border border-amber-400 shadow-xl">
+                  <div className="absolute inset-0 bg-[#E05A47]/15 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center p-3 z-30 pointer-events-none">
+                    <ArrowRightLeft className="w-8 h-8 text-[#E05A47] animate-bounce mb-1" />
+                    <span className="font-pixelify text-xs font-bold text-white bg-[#1E293B] px-2.5 py-1 rounded-lg border border-[#D5CABE] shadow-xl">
                       {card ? `Tukar dengan Slot #${slotNum}` : `Pindahkan ke Slot #${slotNum}`}
                     </span>
                   </div>
@@ -789,7 +795,7 @@ export default function BinderEditorPage() {
                 {/* Top Slot Header */}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-black text-amber-400 tracking-wider">
+                    <span className="px-2 py-0.5 rounded bg-[#EAE3D8] text-[10px] font-pixelify font-bold text-[#4A3E31] tracking-wider">
                       SLOT #{slotNum}
                     </span>
                     {!isReorderMode && (
@@ -798,17 +804,17 @@ export default function BinderEditorPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1 text-slate-500 hover:text-white rounded hover:bg-slate-800 transition-colors"
+                        className="p-1 text-[#7A6B58] hover:text-[#1E293B] rounded hover:bg-[#EAE3D8] transition-colors"
                         title="Lihat Halaman QR Slot Ini"
                       >
                         <QrCode className="w-3.5 h-3.5" />
                       </a>
                     )}
                     {isDesktop && card && (
-                      <span className={`px-1.5 py-0.5 rounded border text-[9px] font-black flex items-center gap-0.5 ${
+                      <span className={`px-1.5 py-0.5 rounded border text-[9px] font-pixelify font-bold flex items-center gap-0.5 ${
                         isReorderMode
-                          ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-sm'
-                          : 'bg-slate-800 text-slate-400 border-slate-700 opacity-60 group-hover:opacity-100'
+                          ? 'bg-[#E05A47] text-white border-[#E05A47] shadow-xs'
+                          : 'bg-white text-[#7A6B58] border-[#D5CABE] opacity-80 group-hover:opacity-100'
                       }`}>
                         <GripVertical className="w-3 h-3" />
                         <span>DRAG</span>
@@ -819,14 +825,14 @@ export default function BinderEditorPage() {
                   {card && (
                     <button
                       onClick={(e) => handleQuickToggleSold(slotNum, e)}
-                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-all ${
+                      className={`font-pixelify text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
                         isReorderMode ? 'pointer-events-none opacity-60 ' : ''
                       }${
                         card.status === 'AVAILABLE'
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
                           : card.status === 'SOLD'
-                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
-                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+                          ? 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200'
+                          : 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200'
                       }`}
                       title={isReorderMode ? undefined : 'Klik untuk ubah status cepat'}
                     >
@@ -837,8 +843,8 @@ export default function BinderEditorPage() {
 
                 {/* Explicit Reorder Drag Handle */}
                 {isReorderMode && card && (
-                  <div className="w-full py-1 px-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded-lg flex items-center justify-center gap-1.5 text-[10px] font-black text-amber-300 cursor-grab active:cursor-grabbing mb-1.5 select-none shadow-sm">
-                    <GripVertical className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="w-full py-1 px-2 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-center gap-1.5 text-[10px] font-pixelify font-bold text-amber-800 cursor-grab active:cursor-grabbing mb-1.5 select-none shadow-2xs">
+                    <GripVertical className="w-3.5 h-3.5 text-amber-700" />
                     <span>DRAG UNTUK GESER SLOT</span>
                   </div>
                 )}
@@ -847,7 +853,7 @@ export default function BinderEditorPage() {
                 {card ? (
                   <div className={`flex-1 flex flex-col justify-between ${isReorderMode ? 'pointer-events-none select-none' : ''}`}>
                     {/* Image & Overlay */}
-                    <div className="relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-slate-950 mx-auto shadow-md mb-2 holo-shine pointer-events-none select-none">
+                    <div className="pocket-reflection relative aspect-[3/4] max-h-48 w-full rounded-xl overflow-hidden bg-[#E2D9CC] mx-auto shadow-inner mb-2 border border-[#D5CABE] pointer-events-none select-none">
                       {card.imageUrl ? (
                         <img
                           src={formatCardImageUrl(card.imageUrl)}
@@ -856,13 +862,13 @@ export default function BinderEditorPage() {
                           className="w-full h-full object-contain p-1 pointer-events-none select-none"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-500 pointer-events-none">
-                          Tidak ada gambar
+                        <div className="w-full h-full flex items-center justify-center font-pixelify text-xs text-[#8C7E6D] pointer-events-none">
+                          POKÉMON
                         </div>
                       )}
                       {card.status === 'SOLD' && (
-                        <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
-                          <span className="px-3 py-1 bg-red-600 text-white font-black text-xs uppercase tracking-widest rounded-lg shadow-lg rotate-[-12deg]">
+                        <div className="absolute inset-0 bg-black/65 flex items-center justify-center pointer-events-none">
+                          <span className="font-pixelify px-3 py-1 bg-red-600 text-white font-bold text-xs uppercase tracking-widest rounded-lg shadow-lg rotate-[-12deg]">
                             SOLD
                           </span>
                         </div>
@@ -871,25 +877,20 @@ export default function BinderEditorPage() {
 
                     {/* Card Info */}
                     <div className="pointer-events-none select-none">
-                      <div className="font-extrabold text-xs text-white line-clamp-1 group-hover:text-amber-400 transition-colors">
+                      <div className="font-bold text-xs text-[#1E293B] line-clamp-1 group-hover:text-[#E05A47] transition-colors">
                         {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                        {card.game && card.game !== 'pokemon' && (
-                          <span className="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 flex-shrink-0">
-                            {card.game}
-                          </span>
-                        )}
+                      <div className="font-mono-clean text-[10px] text-[#7A6B58] truncate flex items-center gap-1 mt-0.5">
                         <span className="truncate">{card.condition} • {translateCardSet(card.setName, card.cardNumber, card.game)}</span>
                       </div>
 
                       {/* Price Tag */}
                       <div className="mt-1.5 flex items-baseline justify-between pointer-events-none">
-                        <span className="text-sm font-black text-amber-400">
+                        <span className="font-pixelify text-sm font-bold text-[#2E7D32]">
                           {formatCurrency(card.price, binder.currency)}
                         </span>
                         {card.originalPrice && card.originalPrice > card.price && (
-                          <span className="text-[10px] line-through text-slate-500">
+                          <span className="text-[10px] line-through text-[#7A6B58]">
                             {formatCurrency(card.originalPrice, binder.currency)}
                           </span>
                         )}
@@ -897,29 +898,29 @@ export default function BinderEditorPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className={`flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-slate-800 rounded-xl group-hover:border-slate-700 transition-colors ${isReorderMode ? 'pointer-events-none select-none' : ''}`}>
-                    <div className="w-10 h-10 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-500 group-hover:text-amber-400 group-hover:bg-slate-800 transition-all mb-2">
+                  <div className={`flex-1 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-[#D5CABE] bg-[#EAE3D8]/40 rounded-xl group-hover:border-[#B5A593] transition-colors ${isReorderMode ? 'pointer-events-none select-none' : ''}`}>
+                    <div className="w-10 h-10 rounded-full bg-white border border-[#D5CABE] flex items-center justify-center text-[#7A6B58] group-hover:text-[#E05A47] transition-all mb-2 shadow-2xs">
                       <Plus className="w-5 h-5" />
                     </div>
-                    <span className="text-xs font-bold text-slate-400 group-hover:text-white">
-                      Slot Kosong
+                    <span className="font-pixelify text-xs font-bold text-[#4A3E31]">
+                      SLOT KOSONG
                     </span>
-                    <span className="text-[10px] text-slate-500 mt-0.5">
+                    <span className="text-[10px] text-[#7A6B58] mt-0.5">
                       {isReorderMode ? 'Drop kartu di sini' : 'Klik untuk pasang kartu'}
                     </span>
                   </div>
                 )}
 
                 {/* Bottom Click to Edit or Drag Hint */}
-                <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-center text-[10px] font-semibold text-slate-400 group-hover:text-slate-300">
+                <div className="mt-2 pt-2 border-t border-[#EAE3D8] flex items-center justify-center text-[10px] font-pixelify font-bold text-[#7A6B58] group-hover:text-[#1E293B]">
                   {isReorderMode ? (
-                    <div className="flex items-center text-amber-400 font-bold">
+                    <div className="flex items-center text-amber-700 font-bold">
                       <Move className="w-3 h-3 mr-1" />
                       <span>{card ? 'Drag untuk tukar/pindah' : 'Drop kartu di sini'}</span>
                     </div>
                   ) : (
                     <div className="flex items-center">
-                      <Edit3 className="w-3 h-3 mr-1" />
+                      <Edit3 className="w-3 h-3 mr-1 text-[#E05A47]" />
                       <span>Klik untuk edit kartu</span>
                     </div>
                   )}
@@ -942,7 +943,7 @@ export default function BinderEditorPage() {
               e.preventDefault();
               if (currentPage > 1) handlePageChange(currentPage - 1);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] disabled:opacity-30 font-pixelify text-xs font-bold text-[#1E293B] transition-colors shadow-2xs cursor-pointer"
             title={currentPage > 1 ? 'Buka halaman sebelumnya (bisa drop kartu di sini)' : undefined}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -951,10 +952,10 @@ export default function BinderEditorPage() {
 
           <div className="flex items-center gap-2.5">
             <div className="flex items-center gap-1.5 text-center">
-              <span className="text-xs font-extrabold text-white">
+              <span className="font-pixelify text-xs font-bold text-[#1E293B]">
                 Halaman {currentPage} dari {binder.totalPages}
               </span>
-              <span className="text-[11px] text-slate-400 hidden sm:inline">
+              <span className="font-mono-clean text-[11px] text-[#7A6B58] hidden sm:inline">
                 (Slot #{startSlot} - #{endSlot})
               </span>
             </div>
@@ -962,17 +963,17 @@ export default function BinderEditorPage() {
             <button
               type="button"
               onClick={handleToggleReorderMode}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-pixelify text-xs font-bold transition-all shadow-xs cursor-pointer ${
                 isReorderMode
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-400 shadow-amber-500/20'
-                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                  ? 'bg-[#E05A47] text-white shadow-md ring-2 ring-[#E05A47]/40'
+                  : 'bg-white hover:bg-[#FAF6F0] text-[#1E293B] border border-[#D5CABE]'
               }`}
               title="Atur posisi kartu dengan drag & drop (khusus PC)"
             >
-              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-slate-950 stroke-[3]' : 'text-amber-400'}`} />
+              <Move className={`w-3.5 h-3.5 ${isReorderMode ? 'text-white stroke-[3]' : 'text-[#E05A47]'}`} />
               <span>{isReorderMode ? 'Mode Edit Aktif' : 'Edit Slot (Drag & Drop)'}</span>
               {isReorderMode && changedCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-black">
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[10px] font-bold">
                   {changedCount}
                 </span>
               )}
@@ -990,7 +991,7 @@ export default function BinderEditorPage() {
               e.preventDefault();
               if (currentPage < binder.totalPages) handlePageChange(currentPage + 1);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-xs font-bold text-slate-200 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] disabled:opacity-30 font-pixelify text-xs font-bold text-[#1E293B] transition-colors shadow-2xs cursor-pointer"
             title={currentPage < binder.totalPages ? 'Buka halaman berikutnya (bisa drop kartu di sini)' : undefined}
           >
             <span>Halaman Berikutnya</span>
