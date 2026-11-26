@@ -20,7 +20,7 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading, isMasterAdmin, signInWithGoogle, signInAsDemoSeller, signInAsMasterAdmin, signOut } = useAuth();
+  const { user, loading, isMasterAdmin, signInWithGoogle, signInAsDemoSeller, signOut } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [customSellerName, setCustomSellerName] = useState('PokeVault Indonesia');
 
@@ -39,11 +39,6 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleMasterLogin = () => {
-    signInAsMasterAdmin();
-    router.push('/admin');
   };
 
   const handleDemoLogin = () => {
@@ -154,44 +149,12 @@ export default function LoginPage() {
                   </span>
                 </div>
 
-                {/* Master Account 1-Click Login Card */}
-                <div className="p-3.5 rounded-2xl bg-amber-50/80 border-2 border-amber-300 space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between font-pixelify text-[11px] font-bold text-amber-950">
-                    <span className="flex items-center gap-1.5 text-amber-800">
-                      <Crown className="w-4 h-4 fill-amber-500 text-amber-600" />
-                      Master Account Owner
-                    </span>
-                    <span className="text-[9px] text-amber-900 bg-amber-200/80 border border-amber-300 px-2 py-0.5 rounded-full font-pixelify">
-                      MASTER
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-[#5A4B3C] leading-tight">
-                    Terdaftar: <strong className="text-[#1E293B] font-mono-clean text-xs">urbanquest.ecom@gmail.com</strong>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleMasterLogin}
-                    className="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-pixelify font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    <Crown className="w-4 h-4" />
-                    <span>Masuk sebagai Master Owner</span>
-                  </button>
-                </div>
-
-                {/* Divider */}
-                <div className="relative flex items-center justify-center pt-1">
-                  <div className="border-t border-[#D5CABE] w-full"></div>
-                  <span className="bg-[#FAF6F0] px-3 font-pixelify text-[10px] text-[#7A6B58] uppercase tracking-widest font-bold">
-                    atau login opsi lain
-                  </span>
-                </div>
-
                 {/* Main Google Login Button */}
                 <button
                   type="button"
                   disabled={submitting || loading}
                   onClick={handleGoogleLogin}
-                  className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-xs shadow-2xs active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer border border-[#D5CABE]"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-xs shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer border border-[#D5CABE]"
                 >
                   <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                     <path
