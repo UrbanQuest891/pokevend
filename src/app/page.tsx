@@ -203,7 +203,7 @@ export default function LandingPage() {
               </a>
 
               <a
-                href="/admin"
+                href="/login"
                 className="flex items-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-[#E05A47] text-white hover:bg-[#D04936] transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-black/10"
               >
                 <Store className="w-4 h-4" />
@@ -264,11 +264,11 @@ export default function LandingPage() {
             </a>
 
             <a
-              href="/admin"
+              href="/login"
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-sm sm:text-base border-2 border-[#D5CABE] hover:bg-white hover:border-[#1E293B] transition-all shadow-sm flex items-center justify-center gap-2"
             >
               <Store className="w-5 h-5 text-[#E05A47]" />
-              <span>Masuk Dashboard Kasir</span>
+              <span>Buka Seller Hub</span>
             </a>
           </div>
         </div>
@@ -837,14 +837,14 @@ export default function LandingPage() {
 
               <div className="pt-2 flex flex-wrap gap-3">
                 <a
-                  href="/admin"
+                  href="/login"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E05A47] text-white font-pixelify font-bold text-xs sm:text-sm shadow-sm hover:bg-[#D04936] transition-colors"
                 >
                   <Store className="w-4 h-4" />
-                  <span>Buka Dashboard Kasir</span>
+                  <span>Buka Seller Hub</span>
                 </a>
                 <a
-                  href="/admin/sales"
+                  href="/login"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] font-pixelify font-bold text-xs sm:text-sm shadow-2xs hover:bg-[#FAF6F0] transition-colors"
                 >
                   <TrendingUp className="w-4 h-4 text-[#2E7D32]" />
@@ -915,7 +915,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
             <a
-              href="/admin"
+              href="/login"
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white text-[#E05A47] font-pixelify font-bold text-sm sm:text-base hover:bg-[#FAF6F0] transition-all shadow-md flex items-center justify-center gap-2"
             >
               <Store className="w-5 h-5" />
@@ -959,10 +959,10 @@ export default function LandingPage() {
             <a href="/b" className="hover:text-[#1E293B] transition-colors">
               Rak Pembeli
             </a>
-            <a href="/admin" className="hover:text-[#1E293B] transition-colors">
+            <a href="/login" className="hover:text-[#1E293B] transition-colors">
               Seller Hub
             </a>
-            <a href="/admin/sales" className="hover:text-[#1E293B] transition-colors">
+            <a href="/login" className="hover:text-[#1E293B] transition-colors">
               Riwayat Penjualan
             </a>
           </div>

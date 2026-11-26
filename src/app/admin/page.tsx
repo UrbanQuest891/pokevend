@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 import Navbar from '@/components/Navbar';
 import BinderCard from '@/components/BinderCard';
 import QuickSellBar from '@/components/QuickSellBar';
@@ -33,11 +35,21 @@ import {
 } from 'lucide-react';
 
 export default function SellerDashboard() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   const [binders, setBinders] = useState<Binder[]>([]);
   const [profile, setProfile] = useState<SellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [soundActive, setSoundActive] = useState(true);
+
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
 
   // Sound & Order tracking refs
   const prevOrderCountRef = useRef(0);
@@ -204,6 +216,17 @@ export default function SellerDashboard() {
     setRestockModalData((prev) => ({ ...prev, isOpen: false }));
     handleOpenEdit(binderId, slotNumber, null);
   };
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex items-center justify-center p-4 font-clean">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full border-4 border-[#E05A47] border-t-transparent animate-spin mx-auto"></div>
+          <p className="font-pixelify text-sm font-bold text-[#7A6B58]">MEMERIKSA AKSES SELLER HUB...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

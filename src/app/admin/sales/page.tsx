@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 import Navbar from '@/components/Navbar';
 import { SaleRecord } from '@/types';
 import { formatCurrency } from '@/lib/qr';
@@ -28,11 +30,20 @@ import {
 } from 'lucide-react';
 
 export default function SalesHistoryPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGame, setSelectedGame] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
 
   const fetchSales = async () => {
     try {
@@ -146,6 +157,17 @@ export default function SalesHistoryPage() {
       eveningCount,
     };
   }, [filteredSales]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex items-center justify-center p-4 font-clean">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full border-4 border-[#E05A47] border-t-transparent animate-spin mx-auto"></div>
+          <p className="font-pixelify text-sm font-bold text-[#7A6B58]">MEMERIKSA AKSES SELLER HUB...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

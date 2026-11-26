@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 import Navbar from '@/components/Navbar';
 import EditSlotModal from '@/components/EditSlotModal';
 import QrCodeModal from '@/components/QrCodeModal';
@@ -41,6 +42,7 @@ import {
 export default function BinderEditorPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const binderId = params.id as string;
 
   const [binder, setBinder] = useState<Binder | null>(null);
@@ -48,6 +50,13 @@ export default function BinderEditorPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const contentTopRef = useRef<HTMLDivElement>(null);
   const isFirstRender = useRef(true);
+
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
 
   // Smooth glide to top of content when target page content displays
   const handlePageChange = (newPage: number) => {
@@ -374,6 +383,17 @@ export default function BinderEditorPage() {
   useEffect(() => {
     if (binderId) fetchBinder();
   }, [binderId]);
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#F5EFE6] text-[#1E293B] flex items-center justify-center p-4 font-clean">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-full border-4 border-[#E05A47] border-t-transparent animate-spin mx-auto"></div>
+          <p className="font-pixelify text-sm font-bold text-[#7A6B58]">MEMERIKSA AKSES SELLER HUB...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
