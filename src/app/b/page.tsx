@@ -119,22 +119,35 @@ export default function BuyerMultiBinderShelfPage() {
               <a
                 key={binder.id}
                 href={`/b/${binder.id}`}
-                className="group bg-[#FAF6F0] border-2 border-[#D5CABE] hover:border-[#E05A47] rounded-3xl p-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between relative overflow-hidden"
+                className="group bg-[#FAF6F0] border-2 border-[#D5CABE] hover:border-[#E05A47] rounded-3xl pl-7 pr-5 py-5 shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between relative overflow-hidden"
               >
                 {/* Top Binder Accent Stripe */}
                 <div
-                  className="absolute top-0 inset-x-0 h-2.5"
+                  className="absolute top-0 inset-x-0 h-2.5 shadow-xs"
                   style={{ backgroundColor: binder.coverColor || '#E05A47' }}
                 ></div>
 
-                <div className="space-y-3 pt-2">
+                {/* Vintage Binder Spine & Rings Motif on Left Edge */}
+                <div className="absolute left-0 inset-y-0 w-4 bg-[#EDE5D8] border-r border-[#D5CABE] flex flex-col justify-around py-6 items-center shadow-inner">
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FAF6F0] border border-[#B5A593] shadow-xs flex items-center justify-center">
+                    <div className="w-1 h-1 rounded-full bg-[#7A6B58]"></div>
+                  </div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FAF6F0] border border-[#B5A593] shadow-xs flex items-center justify-center">
+                    <div className="w-1 h-1 rounded-full bg-[#7A6B58]"></div>
+                  </div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#FAF6F0] border border-[#B5A593] shadow-xs flex items-center justify-center">
+                    <div className="w-1 h-1 rounded-full bg-[#7A6B58]"></div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-1">
                   {/* Badge & Slot Info */}
                   <div className="flex items-center justify-between">
-                    <span className="font-pixelify text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-[#D5CABE] text-[#1E293B]">
+                    <span className="font-pixelify text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white border border-[#D5CABE] text-[#1E293B] shadow-2xs">
                       {binder.badge || `Rak #${index + 1}`}
                     </span>
-                    <span className="font-pixelify text-[10px] font-bold text-[#2E7D32]">
-                      {availableCount} Ready
+                    <span className="font-clean text-[11px] font-bold text-[#2E7D32] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ● {availableCount} Ready
                     </span>
                   </div>
 
@@ -143,26 +156,26 @@ export default function BuyerMultiBinderShelfPage() {
                     <h3 className="font-pixelify text-base sm:text-lg font-bold text-[#1E293B] group-hover:text-[#E05A47] transition-colors leading-snug">
                       {binder.name}
                     </h3>
-                    <p className="text-xs text-[#7A6B58] line-clamp-2 mt-1 leading-relaxed">
+                    <p className="text-xs text-[#7A6B58] line-clamp-2 mt-1 leading-relaxed font-clean">
                       {binder.description || 'Koleksi kartu pilihan siap adopt di meja stand.'}
                     </p>
                   </div>
 
                   {/* Visual Preview Samples */}
-                  <div className="p-2.5 bg-white rounded-2xl border border-[#D5CABE] flex items-center justify-between text-xs font-mono-clean">
+                  <div className="p-2.5 bg-white rounded-2xl border border-[#D5CABE] flex items-center justify-between text-xs font-mono-clean shadow-2xs">
                     <span className="text-[#7A6B58] text-[11px]">Format:</span>
                     <span className="font-bold text-[#1E293B]">{binder.layoutType}</span>
                     <span className="text-[#7A6B58] text-[11px]">•</span>
-                    <span className="text-[#7A6B58] text-[11px]">Total:</span>
+                    <span className="text-[#7A6B58] text-[11px]">Koleksi:</span>
                     <span className="font-bold text-[#1E293B]">{cardCount} Kartu</span>
                   </div>
                 </div>
 
-                {/* Open Binder Button */}
-                <div className="pt-4 mt-2 border-t border-[#EAE3D8] flex items-center justify-between text-xs font-pixelify font-bold text-[#E05A47] group-hover:translate-x-0.5 transition-transform">
-                  <span>Buka Binder Ini</span>
-                  <div className="w-7 h-7 rounded-xl bg-white border border-[#D5CABE] group-hover:border-[#E05A47] group-hover:bg-[#E05A47] group-hover:text-white flex items-center justify-center transition-colors">
-                    <ArrowRight className="w-3.5 h-3.5" />
+                {/* Open Binder CTA Button */}
+                <div className="pt-4 mt-3 border-t border-[#EAE3D8] flex items-center justify-between text-xs font-pixelify font-bold text-[#E05A47] group-hover:text-[#D04936]">
+                  <span className="tracking-wide">Buka Halaman Binder ▶</span>
+                  <div className="w-8 h-8 rounded-xl bg-white border border-[#D5CABE] group-hover:border-[#E05A47] group-hover:bg-[#E05A47] group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
+                    <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>
               </a>

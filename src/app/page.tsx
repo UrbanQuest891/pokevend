@@ -194,9 +194,9 @@ export default function LandingPage() {
             {/* Action Buttons */}
             <div className="flex items-center gap-2 sm:gap-3">
               <a
-                href="/b/binder-grail-hits"
+                href="/b"
                 className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-[#FAF6F0] border-2 border-[#D5CABE] text-[#1E293B] hover:bg-white hover:border-[#E05A47] transition-all shadow-2xs"
-                title="Buka Demo Katalog Pembeli di Tab Baru"
+                title="Buka Demo Rak Multi-Binder Pembeli"
               >
                 <Smartphone className="w-4 h-4 text-[#E05A47]" />
                 <span>Demo Pembeli</span>
@@ -603,11 +603,11 @@ export default function LandingPage() {
               {/* Action Link to Full Buyer View */}
               <div className="pt-2">
                 <a
-                  href="/b/binder-grail-hits"
+                  href="/b"
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#E05A47] text-white font-pixelify font-bold text-xs sm:text-sm hover:bg-[#D04936] transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-black/10"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  <span>Buka Versi Penuh Pembeli (Full Screen)</span>
+                  <span>Buka Rak Meja Pembeli (Full Screen)</span>
                 </a>
               </div>
             </div>
@@ -923,11 +923,11 @@ export default function LandingPage() {
             </a>
 
             <a
-              href="/b/binder-grail-hits"
+              href="/b"
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-black/20 text-white font-pixelify font-bold text-sm sm:text-base border border-white/30 hover:bg-black/30 transition-all flex items-center justify-center gap-2"
             >
               <Smartphone className="w-5 h-5" />
-              <span>Buka Demo Katalog Pembeli</span>
+              <span>Buka Demo Rak Pembeli</span>
             </a>
           </div>
         </div>
@@ -956,8 +956,8 @@ export default function LandingPage() {
             <a href="/" className="hover:text-[#1E293B] transition-colors">
               Beranda
             </a>
-            <a href="/b/binder-grail-hits" className="hover:text-[#1E293B] transition-colors">
-              Katalog Pembeli
+            <a href="/b" className="hover:text-[#1E293B] transition-colors">
+              Rak Pembeli
             </a>
             <a href="/admin" className="hover:text-[#1E293B] transition-colors">
               Seller Hub

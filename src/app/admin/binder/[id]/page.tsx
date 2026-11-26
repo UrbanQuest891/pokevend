@@ -460,8 +460,9 @@ export default function BinderEditorPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b-2 border-[#E5DACB]">
           <div className="flex items-center gap-3">
             <a
-              href="/"
+              href="/admin"
               className="p-2 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] text-[#7A6B58] hover:text-[#1E293B] transition-colors shadow-2xs"
+              title="Kembali ke Dashboard Kasir"
             >
               <ArrowLeft className="w-5 h-5" />
             </a>

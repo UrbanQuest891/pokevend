@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import {
   Sparkles,
@@ -15,6 +15,8 @@ import {
   LogOut,
   User,
   Crown,
+  BookOpen,
+  Home,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -25,8 +27,12 @@ interface NavbarProps {
 
 export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table #A-14' }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isMasterAdmin, signOut } = useAuth();
   const [resetting, setResetting] = useState(false);
+
+  const isDashboard = pathname === '/admin';
+  const isSales = pathname === '/admin/sales';
 
   const handleResetData = async () => {
     if (!confirm('Kembalikan data binder & kartu ke preset awal demo?')) return;
@@ -52,7 +58,7 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
         <div className="flex items-center justify-between h-16">
           {/* Logo & Branding */}
           <div className="flex items-center gap-3">
-            <a href="/admin" className="flex items-center gap-2.5 group">
+            <a href="/admin" className="flex items-center gap-2.5 group" title="Kembali ke Dashboard Kasir">
               <div className="w-10 h-10 rounded-2xl bg-[#E05A47] p-0.5 shadow-sm group-hover:scale-105 transition-transform flex items-center justify-center border border-black/10">
                 <div className="w-full h-full bg-[#FAF6F0] rounded-[14px] flex items-center justify-center relative overflow-hidden">
                   {/* Stylized Pokeball icon */}
@@ -70,7 +76,7 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
                     PokéVend
                   </span>
                   <span className="font-pixelify text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#EAE3D8] text-[#7A6B58] border border-[#D5CABE]">
-                    Seller Hub
+                    Kasir Meja
                   </span>
                 </div>
                 <p className="text-xs text-[#7A6B58] font-medium hidden sm:block">
@@ -82,45 +88,67 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
 
           {/* Quick Actions & Navigation */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
-            {/* Landing Page Link */}
-            <a
-              href="/"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-[#FAF6F0] border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] hover:bg-white transition-colors shadow-2xs"
-              title="Lihat Halaman Utama / Landing Page"
-            >
-              <span>Beranda</span>
-            </a>
-
             {/* Dashboard Link */}
             <a
               href="/admin"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-white border border-[#D5CABE] text-[#1E293B] hover:bg-[#FAF6F0] transition-colors shadow-2xs"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold transition-all shadow-2xs ${
+                isDashboard
+                  ? 'bg-white border-2 border-[#E05A47] text-[#1E293B] shadow-xs'
+                  : 'bg-[#FAF6F0] border border-[#D5CABE] text-[#5D4E3E] hover:bg-white hover:text-[#1E293B]'
+              }`}
             >
-              <Store className="w-4 h-4 text-[#E05A47]" />
+              <Store className={`w-4 h-4 ${isDashboard ? 'text-[#E05A47]' : 'text-[#7A6B58]'}`} />
               <span className="hidden md:inline">Dashboard</span>
             </a>
 
             {/* Riwayat Penjualan (Sales History) Link */}
             <a
               href="/admin/sales"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-white border border-[#D5CABE] text-[#1E293B] hover:bg-[#FAF6F0] transition-colors shadow-2xs"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold transition-all shadow-2xs ${
+                isSales
+                  ? 'bg-white border-2 border-[#2E7D32] text-[#1E293B] shadow-xs'
+                  : 'bg-[#FAF6F0] border border-[#D5CABE] text-[#5D4E3E] hover:bg-white hover:text-[#1E293B]'
+              }`}
               title="Lihat riwayat transaksi kartu terjual & omset"
             >
-              <TrendingUp className="w-4 h-4 text-[#2E7D32]" />
-              <span className="hidden sm:inline">Riwayat Penjualan</span>
-              <span className="sm:hidden">Sales</span>
+              <TrendingUp className={`w-4 h-4 ${isSales ? 'text-[#2E7D32]' : 'text-[#7A6B58]'}`} />
+              <span className="hidden sm:inline">Laporan Omset</span>
+              <span className="sm:hidden">Omset</span>
+            </a>
+
+            {/* Pratinjau Rak Pembeli (Live Customer View) */}
+            <a
+              href="/b"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-pixelify font-bold bg-[#FAF0E6] border border-[#E0C9B6] text-[#8C4A32] hover:bg-[#FCECE0] hover:border-[#E05A47] transition-all shadow-2xs"
+              title="Buka tampilan rak binder seperti yang dilihat pembeli di HP"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-[#E05A47]" />
+              <span className="hidden lg:inline">Rak Pembeli</span>
+              <ExternalLink className="w-3 h-3 text-[#E05A47]" />
             </a>
 
             {/* Reset Demo Data Button */}
             <button
               onClick={handleResetData}
               disabled={resetting}
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-pixelify font-bold text-[#7A6B58] hover:text-[#1E293B] hover:bg-[#EAE3D8] transition-colors cursor-pointer"
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-pixelify font-bold text-[#7A6B58] hover:text-[#1E293B] hover:bg-[#EAE3D8] transition-colors cursor-pointer"
               title="Reset data ke contoh Pokémon cards"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${resetting ? 'animate-spin' : ''}`} />
               <span>Reset</span>
             </button>
+
+            {/* Public Landing Page subtle link */}
+            <a
+              href="/"
+              className="hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-clean text-[#7A6B58] hover:text-[#1E293B] hover:bg-white/80 transition-colors"
+              title="Kunjungi Website Utama / Info Publik"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Web Publik</span>
+            </a>
 
             {/* User Auth Section */}
             {user ? (

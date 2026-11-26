@@ -163,11 +163,12 @@ export default function SalesHistoryPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <a
-                href="/"
+                href="/admin"
                 className="font-pixelify text-xs text-[#7A6B58] hover:text-[#E05A47] flex items-center gap-1 transition-colors"
+                title="Kembali ke Dashboard Kasir"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Dashboard</span>
+                <span>Dashboard Kasir</span>
               </a>
               <span className="text-[#B5A593]">/</span>
               <span className="font-pixelify text-xs font-bold text-[#E05A47]">Laporan Penjualan</span>

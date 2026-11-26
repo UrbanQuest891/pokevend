@@ -95,13 +95,24 @@ export default function DigitalReceiptPage() {
     >
       {/* Top Controls (Hidden on print) */}
       <div className="max-w-md mx-auto w-full mb-4 flex items-center justify-between no-print">
-        <a
-          href="/"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] text-xs font-pixelify font-bold shadow-2xs"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 text-[#E05A47]" />
-          <span>Beranda</span>
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="/b"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] text-xs font-pixelify font-bold shadow-2xs transition-colors"
+            title="Kembali ke Rak Stand Meja Pembeli"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-[#E05A47]" />
+            <span>Rak Meja</span>
+          </a>
+          <a
+            href="/admin"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] text-[11px] font-pixelify font-bold shadow-2xs transition-colors"
+            title="Masuk ke Dashboard Kasir"
+          >
+            <Store className="w-3.5 h-3.5 text-[#7A6B58]" />
+            <span>Kasir</span>
+          </a>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
