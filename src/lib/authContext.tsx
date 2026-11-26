@@ -74,14 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // If Supabase OAuth keys are not yet configured in local environment,
-      // simulate realistic Google Login with chosen or master email
+      // simulate realistic Google Login with chosen email
       await new Promise((r) => setTimeout(r, 600));
-      const targetEmail = customEmail || MASTER_ADMIN_EMAIL;
+      const targetEmail = customEmail || 'seller.event@gmail.com';
       const isMaster = targetEmail.toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase();
 
       const googleUser: SellerUser = {
         id: `google-${Date.now()}`,
-        name: isMaster ? 'UrbanQuest Master Owner' : 'PokeVault Official Seller',
+        name: isMaster ? 'UrbanQuest Master Owner' : `Seller (${targetEmail.split('@')[0]})`,
         email: targetEmail,
         avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
         provider: 'google',
