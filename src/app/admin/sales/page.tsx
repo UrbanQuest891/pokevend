@@ -12,7 +12,6 @@ import {
   Percent,
   Search,
   Filter,
-  Download,
   Trash2,
   Calendar,
   Layers,
@@ -23,6 +22,9 @@ import {
   Tag,
   Store,
   Sparkles,
+  Award,
+  Flame,
+  Clock3,
 } from 'lucide-react';
 
 export default function SalesHistoryPage() {
@@ -112,57 +114,38 @@ export default function SalesHistoryPage() {
     const avgPrice = totalCards > 0 ? Math.round(totalOmset / totalCards) : 0;
     const estimatedProfit = costCount > 0 ? totalOmset - totalCost : null;
 
-    return { totalOmset, totalCards, avgPrice, estimatedProfit };
+    // Event highlights for Sprint 2
+    const sortedByPrice = [...filteredSales].sort((a, b) => (b.soldPrice || 0) - (a.soldPrice || 0));
+    const grailItem = sortedByPrice.length > 0 ? sortedByPrice[0] : null;
+
+    const pokemonOmset = filteredSales.filter((s) => s.game === 'pokemon').reduce((a, b) => a + (b.soldPrice || 0), 0);
+    const onepieceOmset = filteredSales.filter((s) => s.game === 'onepiece').reduce((a, b) => a + (b.soldPrice || 0), 0);
+    const riftboundOmset = filteredSales.filter((s) => s.game === 'riftbound').reduce((a, b) => a + (b.soldPrice || 0), 0);
+
+    let morningCount = 0;
+    let afternoonCount = 0;
+    let eveningCount = 0;
+    filteredSales.forEach((s) => {
+      const hour = new Date(s.soldAt).getHours();
+      if (hour < 12) morningCount++;
+      else if (hour < 17) afternoonCount++;
+      else eveningCount++;
+    });
+
+    return {
+      totalOmset,
+      totalCards,
+      avgPrice,
+      estimatedProfit,
+      grailItem,
+      pokemonOmset,
+      onepieceOmset,
+      riftboundOmset,
+      morningCount,
+      afternoonCount,
+      eveningCount,
+    };
   }, [filteredSales]);
-
-  // Export CSV
-  const handleExportCsv = () => {
-    if (filteredSales.length === 0) {
-      alert('Tidak ada data penjualan untuk diekspor.');
-      return;
-    }
-
-    const headers = [
-      'ID Transaksi',
-      'Tanggal Terjual',
-      'Nama Kartu',
-      'Set / Seri',
-      'Nomor Kartu',
-      'Rarity',
-      'Kondisi',
-      'Game TCG',
-      'Binder Asal',
-      'No Slot',
-      'Harga Jual (IDR)',
-      'Harga Modal (IDR)',
-      'Catatan',
-    ];
-
-    const rows = filteredSales.map((s) => [
-      `"${s.id}"`,
-      `"${new Date(s.soldAt).toLocaleString('id-ID')}"`,
-      `"${s.cardName.replace(/"/g, '""')}"`,
-      `"${(s.setName || '').replace(/"/g, '""')}"`,
-      `"${s.cardNumber || ''}"`,
-      `"${s.rarity || ''}"`,
-      `"${s.condition || ''}"`,
-      `"${s.game.toUpperCase()}"`,
-      `"${s.binderName.replace(/"/g, '""')}"`,
-      s.slotNumber,
-      s.soldPrice,
-      s.costPrice || 0,
-      `"${(s.notes || '').replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `pokevend-riwayat-penjualan-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <div
@@ -200,26 +183,20 @@ export default function SalesHistoryPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-pixelify text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Event Live Tracker</span>
+            </div>
+
             <button
               type="button"
               onClick={fetchSales}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl font-pixelify text-xs font-bold bg-white hover:bg-[#FAF6F0] text-[#1E293B] border border-[#D5CABE] transition-colors cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-pixelify text-xs font-bold bg-white hover:bg-[#FAF6F0] text-[#1E293B] border border-[#D5CABE] transition-colors cursor-pointer shadow-2xs"
               title="Perbarui data penjualan"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={filteredSales.length === 0}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-pixelify text-xs font-bold bg-[#2E7D32] hover:bg-[#25632A] text-white shadow-md active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Unduh laporan dalam format CSV/Excel"
-            >
-              <Download className="w-4 h-4" />
-              <span>EKSPOR CSV</span>
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -230,7 +207,7 @@ export default function SalesHistoryPage() {
           <div className="bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden">
             <div className="flex items-center justify-between mb-2">
               <span className="font-pixelify text-[11px] font-bold text-[#7A6B58] uppercase tracking-wider">
-                Total Omset
+                Total Omset Event
               </span>
               <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-[#2E7D32]">
                 <DollarSign className="w-4 h-4" />
@@ -239,7 +216,7 @@ export default function SalesHistoryPage() {
             <div className="font-pixelify text-xl sm:text-2xl font-bold text-[#2E7D32]">
               {formatCurrency(metrics.totalOmset, 'IDR')}
             </div>
-            <span className="font-mono-clean text-[10px] text-[#7A6B58] mt-1 block">Dari kartu yang terjual</span>
+            <span className="font-mono-clean text-[10px] text-[#7A6B58] mt-1 block">Dari transaksi yang lunas</span>
           </div>
 
           {/* Card 2: Total Kartu Laku */}
@@ -255,7 +232,7 @@ export default function SalesHistoryPage() {
             <div className="font-pixelify text-xl sm:text-2xl font-bold text-[#1E293B]">
               {metrics.totalCards} <span className="text-xs font-mono-clean text-[#7A6B58]">Pcs</span>
             </div>
-            <span className="font-mono-clean text-[10px] text-[#7A6B58] mt-1 block">Transaksi berhasil</span>
+            <span className="font-mono-clean text-[10px] text-[#7A6B58] mt-1 block">Slot fisik berhasil keluar</span>
           </div>
 
           {/* Card 3: Rata-Rata Harga */}
@@ -274,22 +251,104 @@ export default function SalesHistoryPage() {
             <span className="font-mono-clean text-[10px] text-[#7A6B58] mt-1 block">Nilai deal per transaksi</span>
           </div>
 
-          {/* Card 4: Estimasi Keuntungan */}
-          <div className="bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-pixelify text-[11px] font-bold text-[#7A6B58] uppercase tracking-wider">
-                Gross Profit
+          {/* Card 4: Grail of the Day */}
+          <div className="bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-2xl p-4 sm:p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-pixelify text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                <Flame className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                Grail of The Day
               </span>
-              <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-300 flex items-center justify-center text-purple-700">
-                <Percent className="w-4 h-4" />
+              <span className="text-[9px] font-pixelify font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                Top Hit
+              </span>
+            </div>
+
+            {metrics.grailItem ? (
+              <div>
+                <div className="font-pixelify text-xs font-bold text-[#1E293B] truncate" title={metrics.grailItem.cardName}>
+                  {metrics.grailItem.cardName}
+                </div>
+                <div className="font-pixelify text-base font-bold text-[#E05A47] mt-0.5">
+                  {formatCurrency(metrics.grailItem.soldPrice, 'IDR')}
+                </div>
+                <span className="text-[10px] text-[#7A6B58] font-mono-clean block truncate">
+                  {metrics.grailItem.condition} • {metrics.grailItem.setName || 'Rare Hit'}
+                </span>
+              </div>
+            ) : (
+              <div className="text-xs text-[#7A6B58] italic py-1">Belum ada penjualan</div>
+            )}
+          </div>
+        </div>
+
+        {/* Visual Event Analytics: Game Share & Activity Hours */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {/* Game Share Breakdown */}
+          <div className="p-4 bg-white border-2 border-[#D5CABE] rounded-2xl space-y-2.5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-pixelify text-xs font-bold text-[#1E293B] flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-[#E05A47]" />
+                <span>Pangsa Omset per Game TCG</span>
+              </span>
+              <span className="font-pixelify text-[10px] text-[#7A6B58]">
+                {metrics.totalCards} Kartu Total
+              </span>
+            </div>
+
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="font-medium text-[#1E293B]">Pokémon:</span>
+                <span className="font-pixelify font-bold text-[#E05A47]">
+                  {formatCurrency(metrics.pokemonOmset, 'IDR')}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="font-medium text-[#1E293B]">One Piece:</span>
+                <span className="font-pixelify font-bold text-blue-600">
+                  {formatCurrency(metrics.onepieceOmset, 'IDR')}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="font-medium text-[#1E293B]">Riftbound:</span>
+                <span className="font-pixelify font-bold text-purple-600">
+                  {formatCurrency(metrics.riftboundOmset, 'IDR')}
+                </span>
               </div>
             </div>
-            <div className="font-pixelify text-xl sm:text-2xl font-bold text-[#1E293B]">
-              {metrics.estimatedProfit !== null ? formatCurrency(metrics.estimatedProfit, 'IDR') : '—'}
+          </div>
+
+          {/* Activity Hours Breakdown */}
+          <div className="p-4 bg-white border-2 border-[#D5CABE] rounded-2xl space-y-2.5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="font-pixelify text-xs font-bold text-[#1E293B] flex items-center gap-1.5">
+                <Clock3 className="w-4 h-4 text-emerald-600" />
+                <span>Waktu Ramai Transaksi di Meja</span>
+              </span>
+              <span className="font-pixelify text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                Booth Active
+              </span>
             </div>
-            <span className="font-mono-clean text-[10px] text-[#7A6B58] mt-1 block">
-              {metrics.estimatedProfit !== null ? 'Omset dikurangi modal' : 'Input modal untuk hitung'}
-            </span>
+
+            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+              <div className="p-2 bg-[#FAF6F0] rounded-xl border border-[#D5CABE]">
+                <span className="text-[10px] text-[#7A6B58] block">Pagi (&lt;12:00)</span>
+                <span className="font-pixelify text-sm font-bold text-[#1E293B] mt-0.5 block">
+                  {metrics.morningCount} Kartu
+                </span>
+              </div>
+              <div className="p-2 bg-[#FAF6F0] rounded-xl border border-[#D5CABE]">
+                <span className="text-[10px] text-[#7A6B58] block">Siang (12-17)</span>
+                <span className="font-pixelify text-sm font-bold text-[#E05A47] mt-0.5 block">
+                  {metrics.afternoonCount} Kartu
+                </span>
+              </div>
+              <div className="p-2 bg-[#FAF6F0] rounded-xl border border-[#D5CABE]">
+                <span className="text-[10px] text-[#7A6B58] block">Malam (&gt;17:00)</span>
+                <span className="font-pixelify text-sm font-bold text-[#2E7D32] mt-0.5 block">
+                  {metrics.eveningCount} Kartu
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

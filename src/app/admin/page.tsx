@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import BinderCard from '@/components/BinderCard';
 import QuickSellBar from '@/components/QuickSellBar';
@@ -10,6 +10,7 @@ import SellerOrderModal from '@/components/SellerOrderModal';
 import QuickRestockModal from '@/components/QuickRestockModal';
 import { Binder, PokemonCard, SellerProfile, Order } from '@/types';
 import { formatCurrency } from '@/lib/qr';
+import { playNewOrderSound, isSoundEnabled, setSoundEnabled } from '@/lib/audio';
 import {
   Plus,
   Search,
@@ -25,6 +26,10 @@ import {
   ArrowRight,
   Clock,
   User,
+  Volume2,
+  VolumeX,
+  Crown,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function SellerDashboard() {
@@ -32,6 +37,21 @@ export default function SellerDashboard() {
   const [profile, setProfile] = useState<SellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [soundActive, setSoundActive] = useState(true);
+
+  // Sound & Order tracking refs
+  const prevOrderCountRef = useRef(0);
+  const isMountedRef = useRef(false);
+
+  useEffect(() => {
+    setSoundActive(isSoundEnabled());
+  }, []);
+
+  const toggleSound = () => {
+    const next = !soundActive;
+    setSoundActive(next);
+    setSoundEnabled(next);
+  };
 
   // Live Orders State
   const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
@@ -83,7 +103,14 @@ export default function SellerDashboard() {
       const res = await fetch('/api/orders?status=PENDING', { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
-        setPendingOrders(data.orders || []);
+        const incomingOrders = data.orders || [];
+        // Trigger 8-bit sound alert when new orders arrive
+        if (isMountedRef.current && incomingOrders.length > prevOrderCountRef.current) {
+          playNewOrderSound();
+        }
+        prevOrderCountRef.current = incomingOrders.length;
+        isMountedRef.current = true;
+        setPendingOrders(incomingOrders);
       }
     } catch (err) {
       console.error('Failed to load pending orders:', err);
@@ -213,6 +240,16 @@ export default function SellerDashboard() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSound}
+                className="px-3 py-2.5 bg-white hover:bg-[#FAF6F0] border border-[#D5CABE] text-[#1E293B] rounded-2xl font-pixelify text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                title={soundActive ? 'Suara order aktif (8-bit chime)' : 'Suara order dinonaktifkan (hening)'}
+              >
+                {soundActive ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-[#7A6B58]" />}
+                <span className="hidden sm:inline">{soundActive ? 'Sound ON' : 'Mute'}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setActiveNegotiationOrder(pendingOrders[0])}
@@ -409,17 +446,30 @@ export default function SellerDashboard() {
               <span>DAFTAR BINDER KOLEKSI</span>
             </h2>
             <p className="text-xs text-[#7A6B58]">
-              Setiap binder memiliki QR Code cover digital dan QR Code unik untuk masing-masing slot kartu
+              Kelola multi-binder di stand meja Anda ({binders.length} Binder Aktif). Setiap binder memiliki QR Code cover dan stiker per slot.
             </p>
           </div>
 
-          <button
-            onClick={() => setShowCreateBinder(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#E05A47] hover:bg-[#C94735] text-white font-pixelify font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>TAMBAH BINDER BARU</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/b"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-[#FAF6F0] border border-[#D5CABE] text-[#1E293B] font-pixelify text-xs font-bold transition-all shadow-2xs"
+              title="Lihat tampilan rak multi-binder seperti yang dilihat pembeli di HP"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-[#E05A47]" />
+              <span className="hidden sm:inline">Pratinjau Rak Pembeli</span>
+            </a>
+
+            <button
+              onClick={() => setShowCreateBinder(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#E05A47] hover:bg-[#C94735] text-white font-pixelify font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>TAMBAH BINDER</span>
+            </button>
+          </div>
         </div>
 
         {/* Binder Cards Grid */}

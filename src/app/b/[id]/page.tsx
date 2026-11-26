@@ -192,28 +192,39 @@ export default function BuyerBinderPage() {
             </div>
           </div>
 
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-[#EAE3D8] p-1 rounded-xl border border-[#D5CABE] flex-shrink-0">
-            <button
-              onClick={() => setViewMode('flip')}
-              className={`px-2.5 py-1 rounded-lg font-pixelify text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'flip'
-                  ? 'bg-white text-[#1E293B] shadow-xs'
-                  : 'text-[#7A6B58] hover:text-[#1E293B]'
-              }`}
+          {/* Actions & View Mode Toggle */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <a
+              href="/b"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] font-pixelify text-xs font-bold shadow-2xs transition-colors"
+              title="Kembali ke pilihan rak binder meja stand"
             >
-              Binder
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`px-2.5 py-1 rounded-lg font-pixelify text-xs font-bold transition-all cursor-pointer ${
-                viewMode === 'grid'
-                  ? 'bg-white text-[#1E293B] shadow-xs'
-                  : 'text-[#7A6B58] hover:text-[#1E293B]'
-              }`}
-            >
-              Semua
-            </button>
+              <Layers className="w-3.5 h-3.5 text-[#E05A47]" />
+              <span className="hidden sm:inline">Pilih Rak</span>
+            </a>
+
+            <div className="flex items-center bg-[#EAE3D8] p-1 rounded-xl border border-[#D5CABE]">
+              <button
+                onClick={() => setViewMode('flip')}
+                className={`px-2 py-1 rounded-lg font-pixelify text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'flip'
+                    ? 'bg-white text-[#1E293B] shadow-xs'
+                    : 'text-[#7A6B58] hover:text-[#1E293B]'
+                }`}
+              >
+                Binder
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-2 py-1 rounded-lg font-pixelify text-xs font-bold transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-[#1E293B] shadow-xs'
+                    : 'text-[#7A6B58] hover:text-[#1E293B]'
+                }`}
+              >
+                Semua
+              </button>
+            </div>
           </div>
         </div>
       </header>

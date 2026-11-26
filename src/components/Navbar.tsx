@@ -14,6 +14,7 @@ import {
   LogIn,
   LogOut,
   User,
+  Crown,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -24,7 +25,7 @@ interface NavbarProps {
 
 export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table #A-14' }: NavbarProps) {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, isMasterAdmin, signOut } = useAuth();
   const [resetting, setResetting] = useState(false);
 
   const handleResetData = async () => {
@@ -125,8 +126,13 @@ export default function Navbar({ sellerName = 'PokeVault ID', boothName = 'Table
             {user ? (
               <div className="flex items-center gap-1.5 pl-1.5 border-l-2 border-[#EAE3D8]">
                 <div className="hidden xl:flex flex-col text-right leading-tight pr-1">
-                  <span className="text-xs font-bold text-[#1E293B] truncate max-w-[130px]">{user.name}</span>
-                  <span className="font-pixelify text-[10px] text-[#2E7D32] font-bold">Seller Aktif</span>
+                  <div className="flex items-center gap-1 justify-end">
+                    {isMasterAdmin && <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />}
+                    <span className="text-xs font-bold text-[#1E293B] truncate max-w-[130px]">{user.name}</span>
+                  </div>
+                  <span className={`font-pixelify text-[10px] font-bold ${isMasterAdmin ? 'text-amber-600' : 'text-[#2E7D32]'}`}>
+                    {isMasterAdmin ? '👑 Master Owner' : 'Seller Aktif'}
+                  </span>
                 </div>
                 <button
                   type="button"

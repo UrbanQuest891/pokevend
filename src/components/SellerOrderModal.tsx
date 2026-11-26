@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Order, OrderItem, Binder, PokemonCard } from '@/types';
 import { formatCurrency } from '@/lib/qr';
+import { playDealFinalizedSound } from '@/lib/audio';
 import {
   X,
   Trash2,
@@ -15,6 +16,11 @@ import {
   Layers,
   ArrowRight,
   Sparkles,
+  Mail,
+  ExternalLink,
+  CheckCircle2,
+  Receipt,
+  SkipForward,
 } from 'lucide-react';
 
 interface SellerOrderModalProps {
@@ -43,11 +49,25 @@ export default function SellerOrderModal({
   const [addSearch, setAddSearch] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Digital Receipt state for Sprint 2
+  const [modalStep, setModalStep] = useState<'negotiate' | 'receipt'>('negotiate');
+  const [finalizedData, setFinalizedData] = useState<{
+    soldSlots: Array<{ binderId: string; slotNumber: number; cardName: string; soldPrice: number }>;
+    order: Order;
+  } | null>(null);
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSentSuccess, setEmailSentSuccess] = useState(false);
+
   // Keep local order state synchronized with initialOrder
   React.useEffect(() => {
     setOrder(initialOrder);
     setErrorMsg('');
     setShowAddCardPicker(false);
+    setModalStep('negotiate');
+    setFinalizedData(null);
+    setBuyerEmail('');
+    setEmailSentSuccess(false);
   }, [initialOrder]);
 
   if (!isOpen || !order) return null;
@@ -179,7 +199,9 @@ export default function SellerOrderModal({
 
       const data = await res.json();
       if (data.success) {
-        onOrderFinalized(data.soldSlots, data.order);
+        playDealFinalizedSound();
+        setFinalizedData({ soldSlots: data.soldSlots, order: data.order });
+        setModalStep('receipt');
       } else {
         setErrorMsg(data.error || 'Gagal memproses finalisasi order');
       }
@@ -188,6 +210,36 @@ export default function SellerOrderModal({
       setErrorMsg('Gagal memproses transaksi. Periksa koneksi internet.');
     } finally {
       setIsFinalizing(false);
+    }
+  };
+
+  const handleSendEmailReceipt = async () => {
+    if (!order || !buyerEmail.trim()) return;
+    setEmailSending(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: buyerEmail.trim() }),
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setEmailSentSuccess(true);
+      } else {
+        alert(resData.error || 'Gagal mengirim email');
+      }
+    } catch (err) {
+      alert('Gagal mengirim email.');
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
+  const handleFinishAndSkipReceipt = () => {
+    if (finalizedData) {
+      onOrderFinalized(finalizedData.soldSlots, finalizedData.order);
+    } else {
+      onClose();
     }
   };
 
@@ -245,8 +297,93 @@ export default function SellerOrderModal({
           </button>
         </div>
 
-        {/* Item List & Price Negotiation Form */}
-        <div className="py-4 space-y-3 overflow-y-auto flex-1">
+        {modalStep === 'receipt' ? (
+          /* DIGITAL RECEIPT CONFIRMATION SCREEN (Sprint 2) */
+          <div className="py-5 space-y-5 animate-in fade-in overflow-y-auto flex-1">
+            <div className="text-center space-y-2 pb-4 border-b-2 border-dashed border-[#D5CABE]">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white mx-auto flex items-center justify-center shadow-md">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-pixelify text-xl font-bold text-[#1E293B]">
+                TRANSAKSI RESMI BERHASIL!
+              </h3>
+              <p className="text-xs text-[#7A6B58]">
+                Pesanan <strong className="text-[#1E293B] font-mono-clean">{order.orderNumber}</strong> ({order.buyerName}) telah tercatat di kasir & slot fisik binder telah dikosongkan.
+              </p>
+              <div className="font-pixelify text-2xl font-bold text-[#2E7D32]">
+                Total Deal: {formatCurrency(order.totalAmount, currency)}
+              </div>
+            </div>
+
+            {/* Email Struk Digital Box */}
+            <div className="p-4 rounded-2xl bg-white border-2 border-[#D5CABE] space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <label className="font-pixelify text-xs font-bold text-[#1E293B] flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-[#E05A47]" />
+                  <span>Kirim Struk Digital ke Email Pembeli:</span>
+                </label>
+                <span className="font-pixelify text-[10px] text-[#7A6B58] bg-[#EAE3D8] px-2 py-0.5 rounded-full">
+                  Opsional
+                </span>
+              </div>
+
+              {emailSentSuccess ? (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 font-pixelify text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Struk digital berhasil terkirim ke {buyerEmail}!</span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={buyerEmail}
+                    onChange={(e) => setBuyerEmail(e.target.value)}
+                    placeholder="email.pembeli@gmail.com"
+                    className="flex-1 px-3 py-2 bg-[#FAF6F0] border border-[#D5CABE] rounded-xl text-xs font-bold text-[#1E293B] focus:outline-none focus:border-[#E05A47]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendEmailReceipt}
+                    disabled={emailSending || !buyerEmail.trim()}
+                    className="px-4 py-2 rounded-xl bg-[#E05A47] hover:bg-[#D04936] disabled:opacity-50 text-white font-pixelify text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>{emailSending ? 'Mengirim...' : 'Kirim'}</span>
+                  </button>
+                </div>
+              )}
+
+              {/* View Public Receipt Link */}
+              <div className="pt-2 flex items-center justify-between text-xs text-[#7A6B58] border-t border-[#EAE3D8]">
+                <span>Atau berikan link nota web ke pembeli:</span>
+                <a
+                  href={`/receipt/${order.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-pixelify font-bold text-[#E05A47] hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka Nota Web</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Bottom Actions: Prominent Skip Button */}
+            <div className="pt-3">
+              <button
+                type="button"
+                onClick={handleFinishAndSkipReceipt}
+                className="w-full py-3.5 px-4 rounded-2xl bg-[#2E7D32] hover:bg-[#256628] text-white font-pixelify font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              >
+                <span>Selesai / Lewati Tanpa Struk</span>
+                <SkipForward className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Item List & Price Negotiation Form */}
+            <div className="py-4 space-y-3 overflow-y-auto flex-1">
           <div className="flex items-center justify-between text-xs text-[#7A6B58] pb-1">
             <span className="font-pixelify font-bold text-[#4A3E31]">DAFTAR KARTU & NEGO HARGA DEAL:</span>
             <span className="font-mono-clean text-[11px]">{activeItems.length} Kartu Terpilih</span>
@@ -420,6 +557,8 @@ export default function SellerOrderModal({
             </button>
           </div>
         </div>
+      </>
+    )}
       </div>
     </div>
   );

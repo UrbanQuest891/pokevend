@@ -15,11 +15,12 @@ import {
   Zap,
   Store,
   HelpCircle,
+  Crown,
 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading, signInWithGoogle, signInAsDemoSeller, signOut } = useAuth();
+  const { user, loading, isMasterAdmin, signInWithGoogle, signInAsDemoSeller, signInAsMasterAdmin, signOut } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [customSellerName, setCustomSellerName] = useState('PokeVault Indonesia');
 
@@ -30,7 +31,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       setSubmitting(true);
-      await signInWithGoogle();
+      await signInWithGoogle('urbanquest.ecom@gmail.com');
       router.push('/admin');
     } catch (err) {
       console.error('Login error:', err);
@@ -38,6 +39,11 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleMasterLogin = () => {
+    signInAsMasterAdmin();
+    router.push('/admin');
   };
 
   const handleDemoLogin = () => {
@@ -99,13 +105,23 @@ export default function LoginPage() {
             {user ? (
               /* Already Logged In Card */
               <div className="text-center space-y-5">
-                <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 space-y-2">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                  <div className="font-pixelify font-bold text-sm text-emerald-900">ANDA SEDANG LOGIN!</div>
+                <div className={`p-4 rounded-2xl border-2 space-y-2 ${isMasterAdmin ? 'bg-amber-50/80 border-amber-300' : 'bg-emerald-50 border-emerald-300'}`}>
+                  {isMasterAdmin ? (
+                    <Crown className="w-8 h-8 text-amber-600 mx-auto fill-amber-400" />
+                  ) : (
+                    <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                  )}
+                  <div className={`font-pixelify font-bold text-sm ${isMasterAdmin ? 'text-amber-950' : 'text-emerald-900'}`}>
+                    {isMasterAdmin ? '👑 MASTER OWNER TERDAFTAR' : 'ANDA SEDANG LOGIN!'}
+                  </div>
                   <div className="text-xs text-[#1E293B] font-bold">{user.name}</div>
                   <div className="text-[11px] text-[#7A6B58] font-mono-clean">{user.email}</div>
-                  <span className="inline-block mt-1 font-pixelify text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white text-emerald-800 border border-emerald-300">
-                    {user.provider === 'google' ? 'Akun Google Terverifikasi' : 'Mode Demo Seller'}
+                  <span className={`inline-block mt-1 font-pixelify text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border ${
+                    isMasterAdmin
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-white text-emerald-800 border-emerald-300'
+                  }`}>
+                    {isMasterAdmin ? 'Master Super Admin (Akses Penuh)' : user.provider === 'google' ? 'Akun Google Terverifikasi' : 'Mode Demo Seller'}
                   </span>
                 </div>
 
@@ -130,11 +146,43 @@ export default function LoginPage() {
               </div>
             ) : (
               /* Not Logged In - Login Actions */
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="text-center">
                   <span className="font-pixelify text-[10px] uppercase tracking-wider font-bold text-[#4A3E31] bg-[#EAE3D8] border border-[#D5CABE] px-3 py-1 rounded-full inline-flex items-center gap-1.5">
                     <Lock className="w-3 h-3 text-[#E05A47]" />
                     <span>AKSES PORTAL SELLER</span>
+                  </span>
+                </div>
+
+                {/* Master Account 1-Click Login Card */}
+                <div className="p-3.5 rounded-2xl bg-amber-50/80 border-2 border-amber-300 space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between font-pixelify text-[11px] font-bold text-amber-950">
+                    <span className="flex items-center gap-1.5 text-amber-800">
+                      <Crown className="w-4 h-4 fill-amber-500 text-amber-600" />
+                      Master Account Owner
+                    </span>
+                    <span className="text-[9px] text-amber-900 bg-amber-200/80 border border-amber-300 px-2 py-0.5 rounded-full font-pixelify">
+                      MASTER
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#5A4B3C] leading-tight">
+                    Terdaftar: <strong className="text-[#1E293B] font-mono-clean text-xs">urbanquest.ecom@gmail.com</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMasterLogin}
+                    className="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-pixelify font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Crown className="w-4 h-4" />
+                    <span>Masuk sebagai Master Owner</span>
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="relative flex items-center justify-center pt-1">
+                  <div className="border-t border-[#D5CABE] w-full"></div>
+                  <span className="bg-[#FAF6F0] px-3 font-pixelify text-[10px] text-[#7A6B58] uppercase tracking-widest font-bold">
+                    atau login opsi lain
                   </span>
                 </div>
 
@@ -143,10 +191,9 @@ export default function LoginPage() {
                   type="button"
                   disabled={submitting || loading}
                   onClick={handleGoogleLogin}
-                  className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-xs shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-3 cursor-pointer border border-[#D5CABE]"
+                  className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-xs shadow-2xs active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer border border-[#D5CABE]"
                 >
-                  {/* Google Vector Icon */}
-                  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -164,19 +211,11 @@ export default function LoginPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                     />
                   </svg>
-                  <span>{submitting ? 'Menghubungkan...' : 'Lanjutkan dengan Google'}</span>
+                  <span>{submitting ? 'Menghubungkan...' : 'Login Google'}</span>
                 </button>
 
-                {/* Divider */}
-                <div className="relative flex items-center justify-center">
-                  <div className="border-t border-[#D5CABE] w-full"></div>
-                  <span className="bg-[#FAF6F0] px-3 font-pixelify text-[10px] text-[#7A6B58] uppercase tracking-widest font-bold">
-                    atau uji coba cepat
-                  </span>
-                </div>
-
                 {/* Demo Seller Fast Login */}
-                <div className="p-3.5 rounded-2xl bg-white border border-[#D5CABE] space-y-2.5 shadow-2xs">
+                <div className="p-3 rounded-2xl bg-white border border-[#D5CABE] space-y-2 shadow-2xs">
                   <div className="flex items-center justify-between font-pixelify text-[11px] font-bold text-[#4A3E31]">
                     <span className="flex items-center gap-1.5 text-[#E05A47]">
                       <Zap className="w-3.5 h-3.5 fill-[#E05A47]" />
