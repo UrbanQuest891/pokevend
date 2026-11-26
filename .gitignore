@@ -55,7 +55,7 @@ pnpm-debug.log*
 
 # Misc
 *.pem
-.agents/
+# .agents/ included for Antigravity Remote Agent Cloud skills
 .claude/
 .cursor/
 .devin/
