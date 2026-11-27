@@ -430,101 +430,151 @@ export default function BuyerBinderPage() {
         )}
       </main>
 
-      {/* Card Detail Modal */}
+      {/* Card Detail Pop-up Modal: Big Card on Left, All Details on Right */}
       {selectedCardDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-sm bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-3xl p-5 shadow-2xl relative text-[#1E293B] animate-fadeInUp">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-lg bg-[#FAF6F0] border-2 border-[#D5CABE] rounded-3xl p-4 sm:p-5 shadow-2xl relative text-[#1E293B] animate-in fade-in zoom-in-95 duration-200">
+            {/* Close Button */}
             <button
               onClick={() => setSelectedCardDetail(null)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] flex items-center justify-center cursor-pointer"
+              className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-white border border-[#D5CABE] text-[#7A6B58] hover:text-[#1E293B] flex items-center justify-center cursor-pointer shadow-2xs z-20"
+              title="Tutup"
             >
               &times;
             </button>
 
-            {/* Header info */}
-            <div className="text-center mb-3">
-              <span className="font-pixelify px-3 py-1 rounded-full bg-[#EAE3D8] text-[#4A3E31] border border-[#D5CABE] text-xs font-bold tracking-wider">
-                SLOT #{selectedCardDetail.slotNumber}
-              </span>
-              <h3 className="font-pixelify font-bold text-base text-[#1E293B] mt-2 leading-snug">
-                {formatCardDisplayName(selectedCardDetail.card.name, selectedCardDetail.card.cardNumber, selectedCardDetail.card.setName, selectedCardDetail.card.game)}
-              </h3>
-              <p className="font-mono-clean text-xs text-[#7A6B58] mt-0.5">
-                {translateCardSet(selectedCardDetail.card.setName, selectedCardDetail.card.cardNumber, selectedCardDetail.card.game)} {selectedCardDetail.card.cardNumber ? `• ${selectedCardDetail.card.cardNumber}` : ''}
-              </p>
-            </div>
-
-            {/* High-res Image */}
-            <div className="pocket-reflection relative aspect-[3/4] max-h-60 rounded-2xl overflow-hidden bg-[#E2D9CC] mx-auto shadow-inner border border-[#D5CABE] mb-4">
-              <img
-                src={selectedCardDetail.card.imageUrl}
-                alt={selectedCardDetail.card.name}
-                className="w-full h-full object-contain p-2"
-              />
-              {selectedCardDetail.card.status === 'SOLD' && (
-                <div className="absolute inset-0 bg-black/65 flex items-center justify-center">
-                  <span className="font-pixelify px-4 py-2 bg-red-600 text-white font-bold text-sm uppercase tracking-widest rounded-xl rotate-[-12deg] shadow-2xl">
-                    SUDAH TERJUAL
-                  </span>
+            {/* Side-by-Side Content Grid: Left Card, Right Details */}
+            <div className="grid grid-cols-12 gap-3.5 sm:gap-4 items-center">
+              {/* Left Column (5 Cols): Big Card Image */}
+              <div className="col-span-5 relative">
+                <div className="pocket-reflection relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-[#F2EDE4] shadow-md border-2 border-[#D5CABE] flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formatCardImageUrl(selectedCardDetail.card.imageUrl)}
+                    alt={selectedCardDetail.card.name}
+                    className="w-full h-full object-contain p-1"
+                  />
+                  {selectedCardDetail.card.status === 'SOLD' && (
+                    <div className="absolute inset-0 bg-black/65 flex items-center justify-center">
+                      <span className="font-pixelify px-2.5 py-1 bg-red-600 text-white font-bold text-xs uppercase tracking-widest rounded-lg rotate-[-12deg] shadow-lg">
+                        TERJUAL
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Details & Condition */}
-            <div className="space-y-2 bg-white p-3 rounded-2xl border border-[#D5CABE] text-xs mb-4">
-              <div className="flex justify-between">
-                <span className="text-[#7A6B58]">Kondisi:</span>
-                <span className="font-bold text-[#1E293B]">{selectedCardDetail.card.condition}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#7A6B58]">Rarity:</span>
-                <span className="font-semibold text-[#1E293B]">{selectedCardDetail.card.rarity || '-'}</span>
-              </div>
-              {selectedCardDetail.card.notes && (
-                <div className="pt-2 border-t border-[#EAE3D8] text-[11px] text-[#7A6B58] italic">
-                  "{selectedCardDetail.card.notes}"
-                </div>
-              )}
-              <div className="flex justify-between items-baseline pt-2 border-t border-[#EAE3D8]">
-                <span className="text-[#7A6B58] font-bold">Harga Display:</span>
-                <span className="font-pixelify text-base font-bold text-[#2E7D32]">
-                  {formatCurrency(selectedCardDetail.card.price, binder.currency)}
-                </span>
-              </div>
-            </div>
-
-            {/* Action */}
-            <div className="grid grid-cols-2 gap-2">
-              <a
-                href={`/b/${binder.id}/slot/${selectedCardDetail.slotNumber}`}
-                className="font-pixelify py-2.5 px-3 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] text-[#1E293B] text-xs font-bold text-center transition-colors flex items-center justify-center gap-1 cursor-pointer"
-              >
-                <span>Halaman Slot</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-
-              {selectedCardDetail.card.status === 'AVAILABLE' ? (
+                {/* Quick Zoom Trigger */}
                 <button
+                  type="button"
                   onClick={() => {
-                    toggleCart(selectedCardDetail.slotNumber, selectedCardDetail.card);
-                    setSelectedCardDetail(null);
+                    setLightboxCard(selectedCardDetail);
                   }}
-                  className={`font-pixelify py-2.5 px-3 rounded-xl text-xs font-bold text-center shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    isCardInCart(selectedCardDetail.slotNumber)
-                      ? 'bg-[#1E293B] text-white'
-                      : 'bg-[#E05A47] hover:bg-[#C94735] text-white'
-                  }`}
+                  className="mt-2 w-full py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] text-[#7A6B58] hover:text-[#1E293B] font-pixelify text-[10px] font-bold flex items-center justify-center gap-1 shadow-2xs cursor-pointer transition-colors"
                 >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>
-                    {isCardInCart(selectedCardDetail.slotNumber) ? 'Hapus Keranjang' : '+ Keranjang'}
-                  </span>
+                  <ZoomIn className="w-3 h-3 text-[#E05A47]" />
+                  <span>Zoom Penuh</span>
                 </button>
-              ) : (
-                <div className="py-2.5 px-3 rounded-xl bg-[#EAE3D8] text-[#8C7E6D] text-xs font-bold text-center flex items-center justify-center">
-                  Terjual
+              </div>
+
+              {/* Right Column (7 Cols): All Card Details & Action */}
+              <div className="col-span-7 flex flex-col justify-between space-y-2">
+                {/* Slot Badge & Status */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-pixelify px-2 py-0.5 rounded-md bg-[#EAE3D8] text-[#4A3E31] text-[10px] sm:text-xs font-bold border border-[#D5CABE]">
+                    SLOT #{selectedCardDetail.slotNumber}
+                  </span>
+                  <span
+                    className={`font-pixelify text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      selectedCardDetail.card.status === 'AVAILABLE'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : selectedCardDetail.card.status === 'SOLD'
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    {selectedCardDetail.card.status === 'AVAILABLE' ? 'READY DI MEJA' : selectedCardDetail.card.status}
+                  </span>
                 </div>
-              )}
+
+                {/* Card Title & Set */}
+                <div>
+                  <h3 className="font-pixelify font-bold text-sm sm:text-base text-[#1E293B] leading-snug">
+                    {formatCardDisplayName(
+                      selectedCardDetail.card.name,
+                      selectedCardDetail.card.cardNumber,
+                      selectedCardDetail.card.setName,
+                      selectedCardDetail.card.game
+                    )}
+                  </h3>
+                  <p className="font-mono-clean text-[11px] text-[#7A6B58] mt-0.5">
+                    {translateCardSet(
+                      selectedCardDetail.card.setName,
+                      selectedCardDetail.card.cardNumber,
+                      selectedCardDetail.card.game
+                    )}{' '}
+                    {selectedCardDetail.card.cardNumber ? `• ${selectedCardDetail.card.cardNumber}` : ''}
+                  </p>
+                </div>
+
+                {/* Condition & Rarity Box */}
+                <div className="p-2 sm:p-2.5 rounded-xl bg-white border border-[#D5CABE] space-y-1 text-xs">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-[#7A6B58]">Kondisi:</span>
+                    <span className="font-bold text-[#1E293B]">{selectedCardDetail.card.condition}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-[#7A6B58]">Rarity:</span>
+                    <span className="font-semibold text-[#1E293B]">{selectedCardDetail.card.rarity || '-'}</span>
+                  </div>
+                  {selectedCardDetail.card.notes && (
+                    <div className="pt-1 border-t border-[#EAE3D8] text-[10px] text-[#7A6B58] italic leading-tight">
+                      "{selectedCardDetail.card.notes}"
+                    </div>
+                  )}
+                </div>
+
+                {/* Price Display */}
+                <div className="flex items-baseline justify-between pt-0.5">
+                  <span className="text-[11px] text-[#7A6B58] font-bold">Harga Deal:</span>
+                  <span className="font-pixelify text-base sm:text-lg font-bold text-[#2E7D32]">
+                    {formatCurrency(selectedCardDetail.card.price, binder.currency)}
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="pt-1 flex gap-2">
+                  {selectedCardDetail.card.status === 'AVAILABLE' ? (
+                    <button
+                      onClick={() => {
+                        toggleCart(selectedCardDetail.slotNumber, selectedCardDetail.card);
+                        setSelectedCardDetail(null);
+                      }}
+                      className={`font-pixelify flex-1 py-2 sm:py-2.5 px-3 rounded-xl text-xs font-bold text-center shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                        isCardInCart(selectedCardDetail.slotNumber)
+                          ? 'bg-[#1E293B] text-white'
+                          : 'bg-[#E05A47] hover:bg-[#C94735] text-white'
+                      }`}
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>
+                        {isCardInCart(selectedCardDetail.slotNumber) ? 'Hapus Keranjang' : '+ Keranjang'}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="flex-1 py-2 rounded-xl bg-[#EAE3D8] text-[#8C7E6D] text-xs font-bold text-center flex items-center justify-center">
+                      Sudah Terjual
+                    </div>
+                  )}
+
+                  <a
+                    href={`/b/${binder.id}/slot/${selectedCardDetail.slotNumber}`}
+                    className="p-2 sm:px-2.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#FAF6F0] text-[#7A6B58] hover:text-[#1E293B] transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+                    title="Buka Halaman Slot Sendiri"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

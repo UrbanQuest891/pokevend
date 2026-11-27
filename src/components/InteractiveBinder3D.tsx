@@ -178,7 +178,90 @@ export default function InteractiveBinder3D({
   const isFilteringActive =
     searchQuery.trim().length > 0 || priceFilter !== 'all' || hideSold;
 
-  // Render Slots with 100% Consistent Dimensions Across All Rows & Pages
+  // Render Mobile Slots: CLEAN & KOTAK (Pure Cards, No slot number, No status badge, No text labels)
+  const renderMobileSlotsForPage = (pageNumber: number) => {
+    const startSlot = (pageNumber - 1) * pocketsPerPage + 1;
+    const colsClass =
+      binder.layoutType === '4-pocket'
+        ? 'grid-cols-2'
+        : binder.layoutType === '12-pocket'
+        ? 'grid-cols-3'
+        : 'grid-cols-3';
+
+    return (
+      <div className={`grid ${colsClass} gap-1.5 sm:gap-2`}>
+        {Array.from({ length: pocketsPerPage }, (_, i) => {
+          const slotNum = startSlot + i;
+          const card = binder.slots ? binder.slots[slotNum] : undefined;
+
+          // Mobile Empty Pocket
+          if (!card) {
+            return (
+              <div
+                key={slotNum}
+                className="relative aspect-[3/4] w-full rounded-xl border border-dashed border-[#D5CABE] bg-[#EAE3D8]/35 flex flex-col items-center justify-center opacity-40 select-none"
+              >
+                <span className="font-pixelify text-[10px] text-[#A89A88]">#</span>
+              </div>
+            );
+          }
+
+          const inCart = isCardInCart(slotNum);
+          const matchesFilter = isCardMatch(card);
+          const isDimmed = isFilteringActive && !matchesFilter;
+
+          // Mobile Card Pocket: ONLY THE CARD ARTWORK
+          return (
+            <div
+              key={slotNum}
+              onClick={() => {
+                if (!isDimmed) onSelectCard(slotNum, card);
+              }}
+              className={`pocket-reflection relative aspect-[3/4] w-full rounded-xl overflow-hidden bg-[#F2EDE4] border-2 shadow-2xs transition-all cursor-pointer select-none active:scale-95 group flex items-center justify-center p-0.5 ${
+                isDimmed
+                  ? 'opacity-25 grayscale pointer-events-none scale-[0.96]'
+                  : isFilteringActive
+                  ? 'ring-2 ring-[#E05A47] border-[#E05A47] shadow-sm'
+                  : inCart
+                  ? 'border-[#E05A47] ring-2 ring-[#E05A47]/40 shadow-sm'
+                  : 'border-[#D5CABE] hover:border-[#B5A593]'
+              }`}
+            >
+              {card.imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={formatCardImageUrl(card.imageUrl)}
+                  alt={card.name}
+                  loading="lazy"
+                  className="w-full h-full object-contain transition-transform group-hover:scale-105"
+                />
+              ) : (
+                <div className="font-pixelify text-[9px] text-[#8C7E6D]">POKÉMON</div>
+              )}
+
+              {/* In-Cart subtle badge */}
+              {inCart && (
+                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#E05A47] text-white flex items-center justify-center text-[9px] font-bold shadow-xs z-10">
+                  ✓
+                </div>
+              )}
+
+              {/* Sold stamp overlay */}
+              {card.status === 'SOLD' && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-15">
+                  <span className="font-pixelify px-1.5 py-0.5 bg-red-600 text-white font-bold text-[8px] uppercase tracking-wider rounded rotate-[-12deg] shadow">
+                    TERJUAL
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Render Slots with 100% Consistent Dimensions Across All Rows & Pages (Desktop)
   const renderSlotsForPage = (pageNumber: number) => {
     const startSlot = (pageNumber - 1) * pocketsPerPage + 1;
 
@@ -493,14 +576,14 @@ export default function InteractiveBinder3D({
 
         {/* 3D Perspective Stage */}
         <div
-          className="relative min-h-[460px] sm:min-h-[520px] rounded-2xl bg-[#E2D8C9] border border-[#C5B8A5] p-2 sm:p-3 shadow-inner"
+          className="relative min-h-[360px] sm:min-h-[520px] rounded-2xl bg-[#E2D8C9] border border-[#C5B8A5] p-1.5 sm:p-3 shadow-inner"
           style={{ perspective: '1400px' }}
         >
           {/* MOBILE VIEW: Single Sleeve Page (< 768px) with Stitched Left Seam */}
-          <div className="md:hidden flex">
+          <div className="md:hidden flex items-stretch">
             {/* Left Edge Stitched Seam (No metal rings!) */}
-            <div className="w-3.5 flex-shrink-0 bg-black/15 border-r-2 border-dashed border-black/40 flex flex-col justify-around items-center py-6">
-              {[1, 2, 3, 4, 5].map((i) => (
+            <div className="w-2.5 sm:w-3 flex-shrink-0 bg-black/15 border-r-2 border-dashed border-black/40 flex flex-col justify-around items-center py-4">
+              {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="w-1.5 h-1 bg-black/50 rounded-full"></div>
               ))}
             </div>
@@ -516,8 +599,8 @@ export default function InteractiveBinder3D({
               }`}
               style={{ transformStyle: 'preserve-3d' }}
             >
-              <div className="bg-[#FAF6F0] rounded-xl p-2 sm:p-2.5 border border-[#D5CABE] shadow-sm">
-                {renderSlotsForPage(displayPage)}
+              <div className="bg-[#FAF6F0] rounded-xl p-1.5 border border-[#D5CABE] shadow-sm">
+                {renderMobileSlotsForPage(displayPage)}
               </div>
             </div>
           </div>
