@@ -244,10 +244,10 @@ export default function DigitalReceiptPage() {
           {/* Barcode & Thank You Footer */}
           <div className="text-center pt-2 border-t-2 border-dashed border-[#D5CABE] space-y-2">
             <p className="font-pixelify text-xs font-bold text-[#1E293B]">
-              Terima Kasih Telah Berbelanja di Stand Kami!
+              Terima Kasih Telah Berbelanja di Stand Kami
             </p>
             <p className="text-[10px] text-[#7A6B58] max-w-xs mx-auto">
-              Simpan struk ini sebagai bukti transaksi resmi kartu fisik Anda. Happy collecting!
+              Struk ini bukti pembelian kartu fisik di meja stand. Simpan tautan ini untuk catatan koleksi Anda.
             </p>
           </div>
         </div>

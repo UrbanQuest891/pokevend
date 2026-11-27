@@ -220,35 +220,32 @@ export default function LandingPage() {
           {/* Eyebrow Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF6F0] border-2 border-[#D5CABE] text-xs font-pixelify font-bold text-[#E05A47] shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-[#E05A47] animate-pulse"></span>
-            <span>SISTEM BINDER DIGITAL & KASIR EVENT TCG</span>
+            <span>KATALOG BINDER & KASIR MEJA EVENT TCG</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="font-pixelify text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#1E293B] leading-tight sm:leading-none">
-            Jual Beli Kartu TCG di Meja Event Jadi <span className="text-[#E05A47]">Kilat & Rapi</span>
+            Buka Binder di Meja Event Tanpa Takut Kartu Rusak & <span className="text-[#E05A47]">Ribet Bikin Nota</span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg text-[#5A4B3C] font-normal leading-relaxed max-w-2xl mx-auto">
-            Platform katalog binder digital interaktif dengan efek slot fisik 9-pocket.
-            Dioptimalkan agar <strong>anti-lag di daerah sinyal lemah</strong>, pembeli bisa
-            memesan via keranjang mandiri <strong>tanpa chat WhatsApp</strong>, dan penjual
-            bisa langsung <strong>negosiasi harga di meja</strong> secara instan.
+            Katalog binder digital yang dibuka pembeli dari HP lewat scan QR. Pembeli bisa pesan kartu mandiri di tempat tanpa perlu chat WA, dan Anda tinggal terima pesanan serta atur harga nego langsung di kasir.
           </p>
 
           {/* Key Value Proposition Badges */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-2 text-xs font-pixelify font-bold">
             <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <Wifi className="w-3.5 h-3.5 text-emerald-600" /> Super Ringan di Sinyal Lemah
+              <Wifi className="w-3.5 h-3.5 text-emerald-600" /> Tetap Lancar saat Sinyal Lemah
             </span>
             <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <ShoppingBag className="w-3.5 h-3.5 text-[#E05A47]" /> Keranjang In-App (No WA)
+              <ShoppingBag className="w-3.5 h-3.5 text-[#E05A47]" /> Pesan Mandiri Tanpa Chat WA
             </span>
             <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-600" /> Nego Harga Meja Fleksibel
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600" /> Atur Harga Nego di Kasir
             </span>
             <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <Zap className="w-3.5 h-3.5 text-amber-600" /> Auto-Arsip & Quick Restock
+              <Zap className="w-3.5 h-3.5 text-amber-600" /> Otomatis Masuk Buku Kas
             </span>
           </div>
 
@@ -259,7 +256,7 @@ export default function LandingPage() {
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#E05A47] text-white font-pixelify font-bold text-sm sm:text-base hover:bg-[#D04936] transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 border border-black/10"
             >
               <Smartphone className="w-5 h-5" />
-              <span>Coba Sneak Peek Pembeli</span>
+              <span>Coba Tampilan Pembeli</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </a>
 
@@ -268,7 +265,7 @@ export default function LandingPage() {
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-sm sm:text-base border-2 border-[#D5CABE] hover:bg-white hover:border-[#1E293B] transition-all shadow-sm flex items-center justify-center gap-2"
             >
               <Store className="w-5 h-5 text-[#E05A47]" />
-              <span>Buka Seller Hub</span>
+              <span>Masuk ke Kasir Seller</span>
             </a>
           </div>
         </div>
@@ -281,13 +278,13 @@ export default function LandingPage() {
           <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EAE3D8] border border-[#D5CABE] text-xs font-pixelify font-bold text-[#7A6B58]">
               <Eye className="w-3.5 h-3.5 text-[#E05A47]" />
-              <span>INTERACTIVE SNEAK PEEK</span>
+              <span>SIMULASI PEMBELI</span>
             </div>
             <h2 className="font-pixelify text-2xl sm:text-4xl font-bold text-[#1E293B]">
-              Tampilan Pembeli di Smartphone
+              Katalog Digital di HP Pembeli
             </h2>
             <p className="text-sm sm:text-base text-[#7A6B58] font-medium">
-              Simulasi interaktif: Coba klik kartu di bawah untuk memasukkan ke keranjang demo dan lihat betapa mulusnya proses pemesanan digital di ponsel pembeli.
+              Coba klik kartu di bawah seolah-olah Anda pembeli yang lagi berdiri di depan meja stand:
             </p>
           </div>
 
@@ -545,13 +542,13 @@ export default function LandingPage() {
             <div className="lg:col-span-5 space-y-6">
               <div className="space-y-2">
                 <span className="font-pixelify text-xs font-bold text-[#E05A47] uppercase tracking-wider">
-                  MENGAPA PEMBELI MENYUKAINYA?
+                  KENAPA PEMBELI NYAMAN?
                 </span>
                 <h3 className="font-pixelify text-2xl sm:text-3xl font-bold text-[#1E293B]">
-                  Bebas Ribet, Serasa Membuka Binder Fisik
+                  Bebas Antre, Kartu di Binder Fisik Tetap Aman
                 </h3>
                 <p className="text-sm text-[#7A6B58] leading-relaxed">
-                  Tidak perlu lagi mengantre panjang sambil menunggu orang lain membalik halaman binder fisik yang rawan lecek. Pembeli scan QR stand di meja kasir dan langsung dapat:
+                  Pembeli nggak perlu antre berdesakan membolak-balik binder fisik yang rawan lecek. Cukup scan QR di meja, pembeli langsung bisa:
                 </p>
               </div>
 
@@ -563,10 +560,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="font-pixelify text-sm font-bold text-[#1E293B]">
-                      Nomor Slot 1:1 Presisi dengan Binder Meja
+                      Nomor Slot Sesuai Posisi Binder Meja
                     </h4>
                     <p className="text-xs text-[#7A6B58] mt-0.5">
-                      Kartu di web memiliki nomor slot yang sama dengan kantong fisik di meja stand (misal: Slot #01, #02). Penjual dapat langsung mengambil kartu tanpa mencari-cari lagi.
+                      Nomor slot di web sama persis dengan posisi kartu di binder fisik (misal: Slot #01, #02). Penjual tinggal tarik kartu yang diminta tanpa repot mencari lagi.
                     </p>
                   </div>
                 </div>
@@ -577,10 +574,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="font-pixelify text-sm font-bold text-[#1E293B]">
-                      Keranjang Mandiri Tanpa Buka WhatsApp
+                      Pesan Langsung Tanpa Buka WhatsApp
                     </h4>
                     <p className="text-xs text-[#7A6B58] mt-0.5">
-                      Tidak perlu menyimpan kontak baru atau kirim screenshot nama kartu. Pembeli cukup masukkan nama panggilan dan pesanan langsung memicu notifikasi di layar kasir.
+                      Nggak perlu simpan nomor baru atau kirim screenshot foto kartu. Pembeli cukup masukkan nama panggilan, dan pesanan langsung bunyi di layar kasir.
                     </p>
                   </div>
                 </div>
@@ -591,10 +588,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="font-pixelify text-sm font-bold text-[#1E293B]">
-                      Ringan & Cepat Terbuka di Sinyal Lemah
+                      Tetap Cepat saat Sinyal Lemah
                     </h4>
                     <p className="text-xs text-[#7A6B58] mt-0.5">
-                      Ukuran aset web terkompresi secara cerdas sehingga halaman katalog tetap terbuka mulus meskipun sinyal ponsel di dalam venue pameran sedang minim.
+                      Semua aset dan gambar kartu dikompres seringan mungkin, jadi halaman tetap terbuka lancar walau sinyal di dalam venue mall lagi jelek.
                     </p>
                   </div>
                 </div>
@@ -620,13 +617,13 @@ export default function LandingPage() {
         <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF6F0] border border-[#D5CABE] text-xs font-pixelify font-bold text-[#E05A47]">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>FITUR LENGKAP POKÉVEND</span>
+            <span>FITUR MEJA STAND</span>
           </div>
           <h2 className="font-pixelify text-2xl sm:text-4xl lg:text-5xl font-bold text-[#1E293B]">
-            5 Kemampuan Utama Website Kita
+            Dibuat untuk Masalah Nyata di Meja Event
           </h2>
           <p className="text-sm sm:text-base text-[#7A6B58] font-medium max-w-2xl mx-auto">
-            Dirancang khusus berdasarkan kendala nyata para kolektor dan penjual kartu TCG saat berjualan di event pameran, bazaar, maupun toko fisik.
+            Bukan sekadar etalase online biasa, tapi alat bantu jualan saat antrean meja bazaar lagi ramai-ramainya.
           </p>
         </div>
 
@@ -639,13 +636,13 @@ export default function LandingPage() {
             </div>
             <div className="space-y-1.5">
               <span className="font-pixelify text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                ANTI-LAG DI VENUE
+                SINYAL VENUE
               </span>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                1. Performa Ringan di Sinyal Lemah
+                1. Tetap Ringan saat Sinyal Ngedrop
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Venue exhibition mall atau basement convention sering kali mengalami blank spot sinyal. Website ini dioptimalkan dengan aset mikro, caching pintar, dan gambar terkompresi tanpa membebani kuota pembeli.
+                Basement mall atau hall pameran sering susah sinyal. Halaman web dibuat seringan mungkin dengan kompresi gambar otomatis, jadi pembeli tetap bisa buka katalog tanpa lemot.
               </p>
             </div>
           </div>
@@ -657,13 +654,13 @@ export default function LandingPage() {
             </div>
             <div className="space-y-1.5">
               <span className="font-pixelify text-[10px] font-bold text-[#E05A47] bg-red-100 px-2 py-0.5 rounded-full">
-                TANPA CHAT WA
+                TANPA REPOT WA
               </span>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                2. Keranjang Digital In-App
+                2. Keranjang Langsung ke Kasir
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Pembeli tidak perlu mengetik nama kartu atau mengirim screenshot panjang ke WhatsApp. Cukup masukkan nama, pilih slot kartu, dan tiket pemesanan langsung masuk ke sistem kasir penjual.
+                Nggak perlu repot simpan nomor atau kirim foto kartu ke chat. Pembeli pilih kartu langsung di layar mereka, lalu nomor slot dan nama pembeli langsung muncul di kasir Anda.
               </p>
             </div>
           </div>
@@ -675,13 +672,13 @@ export default function LandingPage() {
             </div>
             <div className="space-y-1.5">
               <span className="font-pixelify text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">
-                NEGO FLEKSIBEL
+                NEGO DI TEMPAT
               </span>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                3. Meja Negosiasi Kasir Real-Time
+                3. Atur Harga Deal & Diskon di Meja
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Di lapangan pasti terjadi tawar-menawar harga. Penjual dapat langsung mengetik harga deal akhir yang disepakati, menghapus kartu bila ada pembatalan parsial, atau menambahkan kartu bonus langsung dari binder.
+                Namanya jual beli kartu pasti ada tawar-menawar. Di kasir Anda bisa langsung ubah harga kesepakatan, hapus kartu yang batal, atau masukkan kartu bonus langsung dari binder.
               </p>
             </div>
           </div>
@@ -693,13 +690,13 @@ export default function LandingPage() {
             </div>
             <div className="space-y-1.5">
               <span className="font-pixelify text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                OTOMASI KASIR
+                OTOMATIS RAPI
               </span>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                4. Arsip Otomatis & Quick Restock
+                4. Slot Otomatis Terarsip ke Buku Kas
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Saat transaksi selesai, kartu otomatis terhapus dari slot fisik binder dan tercatat di buku kas digital. Disediakan alur restock kilat dengan tombol skip instan agar tidak kaku dan tidak memperlambat antrean.
+                Begitu transaksi selesai dibayar, kartu otomatis ditandai terjual dan masuk riwayat omset. Anda bisa langsung restock slot kosong atau lewati dulu biar antrean tetap jalan.
               </p>
             </div>
           </div>
@@ -711,13 +708,13 @@ export default function LandingPage() {
             </div>
             <div className="space-y-1.5">
               <span className="font-pixelify text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                PRINT-READY QR
+                SIAP CETAK
               </span>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                5. Cetak Placard Meja & Stiker Slot
+                5. Cetak QR Meja & Stiker Slot Kartu
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Tersedia generator cetak otomatis untuk QR Placard akrilik meja kasir, serta stiker label barcode berukuran pas untuk ditempel langsung di setiap kantong slot mika binder fisik.
+                Tinggal cetak satu lembar akrilik QR untuk dipajang di meja stand, plus lembar stiker QR kecil per nomor slot untuk ditempel di saku binder fisik Anda.
               </p>
             </div>
           </div>
@@ -729,13 +726,13 @@ export default function LandingPage() {
             </div>
             <div className="space-y-1.5">
               <span className="font-pixelify text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
-                MULTI-TCG
+                BANYAK PILIHAN TCG
               </span>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                Mendukung Banyak Game Kartu
+                Mendukung Berbagai Game Kartu
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Cocok untuk kartu <strong>Pokémon TCG</strong> (English, Japanese, Chinese, Indonesian), <strong>One Piece Card Game</strong>, hingga <strong>Riftbound</strong> dengan database terintegrasi.
+                Database terintegrasi untuk kartu Pokémon TCG (versi English, Japanese, Indonesian, Chinese), One Piece Card Game, sampai Riftbound.
               </p>
             </div>
           </div>
@@ -747,13 +744,13 @@ export default function LandingPage() {
         <div className="bg-white border-2 border-[#D5CABE] rounded-3xl p-6 sm:p-12 shadow-sm">
           <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FAF6F0] border border-[#D5CABE] text-xs font-pixelify font-bold text-[#E05A47]">
-              <span>ALUR PRAKTIS DI LAPANGAN</span>
+              <span>CARA KERJA</span>
             </div>
             <h2 className="font-pixelify text-2xl sm:text-4xl font-bold text-[#1E293B]">
-              3 Langkah Transaksi di Meja Event
+              3 Langkah Jualan di Meja Event
             </h2>
             <p className="text-sm sm:text-base text-[#7A6B58] font-medium">
-              Bagaimana PokéVend bekerja menyederhanakan interaksi antara penjual dan pembeli kartu.
+              Alur sederhana agar meja stand tetap teratur walau pengunjung sedang padat.
             </p>
           </div>
 
@@ -764,10 +761,10 @@ export default function LandingPage() {
                 1
               </div>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                Pajang Binder & QR Code
+                Pajang QR di Meja
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Penjual menaruh stand QR Code di meja stand. Binder fisik tetap aman tanpa harus dibolak-balik berulang kali oleh puluhan pengunjung yang dapat merusak kondisi kartu.
+                Taruh akrilik QR code di atas meja booth. Binder koleksi fisik tetap aman di meja tanpa risiko lecek atau tergores kuku pengunjung.
               </p>
             </div>
 
@@ -777,10 +774,10 @@ export default function LandingPage() {
                 2
               </div>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                Pembeli Scan & Kirim Pesanan
+                Pembeli Scan & Kirim Pilihan
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Pembeli scan QR lewat smartphone mereka, menikmati tampilan 9-pocket mika, memilih kartu favorit ke dalam keranjang, dan memasukkan nama panggilan tanpa perlu chat WhatsApp.
+                Pembeli scan QR dari HP masing-masing, membolak-balik halaman binder digital, lalu mengirim pesanan kartu dengan nama panggilan mereka.
               </p>
             </div>
 
@@ -790,10 +787,10 @@ export default function LandingPage() {
                 3
               </div>
               <h3 className="font-pixelify text-lg sm:text-xl font-bold text-[#1E293B]">
-                Kasir Terima, Nego & Deal!
+                Kasir Terima, Nego, & Selesai
               </h3>
               <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-                Penjual menerima alert pesanan masuk di layar kasir. Deal harga disepakati, pembayaran via QRIS/Cash, slot binder otomatis kosong, dan catatan omzet tersimpan di riwayat kasir.
+                Pesanan muncul di layar kasir dengan suara 8-bit. Anda sepakati harga deal, terima pembayaran via QRIS atau tunai, dan kartu otomatis terarsip.
               </p>
             </div>
           </div>
@@ -807,31 +804,31 @@ export default function LandingPage() {
             <div className="lg:col-span-6 space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EAE3D8] border border-[#D5CABE] text-xs font-pixelify font-bold text-[#E05A47]">
                 <Store className="w-3.5 h-3.5" />
-                <span>KONTROL PENUH PENJUAL</span>
+                <span>KONTROL PENJUAL</span>
               </div>
               <h2 className="font-pixelify text-2xl sm:text-4xl font-bold text-[#1E293B]">
-                Sisi Kasir yang Cepat, Taktis, & Rapi
+                Sisi Kasir yang Praktis & Nggak Kaku
               </h2>
               <p className="text-sm text-[#7A6B58] leading-relaxed">
-                Di meja kasir, kecepatan adalah segalanya. Dashboard penjual dilengkapi dengan:
+                Saat antrean meja lagi ramai, kasir butuh alat yang serba cepat:
               </p>
 
               <ul className="space-y-2.5 text-xs sm:text-sm text-[#1E293B] font-medium">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span><strong>Live Order Counter:</strong> Notifikasi langsung saat ada pesanan masuk dari pembeli di depan meja.</span>
+                  <span><strong>Alert Pesanan Baru:</strong> Notifikasi langsung di layar kasir saat ada pembeli yang memesan.</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span><strong>Modal Nego Meja:</strong> Bisa ubah harga deal, hapus kartu (batal parsial), atau tambah kartu langsung.</span>
+                  <span><strong>Nego Fleksibel:</strong> Bebas ubah harga deal, hapus kartu yang batal, atau tambah kartu on-the-spot.</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span><strong>Quick Restock Fleksibel:</strong> Slot kosong bisa diisi saat senggang atau langsung di-skip untuk layani pembeli berikutnya.</span>
+                  <span><strong>Restock Cepat:</strong> Mau langsung ganti kartu di slot kosong bisa, mau dilewati dulu juga bisa.</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span><strong>Riwayat Penjualan Lengkap:</strong> Rekap omzet, kartu terlaris, dan ekspor data kasir.</span>
+                  <span><strong>Rekap Omset Bersih:</strong> Laporan omset event, kartu terlaris, dan jam ramai tanpa perlu rekap nota manual.</span>
                 </li>
               </ul>
 
@@ -841,7 +838,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E05A47] text-white font-pixelify font-bold text-xs sm:text-sm shadow-sm hover:bg-[#D04936] transition-colors"
                 >
                   <Store className="w-4 h-4" />
-                  <span>Buka Seller Hub</span>
+                  <span>Buka Kasir Seller</span>
                 </a>
                 <a
                   href="/login"
@@ -906,11 +903,11 @@ export default function LandingPage() {
           </div>
 
           <h2 className="font-pixelify text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-            Mulai Gunakan PokéVend di Stand Anda
+            Bikin Meja Event Anda Lebih Rapi & Profesional
           </h2>
 
           <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
-            Tingkatkan kenyamanan pembeli, amankan kondisi binder koleksi Anda dari kerusakan, dan buat transaksi meja pameran berjalan serba otomatis.
+            Biar binder fisik Anda nggak gampang rusak dibolak-balik pengunjung, dan Anda nggak repot bikin nota manual saat booth lagi ramai.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
@@ -919,7 +916,7 @@ export default function LandingPage() {
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white text-[#E05A47] font-pixelify font-bold text-sm sm:text-base hover:bg-[#FAF6F0] transition-all shadow-md flex items-center justify-center gap-2"
             >
               <Store className="w-5 h-5" />
-              <span>Buka Seller Hub Sekarang</span>
+              <span>Masuk ke Kasir Seller</span>
             </a>
 
             <a
@@ -927,7 +924,7 @@ export default function LandingPage() {
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-black/20 text-white font-pixelify font-bold text-sm sm:text-base border border-white/30 hover:bg-black/30 transition-all flex items-center justify-center gap-2"
             >
               <Smartphone className="w-5 h-5" />
-              <span>Buka Demo Rak Pembeli</span>
+              <span>Lihat Contoh Rak Pembeli</span>
             </a>
           </div>
         </div>
@@ -947,7 +944,7 @@ export default function LandingPage() {
             <div>
               <div className="font-pixelify font-bold text-base text-[#1E293B]">PokéVend</div>
               <div className="text-[11px] text-[#7A6B58]">
-                Sistem Vending & Kasir Meja Event untuk Komunitas Kartu TCG
+                Katalog Binder & Kasir Meja untuk Komunitas TCG
               </div>
             </div>
           </div>

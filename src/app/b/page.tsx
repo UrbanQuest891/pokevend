@@ -97,13 +97,13 @@ export default function BuyerMultiBinderShelfPage() {
         <div className="text-center max-w-lg mx-auto space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FAF6F0] border border-[#D5CABE] text-xs font-pixelify font-bold text-[#E05A47] shadow-2xs">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>KATALOG STAND MEJA DIGITAL</span>
+            <span>KATALOG MEJA BOOTH</span>
           </div>
           <h1 className="font-pixelify text-2xl sm:text-3xl font-bold text-[#1E293B]">
             Pilih Binder Koleksi
           </h1>
           <p className="text-xs sm:text-sm text-[#7A6B58] leading-relaxed">
-            Scan dari stand meja terdeteksi. Silakan pilih kategori binder yang ingin Anda jelajahi langsung dari ponsel Anda:
+            Pilih binder kartu yang ingin Anda lihat langsung dari HP:
           </p>
         </div>
 
@@ -187,10 +187,10 @@ export default function BuyerMultiBinderShelfPage() {
         <div className="p-4 rounded-2xl bg-white border border-[#D5CABE] text-center space-y-1 shadow-2xs max-w-lg mx-auto">
           <div className="font-pixelify text-xs font-bold text-[#1E293B] flex items-center justify-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#E05A47]" />
-            <span>Pesan Mandiri Tanpa Antre</span>
+            <span>Cara Pesan di Meja Ini</span>
           </div>
           <p className="text-[11px] text-[#7A6B58] leading-relaxed">
-            Pilih kartu favorit Anda, masukkan ke keranjang digital, dan kirim pesanan langsung ke kasir tanpa perlu chat WhatsApp.
+            Pilih kartu yang Anda incar, masukkan nama panggilan Anda, lalu kirim ke kasir. Penjual akan langsung menyiapkan kartu fisiknya di depan Anda.
           </p>
         </div>
       </main>

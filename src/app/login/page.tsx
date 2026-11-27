@@ -106,7 +106,7 @@ export default function LoginPage() {
               POKÉVEND
             </h1>
             <p className="text-xs sm:text-sm text-[#7A6B58] max-w-sm mx-auto leading-relaxed">
-              Login Seller untuk mengelola binder kartu, referensi harga pasar, dan mencatat riwayat penjualan otomatis.
+              Masuk ke akun kasir seller untuk atur binder kartu dan catat transaksi meja stand.
             </p>
           </div>
 
@@ -122,7 +122,7 @@ export default function LoginPage() {
                     <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
                   )}
                   <div className={`font-pixelify font-bold text-sm ${isMasterAdmin ? 'text-amber-950' : 'text-emerald-900'}`}>
-                    {isMasterAdmin ? '👑 MASTER OWNER TERDAFTAR' : 'ANDA SEDANG LOGIN!'}
+                    {isMasterAdmin ? '👑 AKUN MASTER OWNER' : 'AKUN SELLER AKTIF'}
                   </div>
                   <div className="text-xs text-[#1E293B] font-bold">{user.name}</div>
                   <div className="text-[11px] text-[#7A6B58] font-mono-clean">{user.email}</div>
@@ -226,13 +226,13 @@ export default function LoginPage() {
               <div className="flex items-start gap-2.5">
                 <TrendingUp className="w-4 h-4 text-[#2E7D32] flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-[#1E293B]">Riwayat Penjualan Permanen:</strong> Setiap kartu yang laku terjual otomatis tercatat di data penjualan.
+                  <strong className="text-[#1E293B]">Pencatatan Otomatis:</strong> Setiap kartu yang deal langsung masuk ke rekap kasir tanpa perlu catat manual di kertas.
                 </span>
               </div>
               <div className="flex items-start gap-2.5">
                 <Layers className="w-4 h-4 text-[#E05A47] flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-[#1E293B]">Multi-Game TCG:</strong> Dukungan penuh katalog Pokémon, One Piece Card Game, & Riftbound.
+                  <strong className="text-[#1E293B]">Multi-Game TCG:</strong> Bisa dipakai untuk Pokémon TCG, One Piece Card Game, dan Riftbound.
                 </span>
               </div>
             </div>
@@ -242,10 +242,10 @@ export default function LoginPage() {
           <div className="mt-6 p-4 rounded-2xl bg-[#FAF6F0] border-2 border-[#D5CABE] text-center space-y-1 shadow-xs">
             <div className="font-pixelify text-xs font-bold text-[#4A3E31] flex items-center justify-center gap-1.5">
               <QrCode className="w-3.5 h-3.5 text-[#E05A47]" />
-              <span>Pengunjung / Pembeli di Meja Event?</span>
+              <span>Khusus Pembeli di Meja Bazaar</span>
             </div>
             <p className="text-[11px] text-[#7A6B58] leading-relaxed">
-              Anda tidak perlu login. Cukup scan QR code di binder fisik untuk melihat stok kartu & harga secara langsung.
+              Anda tidak perlu login akun. Cukup scan QR code di binder meja untuk langsung lihat daftar kartu dan harganya.
             </p>
           </div>
         </div>

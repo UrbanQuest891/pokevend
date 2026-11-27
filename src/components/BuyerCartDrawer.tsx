@@ -68,7 +68,7 @@ export default function BuyerCartDrawer({
 
   const handleSubmitOrder = async () => {
     if (!buyerName.trim()) {
-      setErrorMsg('Mohon masukkan nama Anda agar penjual bisa memanggil Anda di meja!');
+      setErrorMsg('Tulis nama panggilan Anda dulu agar penjual bisa panggil di meja.');
       return;
     }
     setErrorMsg('');
@@ -145,7 +145,7 @@ export default function BuyerCartDrawer({
             </div>
             <div className="text-left">
               <div className="font-pixelify text-xs font-bold leading-tight">
-                {activeOrder ? 'TIKET PESANAN ANDA AKTIF' : 'KERANJANG PESANAN'}
+                {activeOrder ? 'PESANAN AKTIF DI MEJA' : 'KERANJANG PESANAN'}
               </div>
               <div className="text-[10px] text-white/80">
                 {activeOrder ? `Tiket #${activeOrder.orderNumber}` : `${items.length} kartu terpilih`}
@@ -179,7 +179,7 @@ export default function BuyerCartDrawer({
                 </div>
                 <div>
                   <h3 className="font-pixelify text-sm font-bold text-[#1E293B]">
-                    {activeOrder ? 'TIKET PESANAN DIGITAL' : 'KERANJANG PEMBELIAN'}
+                    {activeOrder ? 'TIKET PESANAN MEJA' : 'KERANJANG BELANJA'}
                   </h3>
                   <p className="text-[10px] text-[#7A6B58]">
                     {boothName} • {sellerName}
@@ -202,14 +202,14 @@ export default function BuyerCartDrawer({
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div className="font-pixelify text-lg font-bold text-emerald-800">
-                    PESANAN BERHASIL DIKIRIM!
+                    PESANAN SUDAH MASUK KE KASIR
                   </div>
                   <div className="inline-block px-3 py-1 bg-white border border-emerald-300 rounded-full font-mono-clean text-xs font-bold text-emerald-700">
                     TIKET #{activeOrder.orderNumber}
                   </div>
                   <p className="text-xs text-emerald-950 font-medium pt-1">
-                    Halo <span className="font-bold underline">{activeOrder.buyerName}</span>! Silakan datangi meja{' '}
-                    <span className="font-bold">{boothName}</span> sekarang. Penjual akan menyiapkan fisik kartu untuk Anda periksa.
+                    Halo <span className="font-bold underline">{activeOrder.buyerName}</span>, tunjukkan nomor tiket ini ke penjual di stand{' '}
+                    <span className="font-bold">{boothName}</span> untuk cek kondisi kartu dan bayar.
                   </p>
                 </div>
 
@@ -304,7 +304,7 @@ export default function BuyerCartDrawer({
                 {/* Buyer Name Input */}
                 <div className="pt-2">
                   <label className="font-pixelify block text-xs font-bold text-[#4A3E31] mb-1.5">
-                    NAMA ANDA (UNTUK DIPANGGIL DI MEJA) *
+                    NAMA PANGGILAN DI MEJA *
                   </label>
                   <input
                     type="text"
@@ -313,7 +313,7 @@ export default function BuyerCartDrawer({
                       setBuyerName(e.target.value);
                       if (errorMsg) setErrorMsg('');
                     }}
-                    placeholder="Contoh: Ash Ketchum / Budi"
+                    placeholder="Contoh: Budi / Kevin"
                     className="w-full px-3.5 py-2.5 bg-white border border-[#D5CABE] text-[#1E293B] rounded-xl text-xs font-bold focus:outline-none focus:border-[#E05A47] shadow-inner"
                   />
                   {errorMsg && (
@@ -327,13 +327,13 @@ export default function BuyerCartDrawer({
                 {/* Optional Note Input */}
                 <div>
                   <label className="font-pixelify block text-[11px] font-bold text-[#7A6B58] mb-1">
-                    CATATAN TAMBAHAN (OPSIONAL)
+                    CATATAN (OPSIONAL)
                   </label>
                   <input
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Misal: Saya pakai kaos hitam di dekat etalase"
+                    placeholder="Misal: Mau cek kartu dulu / baju hitam dekat rak"
                     className="w-full px-3.5 py-2 bg-white border border-[#D5CABE] text-[#1E293B] rounded-xl text-xs focus:outline-none focus:border-[#E05A47]"
                   />
                 </div>

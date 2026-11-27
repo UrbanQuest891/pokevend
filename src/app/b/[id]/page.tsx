@@ -235,7 +235,7 @@ export default function BuyerBinderPage() {
           <div className="flex items-center gap-2">
             <span className="text-base">✨</span>
             <span>
-              Tap <strong>+ Keranjang</strong> pada kartu yang Anda incar, masukkan nama, dan kirim pesanan langsung ke meja seller!
+              Pilih kartu yang Anda incar, tulis nama panggilan Anda, lalu kirim pesanan ke meja penjual.
             </span>
           </div>
         </div>
