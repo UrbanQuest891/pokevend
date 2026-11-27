@@ -216,44 +216,45 @@ export default function LandingPage() {
 
       {/* 2. Hero Section */}
       <section className="relative pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto space-y-6">
+        <div className="text-center w-full max-w-6xl mx-auto space-y-6 sm:space-y-8">
           {/* Eyebrow Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FAF6F0] border-2 border-[#D5CABE] text-xs font-pixelify font-bold text-[#E05A47] shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#E05A47] animate-pulse"></span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FAF6F0] border-2 border-[#D5CABE] text-xs sm:text-sm font-pixelify font-bold text-[#E05A47] shadow-2xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E05A47] animate-pulse"></span>
             <span>KATALOG BINDER & KASIR MEJA EVENT TCG</span>
           </div>
 
-          {/* Main Headline */}
-          <h1 className="font-pixelify text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#1E293B] leading-tight sm:leading-none">
-            Buka Binder di Meja Event Tanpa Takut Kartu Rusak & <span className="text-[#E05A47]">Ribet Bikin Nota</span>
+          {/* Main Headline - Setara lebar container dengan konten di bawah */}
+          <h1 className="font-pixelify text-3xl sm:text-5xl md:text-6xl lg:text-[64px] xl:text-[72px] font-bold tracking-tight text-[#1E293B] leading-[1.14] sm:leading-[1.1] max-w-6xl mx-auto">
+            Buka Binder di Meja Event Tanpa Takut Kartu Rusak &amp;{' '}
+            <span className="text-[#E05A47] inline-block">Ribet Bikin Nota</span>
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-base sm:text-lg text-[#5A4B3C] font-normal leading-relaxed max-w-2xl mx-auto">
+          {/* Subtitle - Diperluas agar proporsional dan tidak sempit */}
+          <p className="text-base sm:text-xl lg:text-2xl text-[#5A4B3C] font-normal leading-relaxed max-w-4xl lg:max-w-5xl mx-auto">
             Katalog binder digital yang dibuka pembeli dari HP lewat scan QR. Pembeli bisa pesan kartu mandiri di tempat tanpa perlu chat WA, dan Anda tinggal terima pesanan serta atur harga nego langsung di kasir.
           </p>
 
           {/* Key Value Proposition Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-2 text-xs font-pixelify font-bold">
-            <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <Wifi className="w-3.5 h-3.5 text-emerald-600" /> Tetap Lancar saat Sinyal Lemah
+          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 pt-2 text-xs sm:text-sm font-pixelify font-bold max-w-5xl mx-auto">
+            <span className="px-3.5 py-2 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-2 shadow-2xs">
+              <Wifi className="w-4 h-4 text-emerald-600" /> Tetap Lancar saat Sinyal Lemah
             </span>
-            <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <ShoppingBag className="w-3.5 h-3.5 text-[#E05A47]" /> Pesan Mandiri Tanpa Chat WA
+            <span className="px-3.5 py-2 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-2 shadow-2xs">
+              <ShoppingBag className="w-4 h-4 text-[#E05A47]" /> Pesan Mandiri Tanpa Chat WA
             </span>
-            <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-600" /> Atur Harga Nego di Kasir
+            <span className="px-3.5 py-2 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-2 shadow-2xs">
+              <TrendingUp className="w-4 h-4 text-blue-600" /> Atur Harga Nego di Kasir
             </span>
-            <span className="px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-1.5 shadow-2xs">
-              <Zap className="w-3.5 h-3.5 text-amber-600" /> Otomatis Masuk Buku Kas
+            <span className="px-3.5 py-2 rounded-xl bg-white border border-[#D5CABE] text-[#1E293B] flex items-center gap-2 shadow-2xs">
+              <Zap className="w-4 h-4 text-amber-600" /> Otomatis Masuk Buku Kas
             </span>
           </div>
 
           {/* Hero CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <a
               href="#sneak-peek"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#E05A47] text-white font-pixelify font-bold text-sm sm:text-base hover:bg-[#D04936] transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 border border-black/10"
+              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#E05A47] text-white font-pixelify font-bold text-sm sm:text-base hover:bg-[#D04936] transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2.5 border border-black/10"
             >
               <Smartphone className="w-5 h-5" />
               <span>Coba Tampilan Pembeli</span>
@@ -262,7 +263,7 @@ export default function LandingPage() {
 
             <a
               href="/login"
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-sm sm:text-base border-2 border-[#D5CABE] hover:bg-white hover:border-[#1E293B] transition-all shadow-sm flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-[#FAF6F0] text-[#1E293B] font-pixelify font-bold text-sm sm:text-base border-2 border-[#D5CABE] hover:bg-white hover:border-[#1E293B] transition-all shadow-sm flex items-center justify-center gap-2.5"
             >
               <Store className="w-5 h-5 text-[#E05A47]" />
               <span>Masuk ke Kasir Seller</span>
