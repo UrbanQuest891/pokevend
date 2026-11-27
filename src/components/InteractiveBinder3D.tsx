@@ -12,7 +12,8 @@ import {
   Sparkles,
   ShoppingBag,
   Hand,
-  Check,
+  BookOpen,
+  Store,
 } from 'lucide-react';
 
 interface InteractiveBinder3DProps {
@@ -45,6 +46,12 @@ export default function InteractiveBinder3D({
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev'>('next');
   const [displayPage, setDisplayPage] = useState(currentPage);
 
+  // Desktop Spread Calculation:
+  // Spread 0: Left = Inside Front Cover, Right = Page 1
+  // Spread 1: Left = Page 2, Right = Page 3 (or Inside Back Cover)
+  // Spread 2: Left = Page 4, Right = Page 5 (or Inside Back Cover)
+  const [spreadIndex, setSpreadIndex] = useState(() => Math.floor(currentPage / 2));
+
   // Swipe gesture tracking
   const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
@@ -53,32 +60,54 @@ export default function InteractiveBinder3D({
   const pocketsPerPage =
     binder.layoutType === '4-pocket' ? 4 : binder.layoutType === '12-pocket' ? 12 : 9;
 
-  // Sync internal display page with external prop
+  const totalSpreads = Math.floor(binder.totalPages / 2) + 1;
+
+  // Sync internal display page and spreadIndex with external prop
   useEffect(() => {
-    if (currentPage !== displayPage && !isFlipping) {
-      triggerFlip(currentPage > displayPage ? 'next' : 'prev', currentPage);
-    }
+    setDisplayPage(currentPage);
+    setSpreadIndex(Math.floor(currentPage / 2));
   }, [currentPage]);
 
-  const triggerFlip = (direction: 'next' | 'prev', targetPage: number) => {
+  const triggerFlip = (direction: 'next' | 'prev', newSpread: number, newPage: number) => {
     if (isFlipping) return;
     setFlipDirection(direction);
     setIsFlipping(true);
 
-    // After half-way (225ms), switch the content page
+    // Midway: switch the content
     setTimeout(() => {
-      setDisplayPage(targetPage);
+      setSpreadIndex(newSpread);
+      setDisplayPage(newPage);
+      onPageChange(newPage);
     }, 220);
 
-    // Finish animation after 450ms
+    // End flip
     setTimeout(() => {
       setIsFlipping(false);
     }, 450);
   };
 
-  const handleNavClick = (newPage: number) => {
-    if (isFlipping || newPage < 1 || newPage > binder.totalPages || newPage === currentPage) return;
-    onPageChange(newPage);
+  const handleDesktopNav = (direction: 'next' | 'prev') => {
+    if (isFlipping) return;
+    if (direction === 'next' && spreadIndex < totalSpreads - 1) {
+      const nextSpread = spreadIndex + 1;
+      const nextPage = nextSpread === 0 ? 1 : nextSpread * 2;
+      triggerFlip('next', nextSpread, nextPage);
+    } else if (direction === 'prev' && spreadIndex > 0) {
+      const prevSpread = spreadIndex - 1;
+      const prevPage = prevSpread === 0 ? 1 : prevSpread * 2;
+      triggerFlip('prev', prevSpread, prevPage);
+    }
+  };
+
+  const handleMobileNav = (direction: 'next' | 'prev') => {
+    if (isFlipping) return;
+    if (direction === 'next' && displayPage < binder.totalPages) {
+      const nextPage = displayPage + 1;
+      triggerFlip('next', Math.floor(nextPage / 2), nextPage);
+    } else if (direction === 'prev' && displayPage > 1) {
+      const prevPage = displayPage - 1;
+      triggerFlip('prev', Math.floor(prevPage / 2), prevPage);
+    }
   };
 
   // Touch gesture listeners for mobile swipe
@@ -96,7 +125,6 @@ export default function InteractiveBinder3D({
     const deltaX = Math.abs(currentX - touchStartXRef.current);
     const deltaY = Math.abs(currentY - touchStartYRef.current);
 
-    // Disambiguate horizontal swipe from vertical scrolling
     if (isHorizontalSwipeRef.current === null && (deltaX > 8 || deltaY > 8)) {
       isHorizontalSwipeRef.current = deltaX > deltaY * 1.15;
     }
@@ -107,16 +135,17 @@ export default function InteractiveBinder3D({
     const touchEndX = e.changedTouches[0].clientX;
     const deltaX = touchEndX - touchStartXRef.current;
 
-    // Minimum swipe threshold of 45px
-    if (deltaX < -45 && currentPage < binder.totalPages) {
-      handleNavClick(currentPage + 1);
-    } else if (deltaX > 45 && currentPage > 1) {
-      handleNavClick(currentPage - 1);
+    if (deltaX < -45) {
+      // Swiped Left -> Next
+      handleMobileNav('next');
+    } else if (deltaX > 45) {
+      // Swiped Right -> Prev
+      handleMobileNav('prev');
     }
     isHorizontalSwipeRef.current = null;
   };
 
-  // Helper to check if a card matches search/price filter (In-place Dimming)
+  // In-place Dimming filter match helper
   const isCardMatch = (card: PokemonCard | undefined) => {
     if (!card) return true;
     if (hideSold && card.status === 'SOLD') return false;
@@ -149,13 +178,13 @@ export default function InteractiveBinder3D({
   const isFilteringActive =
     searchQuery.trim().length > 0 || priceFilter !== 'all' || hideSold;
 
-  // Render slots for a specific page number
+  // Render Slots with 100% Consistent Dimensions Across All Rows & Pages
   const renderSlotsForPage = (pageNumber: number) => {
     const startSlot = (pageNumber - 1) * pocketsPerPage + 1;
 
     return (
       <div
-        className={`grid gap-2.5 sm:gap-3.5 ${
+        className={`grid gap-2 sm:gap-2.5 ${
           binder.layoutType === '4-pocket'
             ? 'grid-cols-2'
             : binder.layoutType === '12-pocket'
@@ -167,16 +196,32 @@ export default function InteractiveBinder3D({
           const slotNum = startSlot + i;
           const card = binder.slots ? binder.slots[slotNum] : undefined;
 
+          // EMPTY SLOT: Structured with the EXACT SAME heights and ratios as filled slots
           if (!card) {
             return (
               <div
                 key={slotNum}
-                className="bg-[#EAE3D8]/40 border-2 border-dashed border-[#D5CABE] rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center text-center min-h-[220px] sm:min-h-[250px] opacity-50"
+                className="bg-[#EAE3D8]/30 border-2 border-dashed border-[#D5CABE] rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between select-none opacity-45"
               >
-                <span className="font-pixelify px-2 py-0.5 rounded bg-[#FAF6F0] border border-[#D5CABE] text-[9px] font-bold text-[#8C7E6D] mb-1">
-                  SLOT #{slotNum}
-                </span>
-                <span className="font-mono-clean text-[10px] text-[#8C7E6D]">Saku Kosong</span>
+                {/* Slot Header */}
+                <div className="flex items-center justify-between mb-1 flex-shrink-0">
+                  <span className="font-pixelify px-1.5 py-0.5 rounded bg-[#FAF6F0] border border-[#D5CABE] text-[9px] font-bold text-[#8C7E6D]">
+                    #{slotNum}
+                  </span>
+                  <span className="font-pixelify text-[8px] font-bold text-[#A89A88]">
+                    KOSONG
+                  </span>
+                </div>
+
+                {/* Empty Pocket Sleeve with exact aspect-[3/4] ratio */}
+                <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden bg-[#E2D9CC]/30 border border-dashed border-[#D5CABE] mb-1 flex flex-col items-center justify-center text-center">
+                  <span className="font-pixelify text-xs font-bold text-[#B0A290]">#</span>
+                </div>
+
+                {/* Empty Meta matching filled card's bottom bar height */}
+                <div className="pt-1 border-t border-dashed border-[#D5CABE] flex-shrink-0 flex items-center justify-center text-[9px] font-pixelify text-[#8C7E6D] h-7">
+                  Saku Kosong
+                </div>
               </div>
             );
           }
@@ -185,25 +230,26 @@ export default function InteractiveBinder3D({
           const matchesFilter = isCardMatch(card);
           const isDimmed = isFilteringActive && !matchesFilter;
 
+          // FILLED SLOT CARD
           return (
             <div
               key={slotNum}
               onClick={() => {
                 if (!isDimmed) onSelectCard(slotNum, card);
               }}
-              className={`bg-white border-2 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between transition-all duration-200 relative overflow-hidden group shadow-xs hover:shadow-md select-none ${
+              className={`bg-white border-2 rounded-2xl p-1.5 sm:p-2 flex flex-col justify-between transition-all duration-200 relative overflow-hidden group shadow-2xs hover:shadow-md select-none ${
                 isDimmed
                   ? 'opacity-30 grayscale pointer-events-none scale-[0.98]'
                   : isFilteringActive
-                  ? 'ring-2 ring-[#E05A47] border-[#E05A47] shadow-sm'
+                  ? 'ring-2 ring-[#E05A47] border-[#E05A47] shadow-xs'
                   : inCart
                   ? 'border-[#E05A47] ring-2 ring-[#E05A47]/30'
                   : 'border-[#D5CABE] hover:border-[#B5A593] cursor-pointer'
               }`}
             >
               {/* Slot Header */}
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-pixelify px-1.5 py-0.5 rounded bg-[#EAE3D8] text-[9px] sm:text-[10px] font-bold text-[#4A3E31]">
+              <div className="flex items-center justify-between mb-1 flex-shrink-0">
+                <span className="font-pixelify px-1.5 py-0.5 rounded bg-[#EAE3D8] text-[9px] font-bold text-[#4A3E31]">
                   #{slotNum}
                 </span>
 
@@ -214,7 +260,7 @@ export default function InteractiveBinder3D({
                     </span>
                   )}
                   <span
-                    className={`font-pixelify text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                    className={`font-pixelify text-[8px] font-bold px-1.5 py-0.5 rounded ${
                       card.status === 'AVAILABLE'
                         ? 'bg-emerald-100 text-emerald-800'
                         : card.status === 'SOLD'
@@ -227,8 +273,8 @@ export default function InteractiveBinder3D({
                 </div>
               </div>
 
-              {/* Card Pocket Sleeve with Authentic Reflection Glare */}
-              <div className="pocket-reflection relative aspect-[3/4] max-h-40 sm:max-h-48 w-full rounded-xl overflow-hidden bg-[#E2D9CC] mx-auto shadow-inner mb-1.5 border border-[#D5CABE]">
+              {/* Card Pocket Sleeve with maximum artwork clarity and exact aspect-[3/4] */}
+              <div className="pocket-reflection relative aspect-[3/4] w-full rounded-xl overflow-hidden bg-[#F2EDE4] mx-auto shadow-inner mb-1 border border-[#D5CABE] flex items-center justify-center">
                 {card.imageUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -236,7 +282,7 @@ export default function InteractiveBinder3D({
                       src={formatCardImageUrl(card.imageUrl)}
                       alt={card.name}
                       loading="lazy"
-                      className="w-full h-full object-contain p-1 transition-transform group-hover:scale-105 duration-200"
+                      className="w-full h-full object-contain p-0.5 transition-transform group-hover:scale-105 duration-200"
                     />
                     <button
                       type="button"
@@ -244,10 +290,10 @@ export default function InteractiveBinder3D({
                         e.stopPropagation();
                         onZoomCard(slotNum, card);
                       }}
-                      className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                       title="Zoom Kartu"
                     >
-                      <ZoomIn className="w-3.5 h-3.5" />
+                      <ZoomIn className="w-3 h-3" />
                     </button>
                   </>
                 ) : (
@@ -265,13 +311,16 @@ export default function InteractiveBinder3D({
                 )}
               </div>
 
-              {/* Card Meta & Price */}
-              <div className="space-y-0.5 pt-1 border-t border-[#EAE3D8]">
-                <div className="font-pixelify text-[10px] sm:text-xs font-bold text-[#1E293B] truncate leading-tight">
+              {/* Meta & Price with Consistent Height */}
+              <div className="space-y-0.5 pt-1 border-t border-[#EAE3D8] flex-shrink-0 h-7 flex flex-col justify-center">
+                <div
+                  className="font-pixelify text-[10px] sm:text-[11px] font-bold text-[#1E293B] truncate leading-tight"
+                  title={card.name}
+                >
                   {formatCardDisplayName(card.name, card.cardNumber, card.setName, card.game)}
                 </div>
-                <div className="flex items-center justify-between text-[9px] text-[#7A6B58]">
-                  <span className="truncate max-w-[90px]">{card.condition}</span>
+                <div className="flex items-center justify-between text-[9px] text-[#7A6B58] leading-none">
+                  <span className="truncate max-w-[80px] sm:max-w-[95px]">{card.condition}</span>
                   <span className="font-pixelify font-bold text-[#2E7D32] text-[10px] sm:text-[11px]">
                     {formatCurrency(card.price, currency)}
                   </span>
@@ -284,51 +333,142 @@ export default function InteractiveBinder3D({
     );
   };
 
-  // Visual Binder Ring Element
-  const renderBinderRings = () => (
-    <div className="flex flex-col justify-around items-center py-6 px-1 h-full select-none pointer-events-none">
-      {[1, 2, 3].map((ring) => (
-        <div key={ring} className="relative flex items-center justify-center my-4">
-          {/* Outer ring curve */}
-          <div className="w-4 sm:w-5 h-12 sm:h-14 rounded-full border-4 border-slate-300 bg-gradient-to-r from-slate-400 via-white to-slate-400 shadow-md transform -rotate-2"></div>
-          {/* Inner ring core */}
-          <div className="absolute w-2 h-8 rounded-full bg-slate-700/30"></div>
-          {/* Paper punch hole left */}
-          <div className="absolute -left-2 w-2.5 h-2.5 rounded-full bg-neutral-800 shadow-inner"></div>
-          {/* Paper punch hole right */}
-          <div className="absolute -right-2 w-2.5 h-2.5 rounded-full bg-neutral-800 shadow-inner hidden md:block"></div>
+  // Inside Front Cover (Sebelah kiri halaman 1 di dunia nyata)
+  const renderInsideFrontCover = () => (
+    <div className="h-full flex flex-col justify-between p-4 sm:p-5 bg-[#FAF6F0]/95 rounded-l-2xl rounded-r-sm border border-[#D5CABE] shadow-inner relative overflow-hidden select-none">
+      {/* Decorative Inner Stitched Border */}
+      <div className="absolute inset-2 rounded-xl border border-dashed border-[#C5B8A5] pointer-events-none"></div>
+
+      {/* Top Header of Inside Cover */}
+      <div className="relative z-10 text-center pt-2">
+        <div
+          className="w-13 h-13 rounded-2xl mx-auto flex items-center justify-center text-white shadow-md border-2 border-white/80 mb-2"
+          style={{ backgroundColor: binder.coverColor || '#E05A47' }}
+        >
+          <BookOpen className="w-6 h-6" />
         </div>
-      ))}
+        <div className="inline-block px-2.5 py-0.5 rounded-full bg-[#EAE3D8] border border-[#D5CABE] font-pixelify text-[10px] font-bold text-[#7A6B58] uppercase tracking-wider mb-1">
+          {binder.badge || 'Koleksi Meja Stand'}
+        </div>
+        <h3 className="font-pixelify text-base sm:text-lg font-bold text-[#1E293B] leading-tight">
+          {binder.name}
+        </h3>
+        <p className="text-xs text-[#7A6B58] mt-0.5 font-medium">
+          {binder.sellerName} • <span className="font-bold text-[#E05A47]">{binder.boothName || 'Stand Seller'}</span>
+        </p>
+      </div>
+
+      {/* Middle: Clear Sleeve Pocket with Seller Slip / Info */}
+      <div className="relative z-10 my-3 p-3.5 rounded-2xl bg-white border-2 border-[#D5CABE] shadow-2xs space-y-2">
+        <div className="flex items-center justify-between pb-1.5 border-b border-[#EAE3D8] font-pixelify text-[11px] font-bold text-[#4A3E31]">
+          <span>INFORMASI BINDER</span>
+          <span className="text-[#E05A47]">{binder.totalPages} Halaman Fisik</span>
+        </div>
+        <p className="text-xs text-[#5D4E3E] leading-relaxed">
+          {binder.description ||
+            'Koleksi kartu siap deal di meja stand. Periksa saku kartu di sebelah kanan (Halaman 1) untuk mulai melihat kartu.'}
+        </p>
+        <div className="pt-1 flex items-center gap-1.5 text-[10px] font-pixelify text-[#7A6B58]">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Tap kartu di sebelah kanan untuk tambah ke keranjang</span>
+        </div>
+      </div>
+
+      {/* Bottom: Guide pointing to Page 1 */}
+      <div className="relative z-10 text-center pb-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#EAE3D8] border border-[#D5CABE] font-pixelify text-xs font-bold text-[#1E293B]">
+          <span>Mulai dari Halaman 1</span>
+          <span className="text-base text-[#E05A47]">👉</span>
+        </div>
+      </div>
     </div>
   );
 
+  // Inside Back Cover (Jika binder berakhir di halaman genap)
+  const renderInsideBackCover = () => (
+    <div className="h-full flex flex-col items-center justify-center p-6 bg-[#FAF6F0]/95 rounded-r-2xl rounded-l-sm border border-[#D5CABE] text-center shadow-inner relative overflow-hidden select-none">
+      <div className="absolute inset-2 rounded-xl border border-dashed border-[#C5B8A5] pointer-events-none"></div>
+      <div className="relative z-10 space-y-3 max-w-xs">
+        <div className="w-13 h-13 rounded-2xl bg-[#E05A47]/10 text-[#E05A47] flex items-center justify-center mx-auto shadow-2xs border border-[#E05A47]/20">
+          <Sparkles className="w-6 h-6" />
+        </div>
+        <h4 className="font-pixelify text-base font-bold text-[#1E293B]">
+          AKHIR DARI BINDER
+        </h4>
+        <p className="text-xs text-[#7A6B58] leading-relaxed">
+          Anda telah melihat seluruh saku kartu di binder ini. Tunjukkan pesanan Anda ke penjual di meja untuk periksa fisik kartu!
+        </p>
+      </div>
+    </div>
+  );
+
+  // Desktop Page Calculations for Spread
+  const leftPageNum = spreadIndex === 0 ? null : spreadIndex * 2;
+  const rightPageNum =
+    spreadIndex === 0
+      ? 1
+      : spreadIndex * 2 + 1 <= binder.totalPages
+      ? spreadIndex * 2 + 1
+      : null;
+
   return (
     <div className="space-y-3">
-      {/* Page Navigation & Flip Status Bar */}
+      {/* Top Navigator Status Bar */}
       <div className="flex items-center justify-between bg-[#FAF6F0] border-2 border-[#E5DACB] rounded-2xl p-2.5 shadow-xs">
+        {/* Previous Button */}
         <button
           type="button"
-          onClick={() => handleNavClick(currentPage - 1)}
-          disabled={currentPage === 1 || isFlipping}
+          onClick={() => {
+            handleDesktopNav('prev');
+            handleMobileNav('prev');
+          }}
+          disabled={spreadIndex === 0 && displayPage <= 1 || isFlipping}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#F5EFE6] disabled:opacity-35 font-pixelify text-xs font-bold text-[#1E293B] transition-all cursor-pointer shadow-2xs active:scale-95"
         >
           <ChevronLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Hal. Sebelumnya</span>
         </button>
 
+        {/* Status Text (Desktop vs Mobile) */}
         <div className="text-center">
-          <span className="font-pixelify text-xs sm:text-sm font-bold text-[#1E293B]">
-            HALAMAN {currentPage} / {binder.totalPages}
-          </span>
-          <span className="font-mono-clean text-[10px] text-[#7A6B58] block">
-            (Slot #{(currentPage - 1) * pocketsPerPage + 1} - #{Math.min(currentPage * pocketsPerPage, binder.totalPages * pocketsPerPage)})
-          </span>
+          {/* Desktop Spread Indicator */}
+          <div className="hidden md:block">
+            <span className="font-pixelify text-xs sm:text-sm font-bold text-[#1E293B]">
+              {spreadIndex === 0
+                ? 'COVER DEPAN • HALAMAN 1'
+                : rightPageNum
+                ? `HALAMAN ${leftPageNum} • HALAMAN ${rightPageNum}`
+                : `HALAMAN ${leftPageNum} • COVER BELAKANG`}
+            </span>
+            <span className="font-mono-clean text-[10px] text-[#7A6B58] block">
+              {spreadIndex === 0
+                ? `Slot #1 - #${Math.min(pocketsPerPage, binder.totalPages * pocketsPerPage)}`
+                : `Slot #${((leftPageNum || 1) - 1) * pocketsPerPage + 1} - #${Math.min(
+                    (rightPageNum || leftPageNum || 1) * pocketsPerPage,
+                    binder.totalPages * pocketsPerPage
+                  )}`}
+            </span>
+          </div>
+
+          {/* Mobile Single Page Indicator */}
+          <div className="md:hidden">
+            <span className="font-pixelify text-xs sm:text-sm font-bold text-[#1E293B]">
+              HALAMAN {displayPage} / {binder.totalPages}
+            </span>
+            <span className="font-mono-clean text-[10px] text-[#7A6B58] block">
+              (Slot #{(displayPage - 1) * pocketsPerPage + 1} - #{Math.min(displayPage * pocketsPerPage, binder.totalPages * pocketsPerPage)})
+            </span>
+          </div>
         </div>
 
+        {/* Next Button */}
         <button
           type="button"
-          onClick={() => handleNavClick(currentPage + 1)}
-          disabled={currentPage === binder.totalPages || isFlipping}
+          onClick={() => {
+            handleDesktopNav('next');
+            handleMobileNav('next');
+          }}
+          disabled={spreadIndex >= totalSpreads - 1 && displayPage >= binder.totalPages || isFlipping}
           className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-[#D5CABE] hover:bg-[#F5EFE6] disabled:opacity-35 font-pixelify text-xs font-bold text-[#1E293B] transition-all cursor-pointer shadow-2xs active:scale-95"
         >
           <span className="hidden sm:inline">Hal. Berikutnya</span>
@@ -341,34 +481,31 @@ export default function InteractiveBinder3D({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="relative rounded-3xl p-2 sm:p-4 shadow-xl border-4 border-black/10 transition-all select-none overflow-hidden"
+        className="relative rounded-3xl p-2 sm:p-4 shadow-xl border-4 border-black/15 transition-all select-none overflow-hidden"
         style={{
           backgroundColor: binder.coverColor || '#963C30',
           backgroundImage: 'radial-gradient(rgba(0,0,0,0.12) 1px, transparent 1px)',
           backgroundSize: '12px 12px',
         }}
       >
-        {/* Leather Stitched Border Effect */}
-        <div className="absolute inset-1 rounded-[22px] border-2 border-dashed border-white/20 pointer-events-none"></div>
+        {/* Leather Stitched Border Effect Around Album */}
+        <div className="absolute inset-1 rounded-[22px] border-2 border-dashed border-black/40 pointer-events-none"></div>
 
         {/* 3D Perspective Stage */}
         <div
-          className="relative min-h-[460px] sm:min-h-[520px] rounded-2xl bg-[#EAE3D8] border border-[#D5CABE] p-2 sm:p-3.5 shadow-inner"
+          className="relative min-h-[460px] sm:min-h-[520px] rounded-2xl bg-[#E2D8C9] border border-[#C5B8A5] p-2 sm:p-3 shadow-inner"
           style={{ perspective: '1400px' }}
         >
-          {/* MOBILE VIEW: Single Sleeve Page (< 768px) */}
+          {/* MOBILE VIEW: Single Sleeve Page (< 768px) with Stitched Left Seam */}
           <div className="md:hidden flex">
-            {/* Left Ring Holes Bar */}
-            <div className="w-6 flex-shrink-0 flex flex-col justify-around items-center py-8">
-              {[1, 2, 3].map((ring) => (
-                <div key={ring} className="relative flex items-center justify-center">
-                  <div className="w-3.5 h-10 rounded-full border-2 border-slate-400 bg-gradient-to-r from-slate-400 via-white to-slate-400 shadow-sm"></div>
-                  <div className="absolute -right-1 w-2 h-2 rounded-full bg-neutral-800"></div>
-                </div>
+            {/* Left Edge Stitched Seam (No metal rings!) */}
+            <div className="w-3.5 flex-shrink-0 bg-black/15 border-r-2 border-dashed border-black/40 flex flex-col justify-around items-center py-6">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="w-1.5 h-1 bg-black/50 rounded-full"></div>
               ))}
             </div>
 
-            {/* Flipping 3D Sheet Container */}
+            {/* Mobile 3D Sheet Flip Container */}
             <div
               className={`flex-1 transition-all duration-400 ease-out origin-left ${
                 isFlipping
@@ -379,35 +516,46 @@ export default function InteractiveBinder3D({
               }`}
               style={{ transformStyle: 'preserve-3d' }}
             >
-              <div className="bg-[#FAF6F0] rounded-xl p-2 sm:p-3 border border-[#D5CABE] shadow-sm">
+              <div className="bg-[#FAF6F0] rounded-xl p-2 sm:p-2.5 border border-[#D5CABE] shadow-sm">
                 {renderSlotsForPage(displayPage)}
               </div>
             </div>
           </div>
 
           {/* DESKTOP VIEW: Open 2-Page Spread (≥ 768px) */}
-          <div className="hidden md:flex items-stretch gap-2">
-            {/* Left Page (Current Page) */}
-            <div className="flex-1 bg-[#FAF6F0] rounded-l-2xl rounded-r-sm p-3.5 border border-[#D5CABE] shadow-xs relative">
-              <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-[#EAE3D8]">
-                <span className="font-pixelify text-xs font-bold text-[#7A6B58]">
-                  HALAMAN {displayPage}
-                </span>
-                <span className="font-mono-clean text-[10px] text-[#A89A88]">
-                  SLOT #{(displayPage - 1) * pocketsPerPage + 1} - #{displayPage * pocketsPerPage}
-                </span>
+          <div className="hidden md:flex items-stretch gap-0">
+            {/* Left Side: Inside Front Cover on Spread 0, OR Page leftPageNum on Spread > 0 */}
+            <div className="flex-1 bg-[#FAF6F0] rounded-l-2xl rounded-r-xs p-3 border border-[#D5CABE] shadow-xs relative flex flex-col">
+              {spreadIndex === 0 ? (
+                renderInsideFrontCover()
+              ) : leftPageNum ? (
+                <>
+                  <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-[#EAE3D8]">
+                    <span className="font-pixelify text-xs font-bold text-[#7A6B58]">
+                      HALAMAN {leftPageNum}
+                    </span>
+                    <span className="font-mono-clean text-[10px] text-[#A89A88]">
+                      SLOT #{(leftPageNum - 1) * pocketsPerPage + 1} - #{leftPageNum * pocketsPerPage}
+                    </span>
+                  </div>
+                  {renderSlotsForPage(leftPageNum)}
+                </>
+              ) : null}
+            </div>
+
+            {/* Center Spine with Black Stitched Seam Divider (NO RINGS!) */}
+            <div className="w-5 sm:w-6 bg-[#2B1E14] flex flex-col items-center justify-center py-4 relative shadow-inner">
+              <div className="h-full w-0.5 border-r-2 border-dashed border-black/60"></div>
+              <div className="absolute inset-y-0 w-full flex flex-col justify-around items-center py-4 pointer-events-none">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="w-2.5 h-1 bg-black/60 rounded-full"></div>
+                ))}
               </div>
-              {renderSlotsForPage(displayPage)}
             </div>
 
-            {/* Center Spine with Metal Rings */}
-            <div className="w-10 bg-[#3D2C1E] rounded-md shadow-inner flex items-center justify-center relative">
-              {renderBinderRings()}
-            </div>
-
-            {/* Right Page (Next Page or End Cover) */}
+            {/* Right Side: Page 1 on Spread 0, OR Page rightPageNum / Inside Back Cover on Spread > 0 */}
             <div
-              className={`flex-1 bg-[#FAF6F0] rounded-r-2xl rounded-l-sm p-3.5 border border-[#D5CABE] shadow-xs relative origin-left transition-all duration-400 ${
+              className={`flex-1 bg-[#FAF6F0] rounded-r-2xl rounded-l-xs p-3 border border-[#D5CABE] shadow-xs relative origin-left transition-all duration-400 flex flex-col ${
                 isFlipping
                   ? flipDirection === 'next'
                     ? 'rotate-y-[-70deg] opacity-60 shadow-2xl'
@@ -416,30 +564,20 @@ export default function InteractiveBinder3D({
               }`}
               style={{ transformStyle: 'preserve-3d' }}
             >
-              {displayPage < binder.totalPages ? (
+              {rightPageNum ? (
                 <>
                   <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-[#EAE3D8]">
                     <span className="font-pixelify text-xs font-bold text-[#7A6B58]">
-                      HALAMAN {displayPage + 1}
+                      HALAMAN {rightPageNum}
                     </span>
                     <span className="font-mono-clean text-[10px] text-[#A89A88]">
-                      SLOT #{displayPage * pocketsPerPage + 1} - #{Math.min((displayPage + 1) * pocketsPerPage, binder.totalPages * pocketsPerPage)}
+                      SLOT #{(rightPageNum - 1) * pocketsPerPage + 1} - #{Math.min(rightPageNum * pocketsPerPage, binder.totalPages * pocketsPerPage)}
                     </span>
                   </div>
-                  {renderSlotsForPage(displayPage + 1)}
+                  {renderSlotsForPage(rightPageNum)}
                 </>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[#FAF6F0]/80 rounded-xl border border-dashed border-[#D5CABE]">
-                  <div className="w-14 h-14 rounded-2xl bg-[#E05A47]/10 text-[#E05A47] flex items-center justify-center mb-3">
-                    <Sparkles className="w-7 h-7" />
-                  </div>
-                  <h4 className="font-pixelify text-sm font-bold text-[#1E293B] mb-1">
-                    AKHIR DARI BINDER
-                  </h4>
-                  <p className="text-xs text-[#7A6B58] max-w-xs leading-relaxed">
-                    Anda telah menjelajahi seluruh koleksi kartu di binder ini.
-                  </p>
-                </div>
+                renderInsideBackCover()
               )}
             </div>
           </div>
