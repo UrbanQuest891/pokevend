@@ -106,3 +106,13 @@ Mengubah antarmuka katalog binder pembeli (`/b/[id]`) agar menyerupai binder kar
 ## 6. What's Left to the Builder
 - Menyesuaikan pembagian slot ganda pada mode Desktop 2-page spread agar transisi antar halaman genap/ganjil berjalan mulus.
 - Menjaga tampilan grid biasa (mode "Semua/Grid") tetap tersedia jika pembeli ingin melihat semua kartu sekaligus dalam bentuk daftar biasa.
+
+---
+
+## 7. Builder Check Resolution
+
+1. **Kapasitas Saku per Lembar:**  
+   Tetap konsisten mengikuti tipe binder seller di database (`binder.layoutType`: 4, 9, atau 12 saku). Hal ini memastikan Halaman 1 di HP selalu 100% sama dengan Halaman 1 di binder fisik meja stand.
+2. **Perilaku Pencarian & Filter di Mode 3D Binder:**  
+   *In-Place Dimming / Highlight*: Ketika pembeli mengetik pencarian atau memfilter harga, nomor slot dan nomor halaman fisik tetap di tempatnya (tidak diacak/dirombak). Kartu yang cocok akan tetap menyala terang, sedangkan kartu yang tidak cocok dibuat redup (*semi-transparent grayscale*). Dengan demikian, pembeli saat membalik halaman fisik binder tetap bisa menunjuk: *"Mas, saya mau kartu di Hal. 2 Slot #14"*. Jika pembeli ingin melihat daftar kartu cocok saja secara ringkas, mereka dapat berpindah ke tab mode "Semua / Grid".
+
